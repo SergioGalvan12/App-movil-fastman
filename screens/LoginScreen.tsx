@@ -2,16 +2,22 @@ import Reac, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import CustomCheckbox from '../components/CustomCheckbox';
 
+type LoginScreenProps = {
+    onLogin: (user: string, pass: string) => void;
+  };
 
-export default function LoginScreen() {
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
+export default function LoginScreen({ onLogin }: LoginScreenProps) {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
     const [rememberMe, setRememberMe] = useState(false);
 
+    // funcion que manejara la logica del login
     const handleLogin = () => {
+        onLogin(username, password);
+
         // Aquí puedes manejar la lógica de inicio de sesión
         console.log('Iniciar sesión con:', { username, password, rememberMe });
-        alert('Usuario: ${username}\nContraseña: ${password}\nRecordar: ${rememberMe}');
+        alert(`Usuario: ${username}\nContraseña: ${password}\nRecordar: ${rememberMe}`);
     }
 
     return (
@@ -40,7 +46,7 @@ export default function LoginScreen() {
             />
 
             <TouchableOpacity style={styles.button}>
-                <Text style={styles.buttonText}>Iniciar sesión</Text>
+                <Text style={styles.buttonText} onPress={handleLogin}>Iniciar sesión</Text>
             </TouchableOpacity>
 
             <View style={styles.checkboxContainer}>
@@ -73,8 +79,8 @@ const styles = StyleSheet.create({
         width: 300,
         height: 200,
         resizeMode: 'contain',
-        marginTop: 150,
-        marginBottom: 30,
+        marginTop: 50,
+        marginBottom: 20,
     },
     title: {
         fontSize: 22,
@@ -105,7 +111,7 @@ const styles = StyleSheet.create({
         paddingVertical: 14,
         borderRadius: 8,
         alignItems: 'center',
-        marginBottom: 130,
+        marginBottom: 20,
     },
     buttonText: {
         color: '#FFF',
