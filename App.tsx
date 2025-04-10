@@ -1,29 +1,41 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import LoginScreen from './screens/LoginScreen';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import DomainScreen from './screens/Inicio/DomainScreen';
+import UserScreen from './screens/Inicio/UserScreen';
+import PasswordScreen from './screens/Inicio/PasswordScreen';
+import ReportesScreen from './screens/ReportesScreen';
 import BottomTabNavigator from './navigation/BottomTabNavigator';
 
+
+// Definir los tipos para los parámetros de navegación
+export type AuthStackParamList = {
+  Domain: undefined;
+  User: { domain: string };
+  Password: { domain: string; username: string };
+  Main: undefined;
+  Reportes: undefined;
+  // Añade aquí otras rutas si es necesario
+};
+
+const Stack = createNativeStackNavigator<AuthStackParamList>();
+
 export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  const handleLogin = (user: string, pass: string) => {
-    // Simula login:
-    if (user === 'test' && pass === '123') {
-      setIsLoggedIn(true);
-    } else {
-      alert('Credenciales inválidas');
-    }
-  };
-
   return (
     <NavigationContainer>
-      {isLoggedIn ? (
-        <BottomTabNavigator />
-      ) : (
-        <LoginScreen onLogin={handleLogin} />
-      )}
+      <Stack.Navigator 
+        id={undefined}
+        screenOptions={{ 
+          headerShown: false,
+          contentStyle: { backgroundColor: '#EFF0FA' }
+        }}
+      >
+        <Stack.Screen name="Domain" component={DomainScreen} />
+        <Stack.Screen name="User" component={UserScreen} />
+        <Stack.Screen name="Password" component={PasswordScreen} />
+        <Stack.Screen name="Reportes" component={ReportesScreen} />
+        <Stack.Screen name="Main" component={BottomTabNavigator} />
+      </Stack.Navigator>
     </NavigationContainer>
   );
 }
-
-
