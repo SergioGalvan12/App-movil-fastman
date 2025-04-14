@@ -1,7 +1,7 @@
 // src/screens/ReportesScreen.tsx
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import MenuItem from '../components/MenuItem';
+import MenuItem from '../../components/common/MenuItem';
 import { useNavigation } from '@react-navigation/native';
 
 export default function ReportesScreen() {

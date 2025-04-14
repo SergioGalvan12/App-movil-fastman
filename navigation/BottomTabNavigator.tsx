@@ -3,9 +3,9 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons'; // librería de íconos 
 
 // Importa tus pantallas:
-import DashboardScreen from '../screens/DashboardScreen';
-import ReportesScreen from '../screens/ReportesScreen';
-import NotificacionesScreen from '../screens/NotificacionesScreen';
+import DashboardScreen from '../screens/dashboard/DashboardScreen';
+import ReportesScreen from '../screens/reports/ReportesScreen';
+import NotificacionesScreen from '../screens/notification/NotificacionesScreen';
 
 const Tab = createBottomTabNavigator();
 

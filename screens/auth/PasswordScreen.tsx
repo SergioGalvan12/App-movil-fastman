@@ -3,7 +3,7 @@ import { View, Text, TextInput, StyleSheet, Image, TouchableOpacity, ActivityInd
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { AuthStackParamList } from '../../App';
-import CustomCheckbox from '../../components/CustomCheckbox';
+import CustomCheckbox from '../../components/common/CustomCheckbox';
 import { login } from '../../services/api';
 
 type PasswordScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Password'>;

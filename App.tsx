@@ -1,10 +1,10 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import DomainScreen from './screens/Inicio/DomainScreen';
-import UserScreen from './screens/Inicio/UserScreen';
-import PasswordScreen from './screens/Inicio/PasswordScreen';
-import ReportesScreen from './screens/ReportesScreen';
+import DomainScreen from './screens/auth/DomainScreen';
+import UserScreen from './screens/auth/UserScreen';
+import PasswordScreen from './screens/auth/PasswordScreen';
+import ReportesScreen from './screens/reports/ReportesScreen';
 import BottomTabNavigator from './navigation/BottomTabNavigator';
 
 
