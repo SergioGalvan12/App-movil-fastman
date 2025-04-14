@@ -5,8 +5,6 @@ import { View, Text, TextInput, StyleSheet, Image, TouchableOpacity, ActivityInd
 import { StackNavigationProp } from '@react-navigation/stack';
 import { AuthStackParamList } from '../../App';
 import { checkDomain } from '../../services/authService';
-import axios from 'axios';
-
 
 type DomainScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Domain'>;
 

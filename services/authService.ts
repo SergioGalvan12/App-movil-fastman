@@ -1,4 +1,5 @@
-import apiClient from './apiClient';
+//services/authService.ts
+import apiClient, { ApiResponse } from './apiClient';
 
 // Interfaces para los datos de autenticación
 interface UserCompany {
@@ -17,6 +18,12 @@ interface LoginResponse {
     };
 }
 
+// Definimos una interfaz extendida para la respuesta de checkUser
+export type CheckUserResponse = ApiResponse<UserCompany[]> & {
+  empresaId?: number;
+  empresaNombre?: string;
+};
+
 // Verificar si el dominio existe
 export const checkDomain = async (domain: string) => {
     apiClient.setDomain(domain);
@@ -24,7 +31,7 @@ export const checkDomain = async (domain: string) => {
 };
 
 // Verificar si el usuario existe y obtener sus empresas
-export const checkUser = async (username: string) => {
+export const checkUser = async (username: string): Promise<CheckUserResponse> => {
     const response = await apiClient.post<UserCompany[]>('user-companies-list/', { username });
     
     if (response.success && response.data && response.data.length > 0) {
@@ -34,32 +41,24 @@ export const checkUser = async (username: string) => {
         empresaNombre: response.data[0]?.nombre_empresa
       };
     }
-    
     return response;
   };
 
-  // Iniciar sesión con usuario y contraseña
+// Iniciar sesión con usuario y contraseña
 export const login = async (empresaId: number, username: string, password: string) => {
-    const response = await apiClient.post<LoginResponse>('login/', {
-      username,
-      password,
-      id_empresa: empresaId
-    });
-    if (response.success && response.data?.access) {
-        // Guardamos el token para futuras peticiones
-        apiClient.setAuthToken(response.data.access);
-      }
-      
-      return response;
-    };
-    
-    // Cerrar sesión
-    export const logout = () => {
-      apiClient.clearAuthToken();
-    };
+  const response = await apiClient.post<LoginResponse>('login/', {
+    username,
+    password,
+    id_empresa: empresaId
+  });
+  if (response.success && response.data?.access) {
+    // Guardamos el token para futuras peticiones
+    apiClient.setAuthToken(response.data.access);
+  }
+  return response;
+};
 
-
-
-
-
-
+// Cerrar sesión
+export const logout = () => {
+  apiClient.clearAuthToken();
+};

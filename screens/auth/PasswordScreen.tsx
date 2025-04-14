@@ -4,7 +4,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { AuthStackParamList } from '../../App';
 import CustomCheckbox from '../../components/common/CustomCheckbox';
-import { login } from '../../services/api';
+import { login } from '../../services/authService';
 
 type PasswordScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Password'>;
 type PasswordScreenRouteProp = RouteProp<AuthStackParamList, 'Password'>;
@@ -49,7 +49,8 @@ export default function PasswordScreen({ navigation, route }: Props) {
         [{ text: 'OK', onPress: () => console.log('OK Pressed') }]
       );
       
-      const result = await login(domain, empresaIdNum, username, password);
+      // Llamamos a la función login de authService
+      const result = await login(empresaIdNum, username, password);
       console.warn('Resultado login:', result);
   
       if (result.success) {
