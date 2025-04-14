@@ -1,3 +1,5 @@
+//services/api.ts
+// Este archivo contiene las funciones para interactuar con la API de Fastman
 import axios from 'axios';
 
 // Creamos una instancia de axios que podemos configurar

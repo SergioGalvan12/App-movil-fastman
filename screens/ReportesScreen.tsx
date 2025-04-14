@@ -1,3 +1,4 @@
+// src/screens/ReportesScreen.tsx
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import MenuItem from '../components/MenuItem';

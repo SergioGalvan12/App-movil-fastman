@@ -1,9 +1,12 @@
+// screens/Inicio/DomainScreen.tsx
+// Este archivo contiene la pantalla de inicio de sesión donde el usuario ingresa el dominio de su empresa.
 import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { AuthStackParamList } from '../../App';
-import { checkDomain } from '../../services/api';
+import { checkDomain } from '../../services/authService';
 import axios from 'axios';
+
 
 type DomainScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Domain'>;
 
@@ -34,24 +37,7 @@ const handleNext = async () => {
       // Si el dominio existe, navegamos a la pantalla de usuario
       navigation.navigate('User', { domain: domain.trim().toLowerCase(), username: '' });
     } else {
-      // Mensajes de error más específicos
-      if (result.error && axios.isAxiosError(result.error)) {
-        if (result.error.code === 'ECONNABORTED') {
-          setError('Tiempo de espera agotado. Verifica tu conexión a internet.');
-        } else if (result.error.response) {
-          if (result.error.response.status === 404) {
-            setError('El dominio no existe. Verifica que sea correcto.');
-          } else {
-            setError(`Error del servidor: ${result.error.response.status}`);
-          }
-        } else if (result.error.request) {
-          setError('No se pudo conectar al servidor. Verifica tu conexión a internet.');
-        } else {
-          setError('Error al verificar el dominio. Inténtalo de nuevo.');
-        }
-      } else {
-        setError('No se pudo conectar con el dominio especificado. Verifica que sea correcto.');
-      }
+      setError(result.error || 'Dominio no encontrado');
     }
   } catch (err) {
     setError('Ocurrió un error al verificar el dominio. Inténtalo de nuevo.');
