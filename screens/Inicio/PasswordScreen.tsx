@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Image, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { AuthStackParamList } from '../../App';
 import CustomCheckbox from '../../components/CustomCheckbox';
+import { login } from '../../services/api';
 
 type PasswordScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Password'>;
 type PasswordScreenRouteProp = RouteProp<AuthStackParamList, 'Password'>;
@@ -14,13 +15,81 @@ type Props = {
 };
 
 export default function PasswordScreen({ navigation, route }: Props) {
-  const { domain, username } = route.params;
+  const { domain, username, empresaId } = route.params;
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleLogin = () => {
-    // Navegar a la pantalla de Reportes después del login
-    navigation.navigate('Main');
+  const handleLogin = async () => {
+    if (!password.trim()) {
+      setError('Por favor ingresa tu contraseña');
+      return;
+    }
+  
+    setLoading(true);
+    setError('');
+  
+    try {
+      // Asegúrate de que empresaId sea un número
+      const empresaIdNum = typeof empresaId === 'number' ? empresaId : 1;
+      
+      // Mostrar los datos que se van a enviar
+      console.log('Datos de login:', {
+        domain,
+        empresaId: empresaIdNum,
+        username,
+        password: '***' // No mostrar la contraseña real en los logs
+      });
+      
+      // Mostrar alerta con los datos de la petición (excepto la contraseña)
+      Alert.alert(
+        'Datos de login',
+        `Domain: ${domain}\nEmpresaID: ${empresaIdNum}\nUsername: ${username}`,
+        [{ text: 'OK', onPress: () => console.log('OK Pressed') }]
+      );
+      
+      const result = await login(domain, empresaIdNum, username, password);
+      console.warn('Resultado login:', result);
+  
+      if (result.success) {
+        Alert.alert(
+          'Login exitoso',
+          'Has iniciado sesión correctamente',
+          [{ text: 'OK', onPress: () => navigation.navigate('Main') }]
+        );
+      } else {
+        // Asegúrate de que error sea una cadena de texto
+        const errorMessage = typeof result.error === 'string' 
+          ? result.error 
+          : 'Error desconocido al iniciar sesión';
+        
+        setError(errorMessage);
+        
+        Alert.alert(
+          'Error de login',
+          errorMessage,
+          [{ text: 'OK', onPress: () => console.log('Error OK Pressed') }]
+        );
+      }
+    } catch (err: any) {
+      console.error('Error al hacer login:', err);
+  
+      // Asegúrate de que el mensaje de error sea una cadena de texto
+      const errorMessage = typeof err?.message === 'string'
+        ? err.message
+        : 'Ocurrió un error al iniciar sesión';
+      
+      setError(errorMessage);
+      
+      Alert.alert(
+        'Error inesperado',
+        errorMessage,
+        [{ text: 'OK', onPress: () => console.log('Error OK Pressed') }]
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -28,7 +97,8 @@ export default function PasswordScreen({ navigation, route }: Props) {
       <Image source={require('../../assets/fastman.png')} style={styles.logo} />
 
       <Text style={styles.title}>Iniciar sesión</Text>
-      <Text style={styles.subtitle}>Usuario: {username}@{domain}</Text>
+      <Text style={styles.subtitle}>Usuario: {username}@{domain}.fastman.io</Text>
+      {empresaId && <Text style={styles.subtitle}>Empresa ID: {empresaId}</Text>}
 
       <Text style={styles.label}>Contraseña</Text>
       <TextInput
@@ -37,8 +107,14 @@ export default function PasswordScreen({ navigation, route }: Props) {
         placeholderTextColor='#999'
         secureTextEntry
         value={password}
-        onChangeText={setPassword}
+        onChangeText={(text) => {
+          setPassword(text);
+          setError('');
+        }}
+        editable={!loading}
       />
+      
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
       <View style={styles.checkboxContainer}>
         <CustomCheckbox
@@ -48,13 +124,22 @@ export default function PasswordScreen({ navigation, route }: Props) {
         />
       </View>
 
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>Iniciar sesión</Text>
+      <TouchableOpacity 
+        style={[styles.button, loading && styles.buttonDisabled]} 
+        onPress={handleLogin}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator color="#FFF" size="small" />
+        ) : (
+          <Text style={styles.buttonText}>Iniciar sesión</Text>
+        )}
       </TouchableOpacity>
 
       <TouchableOpacity 
         style={styles.backButton} 
         onPress={() => navigation.goBack()}
+        disabled={loading}
       >
         <Text style={styles.backButtonText}>Regresar</Text>
       </TouchableOpacity>
@@ -92,7 +177,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    marginBottom: 20,
+    marginBottom: 10,
     color: '#5D74A6',
   },
   label: {
@@ -108,9 +193,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 12,
     fontSize: 16,
-    marginBottom: 20,
+    marginBottom: 10,
     borderWidth: 1,
     borderColor: '#DDD',
+  },
+  errorText: {
+    color: '#E53935',
+    fontSize: 14,
+    alignSelf: 'flex-start',
+    marginBottom: 10,
   },
   button: {
     width: '100%',
@@ -119,6 +210,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     marginBottom: 10,
+  },
+  buttonDisabled: {
+    backgroundColor: '#A0A0A0',
   },
   buttonText: {
     color: '#FFF',

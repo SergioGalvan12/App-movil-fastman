@@ -11,10 +11,9 @@ import BottomTabNavigator from './navigation/BottomTabNavigator';
 // Definir los tipos para los parámetros de navegación
 export type AuthStackParamList = {
   Domain: undefined;
-  User: { domain: string };
-  Password: { domain: string; username: string };
+  User: { domain: string, username: string };
+  Password: { domain: string; username: string; empresaId?: number };
   Main: undefined;
-  Reportes: undefined;
   // Añade aquí otras rutas si es necesario
 };
 
@@ -33,7 +32,6 @@ export default function App() {
         <Stack.Screen name="Domain" component={DomainScreen} />
         <Stack.Screen name="User" component={UserScreen} />
         <Stack.Screen name="Password" component={PasswordScreen} />
-        <Stack.Screen name="Reportes" component={ReportesScreen} />
         <Stack.Screen name="Main" component={BottomTabNavigator} />
       </Stack.Navigator>
     </NavigationContainer>

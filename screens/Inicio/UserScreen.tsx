@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { AuthStackParamList } from '../../App';
+import { checkUser } from '../../services/api';
 
 type UserScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'User'>;
 type UserScreenRouteProp = RouteProp<AuthStackParamList, 'User'>;
@@ -15,12 +16,43 @@ type Props = {
 export default function UserScreen({ navigation, route }: Props) {
   const { domain } = route.params;
   const [username, setUsername] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [empresaInfo, setEmpresaInfo] = useState<{id: number, nombre: string} | null>(null);
 
-  const handleNext = () => {
-    if (username.trim()) {
-      navigation.navigate('Password', { domain, username });
-    } else {
-      alert('Por favor ingresa tu nombre de usuario');
+  const handleNext = async () => {
+    if (!username.trim()) {
+      setError('Por favor ingresa tu nombre de usuario');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    try {
+      // Verificamos si el usuario existe
+      const result = await checkUser(domain, username.trim());
+      
+      if (result.success && result.empresaId) {
+        // Guardamos la información de la empresa
+        setEmpresaInfo({
+          id: result.empresaId,
+          nombre: result.empresaNombre || 'Empresa'
+        });
+        
+        // Si el usuario existe, navegamos a la pantalla de contraseña y pasamos parametros
+        navigation.navigate('Password', { 
+          domain, 
+          username: username.trim(),
+          empresaId: result.empresaId
+        });
+      } else {
+        setError('Usuario no encontrado. Verifica que sea correcto.');
+      }
+    } catch (err) {
+      setError('Ocurrió un error al verificar el usuario. Inténtalo de nuevo.');
+      console.error(err);
+    } finally {
+      setLoading(false); // Apaga el loading al finalizar la verificación
     }
   };
 
@@ -29,7 +61,11 @@ export default function UserScreen({ navigation, route }: Props) {
       <Image source={require('../../assets/fastman.png')} style={styles.logo} />
 
       <Text style={styles.title}>Iniciar sesión</Text>
-      <Text style={styles.subtitle}>Dominio: {domain}</Text>
+      <Text style={styles.subtitle}>Dominio: {domain}.fastman.io</Text>
+
+      {empresaInfo && (
+        <Text style={styles.empresaText}>Empresa: {empresaInfo.nombre}</Text>
+      )}
 
       <Text style={styles.label}>Nombre de usuario</Text>
       <TextInput
@@ -37,17 +73,32 @@ export default function UserScreen({ navigation, route }: Props) {
         placeholder="Nombre de usuario"
         style={styles.input}
         placeholderTextColor="#999"
-        onChangeText={setUsername}
+        onChangeText={(text) => {
+          setUsername(text);
+          setError('');
+        }}
         autoCapitalize="none"
+        editable={!loading}
       />
+      
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-      <TouchableOpacity style={styles.button} onPress={handleNext}>
-        <Text style={styles.buttonText}>Siguiente</Text>
+      <TouchableOpacity 
+        style={[styles.button, loading && styles.buttonDisabled]} 
+        onPress={handleNext}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator color="#FFF" size="small" />
+        ) : (
+          <Text style={styles.buttonText}>Siguiente</Text>
+        )}
       </TouchableOpacity>
 
       <TouchableOpacity 
         style={styles.backButton} 
         onPress={() => navigation.goBack()}
+        disabled={loading}
       >
         <Text style={styles.backButtonText}>Regresar</Text>
       </TouchableOpacity>
@@ -85,8 +136,14 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    marginBottom: 20,
+    marginBottom: 10,
     color: '#5D74A6',
+  },
+  empresaText: {
+    fontSize: 16,
+    marginBottom: 20,
+    color: '#3260B2',
+    fontWeight: '500',
   },
   label: {
     alignSelf: 'flex-start',
@@ -101,9 +158,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 12,
     fontSize: 16,
-    marginBottom: 20,
+    marginBottom: 10,
     borderWidth: 1,
     borderColor: '#DDD',
+  },
+  errorText: {
+    color: '#E53935',
+    fontSize: 14,
+    alignSelf: 'flex-start',
+    marginBottom: 10,
   },
   button: {
     width: '100%',
@@ -112,6 +175,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     marginBottom: 10,
+  },
+  buttonDisabled: {
+    backgroundColor: '#A0A0A0',
   },
   buttonText: {
     color: '#FFF',
