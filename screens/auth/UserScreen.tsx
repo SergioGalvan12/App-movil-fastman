@@ -4,6 +4,8 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { AuthStackParamList } from '../../App';
 import { checkUser } from '../../services/authService';
+import { showToast } from '../../services/ToastService';
+
 
 type UserScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'User'>;
 type UserScreenRouteProp = RouteProp<AuthStackParamList, 'User'>;
@@ -23,12 +25,15 @@ export default function UserScreen({ navigation, route }: Props) {
   const handleNext = async () => {
     // Validamos que se ingrese el username
     if (!username.trim()) {
-      setError('Por favor ingresa tu nombre de usuario');
+          showToast(
+            'error',
+            'Usuario es requerido',
+            'Por favor ingresa tu nombre de usuario'
+          );
       return;
     }
 
     setLoading(true);
-    setError('');
     
     try {
       // Llamamos a checkUser pasando únicamente el username, 
@@ -50,14 +55,20 @@ export default function UserScreen({ navigation, route }: Props) {
       } else {
         // En caso de que la respuesta indique un error o no se encuentren datos
         const mensaje = result.error || 'Usuario no encontrado. Verifica que sea correcto.';
-        setError(mensaje);
-        Alert.alert('Error', mensaje);
+        showToast(
+          'error',
+          'Error de usuario',
+          mensaje
+        );
       }
     } catch (err: any) {
       console.error('Error al verificar el usuario:', err);
       const mensajeError = err?.message || 'Ocurrió un error al verificar el usuario. Inténtalo de nuevo.';
-      setError(mensajeError);
-      Alert.alert('Error', mensajeError);
+      showToast(
+        'error',
+        'Error de verificación',
+        mensajeError
+      );
     } finally {
       setLoading(false);
     }

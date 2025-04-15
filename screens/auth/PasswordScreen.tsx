@@ -5,6 +5,7 @@ import { RouteProp } from '@react-navigation/native';
 import { AuthStackParamList } from '../../App';
 import CustomCheckbox from '../../components/common/CustomCheckbox';
 import { login } from '../../services/authService';
+import { showToast } from '../../services/ToastService';
 
 type PasswordScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Password'>;
 type PasswordScreenRouteProp = RouteProp<AuthStackParamList, 'Password'>;
@@ -23,17 +24,20 @@ export default function PasswordScreen({ navigation, route }: Props) {
 
   const handleLogin = async () => {
     if (!password.trim()) {
-      setError('Por favor ingresa tu contraseña');
+      showToast(
+        'error',
+        'Contraseña requerida',
+        'Por favor ingresa tu contraseña'
+      );
       return;
     }
-  
+
     setLoading(true);
-    setError('');
-  
+
     try {
       // Asegúrate de que empresaId sea un número
       const empresaIdNum = typeof empresaId === 'number' ? empresaId : 1;
-      
+
       // Mostrar los datos que se van a enviar
       console.log('Datos de login:', {
         domain,
@@ -41,48 +45,47 @@ export default function PasswordScreen({ navigation, route }: Props) {
         username,
         password: '***' // No mostrar la contraseña real en los logs
       });
-      
+
       // Mostrar alerta con los datos de la petición (excepto la contraseña)
-      Alert.alert(
+      showToast(
+        'info',
         'Datos de login',
-        `Domain: ${domain}\nEmpresaID: ${empresaIdNum}\nUsername: ${username}`,
-        [{ text: 'OK', onPress: () => console.log('OK Pressed') }]
+        `Domain: ${domain}\nEmpresaID: ${empresaIdNum}\nUsername: ${username}`
       );
-      
+
+
       // Llamamos a la función login de authService
       const result = await login(empresaIdNum, username, password);
       console.warn('Resultado login:', result);
-  
+
       if (result.success) {
-        Alert.alert(
+        navigation.navigate('Main')
+        showToast(
+          'success',
           'Login exitoso',
-          'Has iniciado sesión correctamente',
-          [{ text: 'OK', onPress: () => navigation.navigate('Main') }]
-        );
+          'Has iniciado sesión correctamente'
+        )
       } else {
         // Asegúrate de que error sea una cadena de texto
-        const errorMessage = typeof result.error === 'string' 
-          ? result.error 
+        const errorMessage = typeof result.error === 'string'
+          ? result.error
           : 'Error desconocido al iniciar sesión';
-        
-        setError(errorMessage);
-        
-        Alert.alert(
-          'Error de login',
-          errorMessage,
-          [{ text: 'OK', onPress: () => console.log('Error OK Pressed') }]
-        );
+
+        showToast(
+          'error',
+          'Error de inicio de sesión',
+          errorMessage)
       }
     } catch (err: any) {
       console.error('Error al hacer login:', err);
-  
+
       // Asegúrate de que el mensaje de error sea una cadena de texto
       const errorMessage = typeof err?.message === 'string'
         ? err.message
         : 'Ocurrió un error al iniciar sesión';
-      
+
       setError(errorMessage);
-      
+
       Alert.alert(
         'Error inesperado',
         errorMessage,
@@ -114,7 +117,7 @@ export default function PasswordScreen({ navigation, route }: Props) {
         }}
         editable={!loading}
       />
-      
+
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
       <View style={styles.checkboxContainer}>
@@ -125,8 +128,8 @@ export default function PasswordScreen({ navigation, route }: Props) {
         />
       </View>
 
-      <TouchableOpacity 
-        style={[styles.button, loading && styles.buttonDisabled]} 
+      <TouchableOpacity
+        style={[styles.button, loading && styles.buttonDisabled]}
         onPress={handleLogin}
         disabled={loading}
       >
@@ -137,8 +140,8 @@ export default function PasswordScreen({ navigation, route }: Props) {
         )}
       </TouchableOpacity>
 
-      <TouchableOpacity 
-        style={styles.backButton} 
+      <TouchableOpacity
+        style={styles.backButton}
         onPress={() => navigation.goBack()}
         disabled={loading}
       >

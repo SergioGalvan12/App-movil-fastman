@@ -5,6 +5,7 @@ import { View, Text, TextInput, StyleSheet, Image, TouchableOpacity, ActivityInd
 import { StackNavigationProp } from '@react-navigation/stack';
 import { AuthStackParamList } from '../../App';
 import { checkDomain } from '../../services/authService';
+import { showToast } from '../../services/ToastService';
 
 type DomainScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Domain'>;
 
@@ -20,12 +21,16 @@ export default function DomainScreen({ navigation }: Props) {
 // En la función handleNext de DomainScreen.tsx
 const handleNext = async () => {
   if (!domain.trim()) {
-    setError('Por favor ingresa el dominio');
+    showToast(
+      'error',
+      'Dominio requerido',
+      'Por favor ingresa el dominio de tu empresa'
+    );
     return;
   }
 
   setLoading(true);
-  setError('');
+  // setError('');
 
   try {
     // Verificamos si el dominio existe
@@ -35,10 +40,13 @@ const handleNext = async () => {
       // Si el dominio existe, navegamos a la pantalla de usuario
       navigation.navigate('User', { domain: domain.trim().toLowerCase(), username: '' });
     } else {
-      setError(result.error || 'Dominio no encontrado');
+      const errorMessage = 'Dominio no encontrado';
+      // Mostrar el mensaje de error con Toast
+      showToast('error', 'Error', errorMessage);
     }
   } catch (err) {
-    setError('Ocurrió un error al verificar el dominio. Inténtalo de nuevo.');
+      // En caso de error en la petición, mostramos Toast
+      showToast('error', 'Error', 'Ocurrió un error al verificar el dominio. Inténtalo de nuevo.');
     console.error(err);
   } finally {
     setLoading(false);

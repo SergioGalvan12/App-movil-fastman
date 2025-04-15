@@ -4,9 +4,9 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import DomainScreen from './screens/auth/DomainScreen';
 import UserScreen from './screens/auth/UserScreen';
 import PasswordScreen from './screens/auth/PasswordScreen';
-import ReportesScreen from './screens/reports/ReportesScreen';
+import Toast from 'react-native-toast-message';
 import BottomTabNavigator from './navigation/BottomTabNavigator';
-
+import AveriasScreen from './screens/reports/Averias';
 
 // Definir los tipos para los parámetros de navegación
 export type AuthStackParamList = {
@@ -14,6 +14,7 @@ export type AuthStackParamList = {
   User: { domain: string, username: string };
   Password: { domain: string; username: string; empresaId?: number };
   Main: undefined;
+  Averias: undefined;
   // Añade aquí otras rutas si es necesario
 };
 
@@ -21,6 +22,7 @@ const Stack = createNativeStackNavigator<AuthStackParamList>();
 
 export default function App() {
   return (
+    <>
     <NavigationContainer>
       <Stack.Navigator 
         id={undefined}
@@ -33,7 +35,11 @@ export default function App() {
         <Stack.Screen name="User" component={UserScreen} />
         <Stack.Screen name="Password" component={PasswordScreen} />
         <Stack.Screen name="Main" component={BottomTabNavigator} />
+        <Stack.Screen name="Averias" component={AveriasScreen} />
+
       </Stack.Navigator>
     </NavigationContainer>
+    <Toast />
+    </>
   );
 }

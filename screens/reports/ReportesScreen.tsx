@@ -39,7 +39,7 @@ export default function ReportesScreen() {
         
         <MenuItem 
           title="Reporte de Avería (MC)" 
-          onPress={() => handlePress('ReporteAveria')} 
+          onPress={() => handlePress('Averias')} 
         />
         
         {/* <MenuItem 

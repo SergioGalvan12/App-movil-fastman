@@ -100,7 +100,7 @@ class ApiClient {
                 if (status === 401) {
                     errorMessage = 'Credenciales inválidas';
                 } else if (status === 404) {
-                    errorMessage = 'Recurso no encontrado';
+                    errorMessage = '404 Recurso no encontrado en servidor';
                 } else if (error.response.data?.message) {
                     errorMessage = error.response.data.message;
                 } else {
