@@ -6,52 +6,48 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { AuthStackParamList } from '../../App';
 import { checkDomain } from '../../services/authService';
 import { showToast } from '../../services/ToastService';
+import apiClient from '../../services/apiClient';
+
 
 type DomainScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Domain'>;
-
-type Props = {
-  navigation: DomainScreenNavigationProp;
-};
+type Props = { navigation: DomainScreenNavigationProp; };
 
 export default function DomainScreen({ navigation }: Props) {
   const [domain, setDomain] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-// En la función handleNext de DomainScreen.tsx
-const handleNext = async () => {
-  if (!domain.trim()) {
-    showToast(
-      'error',
-      'Dominio requerido',
-      'Por favor ingresa el dominio de tu empresa'
-    );
-    return;
-  }
-
-  setLoading(true);
-  // setError('');
-
-  try {
-    // Verificamos si el dominio existe
-    const result = await checkDomain(domain.trim().toLowerCase());
-    
-    if (result.success) {
-      // Si el dominio existe, navegamos a la pantalla de usuario
-      navigation.navigate('User', { domain: domain.trim().toLowerCase(), username: '' });
-    } else {
-      const errorMessage = 'Dominio no encontrado';
-      // Mostrar el mensaje de error con Toast
-      showToast('error', 'Error', errorMessage);
+  const handleNext = async () => {
+    const raw = domain.trim().toLowerCase();
+    if (!raw) {
+      showToast('error', 'Dominio requerido', 'Por favor ingresa el dominio de tu empresa');
+      return;
     }
-  } catch (err) {
-      // En caso de error en la petición, mostramos Toast
+
+    // 1) Si es "local", configuro API en modo DEV y salto directamente:
+    if (raw === 'local') {
+      apiClient.setDomain('local');    // <-- fuerza DEV en configService
+      navigation.navigate('User', { domain: raw, username: '' });
+      return;
+    }
+
+    // 2) En otro caso, produccion: chequeo existencia del dominio
+    setLoading(true);
+    try {
+      apiClient.setDomain(raw);        // <-- fuerza PROD en configService
+      const result = await checkDomain(raw);
+      if (result.success) {
+        navigation.navigate('User', { domain: raw, username: '' });
+      } else {
+        showToast('error', 'Error', 'Dominio no encontrado');
+      }
+    } catch (err) {
       showToast('error', 'Error', 'Ocurrió un error al verificar el dominio. Inténtalo de nuevo.');
-    console.error(err);
-  } finally {
-    setLoading(false);
-  }
-};
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View style={styles.container}>

@@ -1,5 +1,6 @@
 // services/apiClient.ts
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import configService, { Environment } from './configService';
 
 // tipos para las respuestas de la API
 export interface ApiResponse<T> {
@@ -8,21 +9,21 @@ export interface ApiResponse<T> {
     error?: string; // mensaje de error (opcional)
 }
 
-//Definición de la case apiClient
+//Definición de la clase apiClient
 class ApiClient {
     private client: AxiosInstance;
-    private domain: string | null = null; // dominio actual
 
     // Constructor de la clase ApiClient
     constructor() {
         this.client = axios.create({
             headers: {
                 'Content-Type': 'application/json',
-            }
+            },
+            timeout: configService.getConfig().apiTimeout
         });
 
         //interceptor para manejar errores de forma centralizada
-        this.client.interceptors.response.use( // interceptor = midleware
+        this.client.interceptors.response.use(
             (response) => response, // si es exitoso, devuelve la respuesta sin modificarla
             (error) => {
                 // aqui para manejar errores globales como tokens expirados
@@ -35,37 +36,43 @@ class ApiClient {
     // Método para configurar el cliente
     //establecer el dominio para todas las peticiones
     setDomain(domain: string): void {
-        this.domain = domain.trim().toLowerCase(); // establece el dominio actual
+        // Si el dominio es "local", configuramos el entorno de desarrollo
+        if (domain.trim().toLowerCase() === 'local') {
+            configService.setEnvironment(Environment.DEVELOPMENT);
+        } else {
+            configService.setEnvironment(Environment.PRODUCTION);
+            configService.setDomain(domain);
+        }
     }
 
-    //esta lecer el token de la autenticación
+    //establecer el token de la autenticación
     setAuthToken(token: string): void {
-        this.client.defaults.headers.common['Authorization'] = `Bearer ${token}`; // establece el token de autenticación
+        this.client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     }
 
     // limpiar el token de autenticación
     clearAuthToken(): void {
-        delete this.client.defaults.headers.common['Authorization']; // elimina el token de autenticación
+        delete this.client.defaults.headers.common['Authorization'];
     }
 
     // Método para hacer una solicitud GET a la API
     async get<T>(endpoint: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
         try {
-            const url = this.buildUrl(endpoint); // construye la URL completa
-            console.log(`solicitud Get a ${url}`); // imprime la URL en la consola
+            const url = this.buildUrl(endpoint);
+            console.log(`Solicitud GET a: ${url}`);
 
-            const response: AxiosResponse<T> = await this.client.get(url, config); // realiza la solicitud GET
-            return { success: true, data: response.data }; // devuelve la respuesta
+            const response: AxiosResponse<T> = await this.client.get(url, config);
+            return { success: true, data: response.data };
         } catch (error) {
-            return this.handleError(error); // maneja el error
+            return this.handleError(error);
         }
-    } //fin método get
+    }
 
     //solicitud POST a la API
     async post<T>(endpoint: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
         try {
             const url = this.buildUrl(endpoint);
-            console.log(`solicitud POST a: ${url}`, data);
+            console.log(`Solicitud POST a: ${url}`, data);
 
             const response: AxiosResponse<T> = await this.client.post(url, data, config);
             return { success: true, data: response.data };
@@ -74,17 +81,15 @@ class ApiClient {
         }
     }
 
-    //Metodos auxiliares privados
-    // constuir la URL completa con el dominio
+    //Métodos auxiliares privados
+    // construir la URL completa con el dominio
     private buildUrl(endpoint: string): string {
         if (!endpoint.startsWith('/')) {
             endpoint = `/${endpoint}`;
         }
-        if (this.domain) {
-            return `https://${this.domain}.fastman.io/api${endpoint}`; // construye la URL completa
-        }
-
-        return `/api${endpoint}`; // URL por defecto
+        
+        const baseUrl = configService.getApiBaseUrl();
+        return `${baseUrl}${endpoint}`;
     }
 
     // Manejar errores de forma consistente
@@ -113,11 +118,17 @@ class ApiClient {
             }
         }
 
-        console.error('API Error:', errorMessage, error);
+        // Solo mostrar detalles completos del error en modo desarrollo
+        if (configService.isDevelopment()) {
+            console.error('API Error detallado:', errorMessage, error);
+        } else {
+            console.error('API Error:', errorMessage);
+        }
+        
         return { success: false, error: errorMessage };
     }
 }
 
-// Exportamos una isntancia
-export const apiClient = new ApiClient(); // exporta una instancia de ApiClient
-export default apiClient; // exporta la instancia por defecto
+// Exportamos una instancia
+export const apiClient = new ApiClient();
+export default apiClient;

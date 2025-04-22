@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+// src/screens/auth/UserScreen.tsx
+import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, StyleSheet, Image, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { AuthStackParamList } from '../../App';
 import { checkUser } from '../../services/authService';
 import { showToast } from '../../services/ToastService';
+import axios from 'axios';
 
 
 type UserScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'User'>;
@@ -21,6 +23,15 @@ export default function UserScreen({ navigation, route }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [empresaInfo, setEmpresaInfo] = useState<{ id: number, nombre: string } | null>(null);
+
+  useEffect(() => {
+    const fetch = async () => {
+      const response = await axios.get('http://192.168.100.32/api/')
+      console.log(response.data);
+      console.log('Dominio local verificado');
+    }
+    fetch();
+  }, []);
 
   const handleNext = async () => {
     // Validamos que se ingrese el username
