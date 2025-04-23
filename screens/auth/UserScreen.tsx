@@ -6,7 +6,6 @@ import { RouteProp } from '@react-navigation/native';
 import { AuthStackParamList } from '../../App';
 import { checkUser } from '../../services/authService';
 import { showToast } from '../../services/ToastService';
-import axios from 'axios';
 
 
 type UserScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'User'>;
@@ -24,66 +23,61 @@ export default function UserScreen({ navigation, route }: Props) {
   const [error, setError] = useState('');
   const [empresaInfo, setEmpresaInfo] = useState<{ id: number, nombre: string } | null>(null);
 
-  useEffect(() => {
-    const fetch = async () => {
-      const response = await axios.get('http://192.168.100.32/api/')
-      console.log(response.data);
-      console.log('Dominio local verificado');
-    }
-    fetch();
-  }, []);
+  // useEffect(() => {
+  //   const fetch = async () => {
+  //     const response = await axios.get('http://192.168.100.32/api/')
+  //     console.log(response.data);
+  //     console.log('Dominio local verificado');
+  //   }
+  //   fetch();
+  // }, []);
 
   const handleNext = async () => {
-    // Validamos que se ingrese el username
+    console.log('[UserScreen] Iniciando verificación de usuario:', username);
+  
     if (!username.trim()) {
-          showToast(
-            'error',
-            'Usuario es requerido',
-            'Por favor ingresa tu nombre de usuario'
-          );
+      showToast('error', 'Usuario es requerido', 'Por favor ingresa tu nombre de usuario');
       return;
     }
-
+  
     setLoading(true);
     
     try {
-      // Llamamos a checkUser pasando únicamente el username, 
-      // ya que el dominio fue seteado previamente en DomainScreen.
       const result = await checkUser(username.trim());
-
+  
+      console.log('[UserScreen] Resultado de checkUser:', result);
+  
       if (result.success && result.data && result.data.length > 0 && result.empresaId) {
-        // Guardamos la información de la empresa proveniente de la respuesta
         setEmpresaInfo({
           id: result.empresaId,
           nombre: result.empresaNombre || 'Empresa'
         });
-        // Navegamos a PasswordScreen con los parámetros necesarios para el siguiente paso
+  
+        console.log('[UserScreen] Navegando a PasswordScreen con:', {
+          domain,
+          username,
+          empresaId: result.empresaId
+        });
+  
         navigation.navigate('Password', {
           domain,
           username: username.trim(),
           empresaId: result.empresaId
         });
       } else {
-        // En caso de que la respuesta indique un error o no se encuentren datos
+        console.warn('[UserScreen] Usuario no válido o no encontrado');
         const mensaje = result.error || 'Usuario no encontrado. Verifica que sea correcto.';
-        showToast(
-          'error',
-          'Error de usuario',
-          mensaje
-        );
+        showToast('error', 'Error de usuario', mensaje);
       }
     } catch (err: any) {
-      console.error('Error al verificar el usuario:', err);
+      console.error('[UserScreen] Error de red o inesperado:', err);
       const mensajeError = err?.message || 'Ocurrió un error al verificar el usuario. Inténtalo de nuevo.';
-      showToast(
-        'error',
-        'Error de verificación',
-        mensajeError
-      );
+      showToast('error', 'Error de verificación', mensajeError);
     } finally {
       setLoading(false);
     }
   };
+  
 
   return (
     <View style={styles.container}>
