@@ -6,6 +6,7 @@ import { RouteProp } from '@react-navigation/native';
 import { AuthStackParamList } from '../../App';
 import { checkUser } from '../../services/authService';
 import { showToast } from '../../services/ToastService';
+import axios from 'axios';
 
 
 type UserScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'User'>;

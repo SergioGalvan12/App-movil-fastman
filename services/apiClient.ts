@@ -1,7 +1,7 @@
 // services/apiClient.ts
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { API_BASE_URL, API_TIMEOUT } from '@env';  // vendrán de .env.production
-console.log('[ApiClient] Variables de entorno →', { API_BASE_URL, API_TIMEOUT });
+
 /**
  * ApiResponse<T> estructura estándar de respuesta:
  *  - success: éxito o no
