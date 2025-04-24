@@ -1,3 +1,4 @@
+//screens/auth/PasswordScreen.tsx
 import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, Image, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -55,7 +56,7 @@ export default function PasswordScreen({ navigation, route }: Props) {
 
 
       // Llamamos a la función login de authService
-      const result = await login(empresaIdNum, username, password);
+      const result = await login(domain, empresaIdNum, username, password);
       console.warn('Resultado login:', result);
 
       if (result.success) {
