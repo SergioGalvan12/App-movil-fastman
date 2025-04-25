@@ -7,16 +7,27 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import HeaderTitle from '../../components/common/HeaderTitle';
 import SelectPersonal from '../../components/SelectPersonal';
+import Select from '../../components/common/Select';
+import { fetchTurnos, TurnoInterface } from '../../services/turnoService';
+
 
 export default function Averias() {
   // Estado central del formulario
   const [formulario, setFormulario] = useState<{ id_personal: number }>({
     id_personal: 0
   });
+  // — otros campos —
   const [fecha, setFecha] = useState(new Date());
   const [showDate, setShowDate] = useState(false);
-  const [turno, setTurno] = useState('');
   const [clasificacion, setClasificacion] = useState('');
+
+  // — Estado para Turnos —
+  const [turno, setTurno] = useState<number | null>(null);
+  const [turnosList, setTurnosList] = useState<TurnoInterface[]>([]);
+  const [loadingTurnos, setLoadingTurnos] = useState(true);
+  const [errorTurnos, setErrorTurnos] = useState<string>('');
+
+
 
   //Solo para depurar el valor inicial
   useEffect(() => {
@@ -27,6 +38,50 @@ export default function Averias() {
   useEffect(() => {
     console.log('[Averias] formulario actual →', formulario);
   }, [formulario]);
+
+  // Cargar turnos al montar
+  // Al montar, cargamos y ordenamos turnos desde API
+  useEffect(() => {
+    (async () => {
+      try {
+        console.log('[Averias] cargando turnos...');
+        const resp = await fetchTurnos();
+
+        if (resp.success && resp.data) {
+          // Ordenamos descendente por “Qn” cuando aplique
+          const sorted = resp.data.slice().sort((a, b) => {
+            const regex = /^Q(\d+)/;               // buscamos “Q” seguido de dígitos
+            const ma = a.descripcion_turno.match(regex);
+            const mb = b.descripcion_turno.match(regex);
+
+            if (ma && mb) {
+              // ambos tienen “Qn”: comparamos numéricamente
+              parseInt(ma[1], 10) - parseInt(mb[1], 10) // ↑ ascendente
+
+            } else if (ma) {
+              // sólo a tiene “Qn”: lo ponemos antes
+              return -1;
+            } else if (mb) {
+              // sólo b tiene “Qn”: lo ponemos antes
+              return 1;
+            }
+            // ninguno o ambos no tienen “Qn”: orden alfabético simple
+            return a.descripcion_turno.localeCompare(b.descripcion_turno);
+          });
+
+          setTurnosList(sorted);
+        } else {
+          setErrorTurnos(resp.error || 'Error al cargar turnos');
+        }
+      } catch (e) {
+        console.error('[Averias] excepción cargando turnos:', e);
+        setErrorTurnos('Error inesperado al cargar turnos');
+      } finally {
+        setLoadingTurnos(false);
+      }
+    })();
+  }, []);
+
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -56,16 +111,21 @@ export default function Averias() {
           />
         )}
 
-        {/* Turno */}
+        {/* — Turno — */}
         <Text style={styles.label}>Turno</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="mañana / tarde"
-          value={turno}
-          onChangeText={v => {
-            console.log('[Averias] turno →', v);
-            setTurno(v);
+        <Select<TurnoInterface>
+          options={turnosList}
+          valueKey="id_turno"
+          labelKey="descripcion_turno"
+          selectedValue={turno}
+          onValueChange={(v) => {
+            console.log('[Averias] turno seleccionado →', v);
+            setTurno(v as number);
           }}
+          placeholder="— Selecciona un turno —"
+          loading={loadingTurnos}
+          error={errorTurnos}
+          style={styles.pickerWrapper}
         />
 
         {/* Clasificación */}
