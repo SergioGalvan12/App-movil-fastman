@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { AuthStackParamList } from '../../App';
-import { checkDomain } from '../../services/authService';
+import { checkDomain } from '../../services/auth/authService';
 import { showToast } from '../../services/ToastService';
 import apiClient from '../../services/apiClient';
 

@@ -6,10 +6,11 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import HeaderTitle from '../../components/common/HeaderTitle';
-import SelectPersonal from '../../components/SelectPersonal';
+import SelectPersonal from './SelectPersonal';
 import Select from '../../components/common/Select';
 import { fetchTurnos, TurnoInterface } from '../../services/turnoService';
-
+import { fetchGrupoEquipos, GrupoEquipo } from '../../services/grupoEquipoService';
+import { fetchEquipos, Equipo } from '../../services/equipoService';
 
 export default function Averias() {
   // Estado central del formulario
@@ -27,7 +28,17 @@ export default function Averias() {
   const [loadingTurnos, setLoadingTurnos] = useState(true);
   const [errorTurnos, setErrorTurnos] = useState<string>('');
 
+  // Estado para Grupo de Equipo
+  const [grupoSelected, setGrupoSelected] = useState<number | null>(null);
+  const [grupos, setGrupos] = useState<GrupoEquipo[]>([]);
+  const [loadingGrupos, setLoadingGrupos] = useState(false);
+  const [errorGrupos, setErrorGrupos] = useState('');
 
+  // Estado para Equipo (depende del grupo)
+  const [equipoSelected, setEquipoSelected] = useState<number | null>(null);
+  const [equipos, setEquipos] = useState<Equipo[]>([]);
+  const [loadingEquipos, setLoadingEquipos] = useState(false);
+  const [errorEquipos, setErrorEquipos] = useState('');
 
   //Solo para depurar el valor inicial
   useEffect(() => {
@@ -82,6 +93,55 @@ export default function Averias() {
     })();
   }, []);
 
+  // Cargar grupos de equipos 
+  useEffect(() => {
+    loadGrupos();
+  }, []);
+
+  const loadGrupos = async () => {
+    try {
+      setLoadingGrupos(true);
+      const resp = await fetchGrupoEquipos();
+      if (resp.success && resp.data) {
+        setGrupos(resp.data);
+      } else {
+        setErrorGrupos(resp.error || 'Error al cargar grupos');
+      }
+    } catch (error) {
+      setErrorGrupos('Error inesperado');
+    } finally {
+      setLoadingGrupos(false);
+    }
+  };
+
+  useEffect(() => {
+    if (grupoSelected == null) {
+      setEquipos([]);
+      setEquipoSelected(null);
+      return;
+    }
+    loadEquiposByGrupo(grupoSelected);
+  }, [grupoSelected]);
+
+  // Cargar equipos por grupo
+  const loadEquiposByGrupo = async (grupoId: number) => {
+    try {
+      setLoadingEquipos(true);
+      const resp = await fetchEquipos();
+      if (resp.success && resp.data) {
+        const filtrados = resp.data.filter(
+          (eq) => eq.id_grupo_equipo === grupoId
+        );
+        setEquipos(filtrados);
+      } else {
+        setErrorEquipos(resp.error || 'Error al cargar equipos');
+      }
+    } catch (error) {
+      setErrorEquipos('Error inesperado');
+    } finally {
+      setLoadingEquipos(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -128,18 +188,6 @@ export default function Averias() {
           style={styles.pickerWrapper}
         />
 
-        {/* Clasificación */}
-        <Text style={styles.label}>Clasificación</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="mecánica / eléctrica"
-          value={clasificacion}
-          onChangeText={v => {
-            console.log('[Averias] clasificación →', v);
-            setClasificacion(v);
-          }}
-        />
-
         {/* Reporta: fuerza usar personal-me/ y deshabilita */}
         <Text style={styles.label}>Reporta</Text>
         <SelectPersonal
@@ -149,7 +197,43 @@ export default function Averias() {
           forceSingle={true}   // <— aquí
         />
 
-        {/* … resto del formulario … */}
+        {/* Grupo de equipo */}
+        <Text style={styles.label}>Grupo de equipo</Text>
+        <Select<GrupoEquipo>
+          options={grupos}
+          valueKey="id_grupo_equipo"
+          labelKey="nombre_grupo_equipo"
+          selectedValue={grupoSelected}
+          onValueChange={(val) => {
+            console.log('[Averias] Grupo seleccionado:', val);
+            setGrupoSelected(val as number | null);
+          }}
+          placeholder="— Selecciona grupo —"
+          loading={loadingGrupos}
+          error={errorGrupos}
+        />
+
+        {/* Equipo */}
+        <Text style={styles.label}>Equipo</Text>
+        <Select<Equipo>
+          options={equipos}
+          valueKey="id_equipo"
+          labelKey="matricula_equipo"
+          selectedValue={equipoSelected}
+          onValueChange={(val) => {
+            console.log('[Averias] Equipo seleccionado:', val);
+            setEquipoSelected(val as number | null);
+          }}
+          // 2) Si hay grupo pero no equipos, mostramos este texto:
+          placeholder={
+            grupoSelected != null && equipos.length === 0
+              ? 'No hay equipos'
+              : '— Selecciona equipo —'
+          }
+          loading={loadingEquipos}
+          error={errorEquipos}
+        />
+
       </ScrollView>
     </SafeAreaView>
   );

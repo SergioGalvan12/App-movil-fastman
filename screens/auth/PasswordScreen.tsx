@@ -1,12 +1,22 @@
 //screens/auth/PasswordScreen.tsx
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Image, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert
+} from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { AuthStackParamList } from '../../App';
 import CustomCheckbox from '../../components/common/CustomCheckbox';
 import { login } from '../../services/authService';
 import { showToast } from '../../services/ToastService';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 type PasswordScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Password'>;
 type PasswordScreenRouteProp = RouteProp<AuthStackParamList, 'Password'>;
@@ -19,79 +29,38 @@ type Props = {
 export default function PasswordScreen({ navigation, route }: Props) {
   const { domain, username, empresaId } = route.params;
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);   // estado para el ojo
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleLogin = async () => {
     if (!password.trim()) {
-      showToast(
-        'error',
-        'Contraseña requerida',
-        'Por favor ingresa tu contraseña'
-      );
+      showToast('error', 'Contraseña requerida', 'Por favor ingresa tu contraseña');
       return;
     }
 
     setLoading(true);
-
     try {
-      // Asegúrate de que empresaId sea un número
       const empresaIdNum = typeof empresaId === 'number' ? empresaId : 1;
+      console.log('Datos de login:', { domain, empresaId: empresaIdNum, username, password: '***' });
+      showToast('info', 'Datos de login', `Domain: ${domain}\nEmpresaID: ${empresaIdNum}\nUsername: ${username}`);
 
-      // Mostrar los datos que se van a enviar
-      console.log('Datos de login:', {
-        domain,
-        empresaId: empresaIdNum,
-        username,
-        password: '***' // No mostrar la contraseña real en los logs
-      });
-
-      // Mostrar alerta con los datos de la petición (excepto la contraseña)
-      showToast(
-        'info',
-        'Datos de login',
-        `Domain: ${domain}\nEmpresaID: ${empresaIdNum}\nUsername: ${username}`
-      );
-
-
-      // Llamamos a la función login de authService
       const result = await login(domain, empresaIdNum, username, password);
       console.warn('Resultado login:', result);
 
       if (result.success) {
-        navigation.navigate('Main')
-        showToast(
-          'success',
-          'Login exitoso',
-          'Has iniciado sesión correctamente'
-        )
+        navigation.navigate('Main');
+        showToast('success', 'Login exitoso', 'Has iniciado sesión correctamente');
       } else {
-        // Asegúrate de que error sea una cadena de texto
-        const errorMessage = typeof result.error === 'string'
-          ? result.error
-          : 'Error desconocido al iniciar sesión';
-
-        showToast(
-          'error',
-          'Error de inicio de sesión',
-          errorMessage)
+        const errorMessage = typeof result.error === 'string' ? result.error : 'Error desconocido al iniciar sesión';
+        showToast('error', 'Error de inicio de sesión', errorMessage);
       }
     } catch (err: any) {
       console.error('Error al hacer login:', err);
-
-      // Asegúrate de que el mensaje de error sea una cadena de texto
-      const errorMessage = typeof err?.message === 'string'
-        ? err.message
-        : 'Ocurrió un error al iniciar sesión';
-
+      const errorMessage = typeof err?.message === 'string' ? err.message : 'Ocurrió un error al iniciar sesión';
       setError(errorMessage);
-
-      Alert.alert(
-        'Error inesperado',
-        errorMessage,
-        [{ text: 'OK', onPress: () => console.log('Error OK Pressed') }]
-      );
+      Alert.alert('Error inesperado', errorMessage, [{ text: 'OK' }]);
     } finally {
       setLoading(false);
     }
@@ -102,22 +71,37 @@ export default function PasswordScreen({ navigation, route }: Props) {
       <Image source={require('../../assets/fastman.png')} style={styles.logo} />
 
       <Text style={styles.title}>Iniciar sesión</Text>
-      <Text style={styles.subtitle}>Usuario: {username}@{domain}.fastman.io</Text>
+      <Text style={styles.subtitle}>
+        Usuario: {username}@{domain}.fastman.io
+      </Text>
       {empresaId && <Text style={styles.subtitle}>Empresa ID: {empresaId}</Text>}
 
+      {/* Campo Contraseña con icono de ojo */}
       <Text style={styles.label}>Contraseña</Text>
-      <TextInput
-        placeholder='Contraseña'
-        style={styles.input}
-        placeholderTextColor='#999'
-        secureTextEntry
-        value={password}
-        onChangeText={(text) => {
-          setPassword(text);
-          setError('');
-        }}
-        editable={!loading}
-      />
+      <View style={styles.inputContainer}>
+        <TextInput
+          placeholder='Contraseña'
+          placeholderTextColor='#999'
+          style={styles.input}
+          secureTextEntry={!showPassword}
+          value={password}
+          onChangeText={text => {
+            setPassword(text);
+            setError('');
+          }}
+          editable={!loading}
+        />
+        <TouchableOpacity
+          onPress={() => setShowPassword(v => !v)}
+          style={styles.eyeButton}
+        >
+          <Icon
+            name={showPassword ? 'visibility-off' : 'visibility'}
+            size={24}
+            color='#5D74A6'
+          />
+        </TouchableOpacity>
+      </View>
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
@@ -191,22 +175,41 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     marginLeft: 5,
   },
-  input: {
+  inputContainer: {
     width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#FFF',
     borderRadius: 8,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    fontSize: 16,
-    marginBottom: 10,
     borderWidth: 1,
     borderColor: '#DDD',
+    marginBottom: 10,
+    paddingHorizontal: 15,
+  },
+  input: {
+    flex: 1,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#1B2A56',
+  },
+  eyeButton: {
+    padding: 8,
+  },
+  eyeIcon: {
+    width: 24,
+    height: 24,
   },
   errorText: {
     color: '#E53935',
     fontSize: 14,
     alignSelf: 'flex-start',
     marginBottom: 10,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    alignSelf: 'flex-start',
   },
   button: {
     width: '100%',
@@ -236,12 +239,6 @@ const styles = StyleSheet.create({
     color: '#5D74A6',
     fontSize: 16,
     fontWeight: '600',
-  },
-  checkboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-    alignSelf: 'flex-start',
   },
   footer: {
     fontSize: 12,
