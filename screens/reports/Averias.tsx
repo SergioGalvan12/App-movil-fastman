@@ -11,6 +11,7 @@ import Select from '../../components/common/Select';
 import { fetchTurnos, TurnoInterface } from '../../services/turnoService';
 import { fetchGrupoEquipos, GrupoEquipo } from '../../services/grupoEquipoService';
 import { fetchEquipos, Equipo } from '../../services/equipoService';
+import { ClasificacionUbicacion, fetchClasificacionesUbicacion } from '../../services/reports/averias/clasificacionService';
 
 export default function Averias() {
   // Estado central del formulario
@@ -39,6 +40,14 @@ export default function Averias() {
   const [equipos, setEquipos] = useState<Equipo[]>([]);
   const [loadingEquipos, setLoadingEquipos] = useState(false);
   const [errorEquipos, setErrorEquipos] = useState('');
+
+  // Estado para Clasificación Ubicación
+  const [clasificacionSelected, setClasificacionSelected] = useState<number | null>(null);
+  const [clasificaciones, setClasificaciones] = useState<ClasificacionUbicacion[]>([]);
+  const [loadingClasificaciones, setLoadingClasificaciones] = useState(false);
+  const [errorClasificaciones, setErrorClasificaciones] = useState('');
+
+
 
   //Solo para depurar el valor inicial
   useEffect(() => {
@@ -143,6 +152,29 @@ export default function Averias() {
     }
   };
 
+
+  // Cargar clasificaciones al montar
+  useEffect(() => {
+    loadClasificaciones();
+  }, []);
+
+  const loadClasificaciones = async () => {
+    try {
+      setLoadingClasificaciones(true);
+      const resp = await fetchClasificacionesUbicacion();
+      if (resp.success && resp.data) {
+        setClasificaciones(resp.data);
+      } else {
+        setErrorClasificaciones(resp.error || 'Error al cargar clasificaciones');
+      }
+    } catch (error) {
+      setErrorClasificaciones('Error inesperado');
+    } finally {
+      setLoadingClasificaciones(false);
+    }
+  };
+
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container}>
@@ -232,6 +264,20 @@ export default function Averias() {
           }
           loading={loadingEquipos}
           error={errorEquipos}
+        />
+        <Text style={styles.label}>Clasificación</Text>
+        <Select<ClasificacionUbicacion>
+          options={clasificaciones}
+          valueKey="id_clasificacion"
+          labelKey="nombre_clasificacion"
+          selectedValue={clasificacionSelected}
+          onValueChange={(val) => {
+            console.log('[Averias] Clasificación seleccionada:', val);
+            setClasificacionSelected(val as number | null);
+          }}
+          placeholder="Todas las ubicaciones"
+          loading={loadingClasificaciones}
+          error={errorClasificaciones}
         />
 
       </ScrollView>
