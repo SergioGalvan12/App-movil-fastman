@@ -7,7 +7,7 @@ import PasswordScreen from './screens/auth/PasswordScreen';
 import Toast from 'react-native-toast-message';
 import BottomTabNavigator from './navigation/BottomTabNavigator';
 import AveriasScreen from './screens/reports/Averias';
-
+import FiltrosAvanzados from './screens/reports/FiltrosAvanzados';
 // Definir los tipos para los parámetros de navegación
 export type AuthStackParamList = {
   Domain: undefined;
@@ -15,6 +15,7 @@ export type AuthStackParamList = {
   Password: { domain: string; username: string; empresaId?: number };
   Main: undefined;
   Averias: undefined;
+  FiltrosAvanzados: undefined;
   // Añade aquí otras rutas si es necesario
 };
 
@@ -36,7 +37,7 @@ export default function App() {
         <Stack.Screen name="Password" component={PasswordScreen} />
         <Stack.Screen name="Main" component={BottomTabNavigator} />
         <Stack.Screen name="Averias" component={AveriasScreen} />
-
+        <Stack.Screen name="FiltrosAvanzados" component={FiltrosAvanzados} />
       </Stack.Navigator>
     </NavigationContainer>
     <Toast />
