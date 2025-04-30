@@ -289,8 +289,20 @@ export default function Averias() {
 
         <BtnOutlineSecundary
           title="Filtros avanzados"
-          onPress={() => navigation.navigate('FiltrosAvanzados')}
+          onPress={() => {
+            if (grupoSelected !== null) {
+              // busca el nombre del grupo en tu lista
+              const grupo = grupos.find(g => g.id_grupo_equipo === grupoSelected);
+              navigation.navigate('FiltrosAvanzados', {
+                grupoId: grupoSelected,
+                grupoName: grupo ? grupo.nombre_grupo_equipo : ''
+              });
+            } else {
+              alert('Por favor selecciona un grupo de equipo');
+            }
+          }}
         />
+
 
       </ScrollView>
     </SafeAreaView>
