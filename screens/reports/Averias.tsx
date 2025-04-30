@@ -48,11 +48,7 @@ export default function Averias() {
   const [loadingEquipos, setLoadingEquipos] = useState(false);
   const [errorEquipos, setErrorEquipos] = useState('');
 
-  // Estado para Clasificación Ubicación
-  const [clasificacionSelected, setClasificacionSelected] = useState<number | null>(null);
-  const [clasificaciones, setClasificaciones] = useState<ClasificacionUbicacion[]>([]);
-  const [loadingClasificaciones, setLoadingClasificaciones] = useState(false);
-  const [errorClasificaciones, setErrorClasificaciones] = useState('');
+
 
 
 
@@ -159,29 +155,6 @@ export default function Averias() {
     }
   };
 
-
-  // Cargar clasificaciones al montar
-  useEffect(() => {
-    loadClasificaciones();
-  }, []);
-
-  const loadClasificaciones = async () => {
-    try {
-      setLoadingClasificaciones(true);
-      const resp = await fetchClasificacionesUbicacion();
-      if (resp.success && resp.data) {
-        setClasificaciones(resp.data);
-      } else {
-        setErrorClasificaciones(resp.error || 'Error al cargar clasificaciones');
-      }
-    } catch (error) {
-      setErrorClasificaciones('Error inesperado');
-    } finally {
-      setLoadingClasificaciones(false);
-    }
-  };
-
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container}>
@@ -272,34 +245,16 @@ export default function Averias() {
           loading={loadingEquipos}
           error={errorEquipos}
         />
-        {/* <Text style={styles.label}>Clasificación</Text>
-        <Select<ClasificacionUbicacion>
-          options={clasificaciones}
-          valueKey="id_clasificacion"
-          labelKey="nombre_clasificacion"
-          selectedValue={clasificacionSelected}
-          onValueChange={(val) => {
-            console.log('[Averias] Clasificación seleccionada:', val);
-            setClasificacionSelected(val as number | null);
-          }}
-          placeholder="Todas las ubicaciones"
-          loading={loadingClasificaciones}
-          error={errorClasificaciones}
-        /> */}
 
         <BtnOutlineSecundary
           title="Filtros avanzados"
           onPress={() => {
-            if (grupoSelected !== null) {
-              // busca el nombre del grupo en tu lista
-              const grupo = grupos.find(g => g.id_grupo_equipo === grupoSelected);
-              navigation.navigate('FiltrosAvanzados', {
-                grupoId: grupoSelected,
-                grupoName: grupo ? grupo.nombre_grupo_equipo : ''
-              });
-            } else {
-              alert('Por favor selecciona un grupo de equipo');
-            }
+            // busca el nombre del grupo en tu lista
+            const grupo = grupos.find(g => g.id_grupo_equipo === grupoSelected);
+            navigation.navigate('FiltrosAvanzados', {
+              grupoId: grupoSelected,
+              grupoName: grupo ? grupo.nombre_grupo_equipo : ''
+            });
           }}
         />
 
