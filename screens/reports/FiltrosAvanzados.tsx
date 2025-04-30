@@ -17,6 +17,7 @@ import Select from '../../components/common/Select';
 
 import { AuthStackParamList } from '../../App';
 import { fetchGrupoEquipos, GrupoEquipo } from '../../services/grupoEquipoService';
+import { fetchMarcas, Marca } from '../../services/reports/averias/marcaService';
 
 type FiltrosRouteProp = RouteProp<AuthStackParamList, 'FiltrosAvanzados'>;
 type NavProp = NativeStackNavigationProp<AuthStackParamList, 'FiltrosAvanzados'>;
@@ -34,7 +35,17 @@ export default function FiltrosAvanzados() {
   // — Estado del grupo seleccionado
   const [grupoSelected, setGrupoSelected] = useState<number | null>(initialGrupoId);
 
-  // 1) Al montar, vamos por los grupos
+
+  // — marcas
+  const [marcas, setMarcas] = useState<Marca[]>([]);
+  const [loadingMarcas, setLoadingMarcas] = useState(true);
+  const [errorMarcas, setErrorMarcas] = useState<string>('');
+  const [marcaSelected, setMarcaSelected] = useState<number | null>(null);
+
+
+
+
+  // carga inicial de grupos
   useEffect(() => {
     (async () => {
       try {
@@ -52,13 +63,30 @@ export default function FiltrosAvanzados() {
         setLoadingGrupos(false);
       }
     })();
-  }, []);
+
+    // carga inicial de marcas
+    (async () => {
+      try {
+        const resp = await fetchMarcas();
+        if (resp.success && resp.data) setMarcas(resp.data);
+        else setErrorMarcas(resp.error || 'Error al cargar marcas');
+      } catch {
+        setErrorMarcas('Error inesperado al cargar marcas');
+      } finally {
+        setLoadingMarcas(false);
+      }
+    })();
+  }, []); // fin useEffect
+
 
   // 2) Cuando cambia el grupoSelected, podrías volver a fetch si quisieras
   useEffect(() => {
     console.log('[FiltrosAvanzados] grupoSelected →', grupoSelected);
     // p.ej. fetchGrupoEquipoBacklog(grupoSelected)
   }, [grupoSelected]);
+
+
+
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -87,6 +115,28 @@ export default function FiltrosAvanzados() {
             placeholder="— Selecciona grupo —"
           />
         )}
+
+        {/* Selector de Marca */}
+        <Text style={styles.label}>Marca</Text>
+        {loadingMarcas ? (
+          <ActivityIndicator style={{ marginVertical: 10 }} />
+        ) : errorMarcas ? (
+        <Text style={styles.error}>{errorMarcas}</Text>
+        ) : (
+          <Select<Marca>
+            options={marcas}
+            valueKey="id_marca"
+            labelKey="nombre_marca"
+            selectedValue={marcaSelected}
+            onValueChange={(val) => {
+              console.log('[FiltrosAvanzados] Marca cambiada →', val);
+              setMarcaSelected(val as number | null);
+            }}
+            placeholder="— Selecciona marca —"
+          />
+        )}
+
+        {/* Selector de Modelo */}
 
         {/* Aquí podrías renderizar más controles según el grupoSelected */}
         {/* ... */}
