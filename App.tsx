@@ -15,7 +15,7 @@ export type AuthStackParamList = {
   Password: { domain: string; username: string; empresaId?: number };
   Main: undefined;
   Averias: undefined;
-  FiltrosAvanzados: undefined;
+  FiltrosAvanzados: { grupoId: number, grupoName: string;};
   // Añade aquí otras rutas si es necesario
 };
 
