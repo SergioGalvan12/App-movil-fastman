@@ -18,6 +18,7 @@ import Select from '../../components/common/Select';
 import { AuthStackParamList } from '../../App';
 import { fetchGrupoEquipos, GrupoEquipo } from '../../services/grupoEquipoService';
 import { fetchMarcas, Marca } from '../../services/reports/averias/marcaService';
+import { fetchModelos, Modelo } from '../../services/reports/averias/modeloService';
 
 type FiltrosRouteProp = RouteProp<AuthStackParamList, 'FiltrosAvanzados'>;
 type NavProp = NativeStackNavigationProp<AuthStackParamList, 'FiltrosAvanzados'>;
@@ -42,7 +43,11 @@ export default function FiltrosAvanzados() {
   const [errorMarcas, setErrorMarcas] = useState<string>('');
   const [marcaSelected, setMarcaSelected] = useState<number | null>(null);
 
-
+  // — Modelos (depende de la marca seleccionada) —
+  const [modelos, setModelos] = useState<Modelo[]>([]);
+  const [loadingModelos, setLoadingModelos] = useState(false);
+  const [errorModelos, setErrorModelos] = useState<string>('');
+  const [modeloSelected, setModeloSelected] = useState<number | null>(null);
 
 
   // carga inicial de grupos
@@ -77,6 +82,34 @@ export default function FiltrosAvanzados() {
       }
     })();
   }, []); // fin useEffect
+
+  // cuando cambia la marca seleccionada, cargamos los modelos
+  useEffect(() => {
+    if (marcaSelected == null) {
+      setModelos([]);
+      setModeloSelected(null);
+      return;
+    }
+    (async () => {
+      setLoadingModelos(true);
+      try {
+        console.log('[FiltrosAvanzados] cargando modelos para marca:', marcaSelected);
+        const resp = await fetchModelos(marcaSelected);
+        if (resp.success && resp.data) {
+          setModelos(resp.data);
+        } else {
+          setErrorModelos(resp.error || 'Error al cargar modelos');
+        }
+      } catch (e) {
+        console.error(e);
+        setErrorModelos('Error inesperado con modelos');
+      } finally {
+        setLoadingModelos(false);
+      }
+    })();
+  }, [marcaSelected]); // fin useEffect
+
+
 
 
   // 2) Cuando cambia el grupoSelected, podrías volver a fetch si quisieras
@@ -121,7 +154,7 @@ export default function FiltrosAvanzados() {
         {loadingMarcas ? (
           <ActivityIndicator style={{ marginVertical: 10 }} />
         ) : errorMarcas ? (
-        <Text style={styles.error}>{errorMarcas}</Text>
+          <Text style={styles.error}>{errorMarcas}</Text>
         ) : (
           <Select<Marca>
             options={marcas}
@@ -136,7 +169,29 @@ export default function FiltrosAvanzados() {
           />
         )}
 
-        {/* Selector de Modelo */}
+        {/* Selector de Modelo  depende de la marca*/}
+        <Text style={styles.label}>Modelo</Text>
+        {loadingModelos ? (
+          <ActivityIndicator style={{ marginVertical: 10 }} />
+        ) : errorModelos ? (
+          <Text style={styles.error}>{errorModelos}</Text>
+        ) : (
+          <Select<Modelo>
+            options={modelos}
+            valueKey="id_modelo"
+            labelKey="nombre_modelo"
+            selectedValue={modeloSelected}
+            onValueChange={(val) => {
+              console.log('[FiltrosAvanzados] Modelo cambiado →', val);
+              setModeloSelected(val as number | null);
+            }}
+            placeholder={
+              marcaSelected != null && modelos.length === 0
+                ? 'No hay modelos para esta marca'
+                : '— Selecciona modelo —'
+            }
+          />
+        )}
 
         {/* Aquí podrías renderizar más controles según el grupoSelected */}
         {/* ... */}
