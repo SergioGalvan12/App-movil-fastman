@@ -12,8 +12,15 @@ import { fetchTurnos, TurnoInterface } from '../../services/turnoService';
 import { fetchGrupoEquipos, GrupoEquipo } from '../../services/grupoEquipoService';
 import { fetchEquipos, Equipo } from '../../services/equipoService';
 import { ClasificacionUbicacion, fetchClasificacionesUbicacion } from '../../services/reports/averias/clasificacionService';
+import MenuItem from '../../components/common/MenuItem';
+import BtnOutlineSecundary from '../../components/common/BtnOutlineSecundary';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { AuthStackParamList } from '../../App';
 
 export default function Averias() {
+  const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
+
   // Estado central del formulario
   const [formulario, setFormulario] = useState<{ id_personal: number }>({
     id_personal: 0
@@ -265,7 +272,7 @@ export default function Averias() {
           loading={loadingEquipos}
           error={errorEquipos}
         />
-        <Text style={styles.label}>Clasificación</Text>
+        {/* <Text style={styles.label}>Clasificación</Text>
         <Select<ClasificacionUbicacion>
           options={clasificaciones}
           valueKey="id_clasificacion"
@@ -278,6 +285,11 @@ export default function Averias() {
           placeholder="Todas las ubicaciones"
           loading={loadingClasificaciones}
           error={errorClasificaciones}
+        /> */}
+
+        <BtnOutlineSecundary
+          title="Filtros avanzados"
+          onPress={() => navigation.navigate('FiltrosAvanzados')}
         />
 
       </ScrollView>
