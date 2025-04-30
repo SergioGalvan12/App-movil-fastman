@@ -20,6 +20,7 @@ import { fetchGrupoEquipos, GrupoEquipo } from '../../services/grupoEquipoServic
 import { fetchMarcas, Marca } from '../../services/reports/averias/marcaService';
 import { fetchModelos, Modelo } from '../../services/reports/averias/modeloService';
 import { ClasificacionUbicacion, fetchClasificacionesUbicacion } from '../../services/reports/averias/clasificacionService';
+import { Ubicacion, fetchUbicaciones } from '../../services/reports/averias/ubicacionService';
 
 type FiltrosRouteProp = RouteProp<AuthStackParamList, 'FiltrosAvanzados'>;
 type NavProp = NativeStackNavigationProp<AuthStackParamList, 'FiltrosAvanzados'>;
@@ -55,6 +56,13 @@ export default function FiltrosAvanzados() {
   const [clasificaciones, setClasificaciones] = useState<ClasificacionUbicacion[]>([]);
   const [loadingClasificaciones, setLoadingClasificaciones] = useState(false);
   const [errorClasificaciones, setErrorClasificaciones] = useState('');
+
+  // Estado para Ubicación
+  const [ubicaciones, setUbicaciones] = useState<Ubicacion[]>([]);
+  const [loadingUbicaciones, setLoadingUbicaciones] = useState(true);
+  const [errorUbicaciones, setErrorUbicaciones] = useState('');
+  const [ubicacionSelected, setUbicacionSelected] = useState<number | null>(null);
+
 
   // carga inicial de grupos
   useEffect(() => {
@@ -115,7 +123,7 @@ export default function FiltrosAvanzados() {
     })();
   }, [marcaSelected]); // fin useEffect
 
-// Cargar clasificaciones al montar
+  // Cargar clasificaciones al montar
   useEffect(() => {
     loadClasificaciones();
   }, []);
@@ -143,7 +151,25 @@ export default function FiltrosAvanzados() {
     // p.ej. fetchGrupoEquipoBacklog(grupoSelected)
   }, [grupoSelected]);
 
-
+  // Carga inicial de ubicaciones
+  useEffect(() => {
+    (async () => {
+      try {
+        console.log('[FiltrosAvanzados] cargando ubicaciones...');
+        const resp = await fetchUbicaciones();
+        if (resp.success && resp.data) {
+          setUbicaciones(resp.data);
+        } else {
+          setErrorUbicaciones(resp.error || 'Error al cargar ubicaciones');
+        }
+      } catch (e) {
+        console.error(e);
+        setErrorUbicaciones('Error inesperado');
+      } finally {
+        setLoadingUbicaciones(false);
+      }
+    })();
+  }, []);
 
 
   return (
@@ -233,6 +259,23 @@ export default function FiltrosAvanzados() {
           error={errorClasificaciones}
         />
 
+        <Text style={styles.label}>Ubicación</Text>
+        {loadingUbicaciones ? (
+          <ActivityIndicator style={{ marginVertical: 10 }} />
+        ) : errorUbicaciones ? (
+          <Text style={styles.error}>{errorUbicaciones}</Text>
+        ) : (
+          <Select<Ubicacion>
+            options={ubicaciones}
+            valueKey="id_ubicacion"
+            labelKey="nombre_ubicacion"
+            selectedValue={ubicacionSelected}
+            onValueChange={val => setUbicacionSelected(val as number | null)}
+            placeholder="— Selecciona ubicación —"
+          />
+        )}
+
+        {/* Selector de Ubicación */}
         {/* Aquí podrías renderizar más controles según el grupoSelected */}
         {/* ... */}
       </ScrollView>
