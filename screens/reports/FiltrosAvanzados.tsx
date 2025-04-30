@@ -21,6 +21,7 @@ import { fetchMarcas, Marca } from '../../services/reports/averias/marcaService'
 import { fetchModelos, Modelo } from '../../services/reports/averias/modeloService';
 import { ClasificacionUbicacion, fetchClasificacionesUbicacion } from '../../services/reports/averias/clasificacionService';
 import { Ubicacion, fetchUbicaciones } from '../../services/reports/averias/ubicacionService';
+import { Area, fetchAreas } from '../../services/reports/averias/areaService';
 
 type FiltrosRouteProp = RouteProp<AuthStackParamList, 'FiltrosAvanzados'>;
 type NavProp = NativeStackNavigationProp<AuthStackParamList, 'FiltrosAvanzados'>;
@@ -63,7 +64,12 @@ export default function FiltrosAvanzados() {
   const [errorUbicaciones, setErrorUbicaciones] = useState('');
   const [ubicacionSelected, setUbicacionSelected] = useState<number | null>(null);
 
-
+  // — Estado para Áreas —
+  const [areas, setAreas] = useState<Area[]>([]);
+  const [loadingAreas, setLoadingAreas] = useState(true);
+  const [errorAreas, setErrorAreas] = useState('');
+  const [areaSelected, setAreaSelected] = useState<number | null>(null);
+  
   // carga inicial de grupos
   useEffect(() => {
     (async () => {
@@ -172,6 +178,21 @@ export default function FiltrosAvanzados() {
   }, []);
 
 
+    // Carga de áreas
+    useEffect(() => {
+      (async () => {
+        try {
+          const resp = await fetchAreas();
+          if (resp.success && resp.data) setAreas(resp.data);
+          else setErrorAreas(resp.error || 'Error al cargar áreas');
+        } catch {
+          setErrorAreas('Error inesperado');
+        } finally {
+          setLoadingAreas(false);
+        }
+      })();
+    }, []);
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
@@ -272,6 +293,23 @@ export default function FiltrosAvanzados() {
             selectedValue={ubicacionSelected}
             onValueChange={val => setUbicacionSelected(val as number | null)}
             placeholder="— Selecciona ubicación —"
+          />
+        )}
+
+                {/* Área */}
+                <Text style={styles.label}>Área</Text>
+        {loadingAreas ? (
+          <ActivityIndicator style={{ marginVertical: 10 }} />
+        ) : errorAreas ? (
+          <Text style={styles.error}>{errorAreas}</Text>
+        ) : (
+          <Select<Area>
+            options={areas}
+            valueKey="id_area"
+            labelKey="nombre_area"
+            selectedValue={areaSelected}
+            onValueChange={val => setAreaSelected(val as number | null)}
+            placeholder="— Selecciona área —"
           />
         )}
 
