@@ -19,6 +19,7 @@ import { AuthStackParamList } from '../../App';
 import { fetchGrupoEquipos, GrupoEquipo } from '../../services/grupoEquipoService';
 import { fetchMarcas, Marca } from '../../services/reports/averias/marcaService';
 import { fetchModelos, Modelo } from '../../services/reports/averias/modeloService';
+import { ClasificacionUbicacion, fetchClasificacionesUbicacion } from '../../services/reports/averias/clasificacionService';
 
 type FiltrosRouteProp = RouteProp<AuthStackParamList, 'FiltrosAvanzados'>;
 type NavProp = NativeStackNavigationProp<AuthStackParamList, 'FiltrosAvanzados'>;
@@ -49,6 +50,11 @@ export default function FiltrosAvanzados() {
   const [errorModelos, setErrorModelos] = useState<string>('');
   const [modeloSelected, setModeloSelected] = useState<number | null>(null);
 
+  // Estado para Clasificación Ubicación
+  const [clasificacionSelected, setClasificacionSelected] = useState<number | null>(null);
+  const [clasificaciones, setClasificaciones] = useState<ClasificacionUbicacion[]>([]);
+  const [loadingClasificaciones, setLoadingClasificaciones] = useState(false);
+  const [errorClasificaciones, setErrorClasificaciones] = useState('');
 
   // carga inicial de grupos
   useEffect(() => {
@@ -109,7 +115,26 @@ export default function FiltrosAvanzados() {
     })();
   }, [marcaSelected]); // fin useEffect
 
+// Cargar clasificaciones al montar
+  useEffect(() => {
+    loadClasificaciones();
+  }, []);
 
+  const loadClasificaciones = async () => {
+    try {
+      setLoadingClasificaciones(true);
+      const resp = await fetchClasificacionesUbicacion();
+      if (resp.success && resp.data) {
+        setClasificaciones(resp.data);
+      } else {
+        setErrorClasificaciones(resp.error || 'Error al cargar clasificaciones');
+      }
+    } catch (error) {
+      setErrorClasificaciones('Error inesperado');
+    } finally {
+      setLoadingClasificaciones(false);
+    }
+  };
 
 
   // 2) Cuando cambia el grupoSelected, podrías volver a fetch si quisieras
@@ -192,6 +217,21 @@ export default function FiltrosAvanzados() {
             }
           />
         )}
+
+        <Text style={styles.label}>Clasificación</Text>
+        <Select<ClasificacionUbicacion>
+          options={clasificaciones}
+          valueKey="id_clasificacion"
+          labelKey="nombre_clasificacion"
+          selectedValue={clasificacionSelected}
+          onValueChange={(val) => {
+            console.log('[Averias] Clasificación seleccionada:', val);
+            setClasificacionSelected(val as number | null);
+          }}
+          placeholder="Todas las ubicaciones"
+          loading={loadingClasificaciones}
+          error={errorClasificaciones}
+        />
 
         {/* Aquí podrías renderizar más controles según el grupoSelected */}
         {/* ... */}
