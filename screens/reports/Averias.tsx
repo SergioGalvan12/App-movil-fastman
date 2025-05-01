@@ -17,6 +17,7 @@ import BtnOutlineSecundary from '../../components/common/BtnOutlineSecundary';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../App';
+import { fetchGrupoEquipoBacklog, GrupoEquipoBacklog } from '../../services/reports/averias/grupoEquipoBacklogService';
 
 export default function Averias() {
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
@@ -48,9 +49,11 @@ export default function Averias() {
   const [loadingEquipos, setLoadingEquipos] = useState(false);
   const [errorEquipos, setErrorEquipos] = useState('');
 
-
-
-
+  // Estado para Averías
+  const [averias, setAverias] = useState<GrupoEquipoBacklog[]>([]);
+  const [averiaSelected, setAveriaSelected] = useState<number | null>(null);
+  const [loadingAverias, setLoadingAverias] = useState(false);
+  const [errorAverias, setErrorAverias] = useState('');
 
   //Solo para depurar el valor inicial
   useEffect(() => {
@@ -155,6 +158,31 @@ export default function Averias() {
     }
   };
 
+  useEffect(() => {
+    const loadAverias = async () => {
+      if (grupoSelected && equipoSelected) {
+        try {
+          setLoadingAverias(true);
+          const resp = await fetchGrupoEquipoBacklog(grupoSelected);
+          if (resp.success && resp.data) {
+            setAverias(resp.data);
+          } else {
+            setErrorAverias(resp.error || 'Error al cargar averías');
+          }
+        } catch (error) {
+          setErrorAverias('Error inesperado al cargar averías');
+        } finally {
+          setLoadingAverias(false);
+        }
+      } else {
+        setAverias([]);
+        setAveriaSelected(null);
+      }
+    };
+
+    loadAverias();
+  }, [grupoSelected, equipoSelected]);
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container}>
@@ -246,7 +274,30 @@ export default function Averias() {
           error={errorEquipos}
         />
 
-        <BtnOutlineSecundary
+        {/* Avería */}
+        <Text style={styles.label}>Avería</Text>
+        <Select<GrupoEquipoBacklog>
+          options={averias}
+          valueKey="id_grupo_backlog"
+          labelKey="nombre_falla"
+          selectedValue={averiaSelected}
+          onValueChange={(val) => {
+            console.log('[Averias] Avería seleccionada:', val);
+            setAveriaSelected(val as number);
+          }}
+          placeholder={
+            grupoSelected == null
+              ? 'Seleccione un grupo'
+              : equipoSelected == null
+                ? 'Seleccione un equipo'
+                : 'Seleccione una avería'
+          }
+          loading={loadingAverias}
+          error={errorAverias}
+        />
+
+        {/* Se podria habilitar en un futuro */}
+        {/* <BtnOutlineSecundary
           title="Filtros avanzados"
           onPress={() => {
             // busca el nombre del grupo en tu lista
@@ -256,8 +307,8 @@ export default function Averias() {
               grupoName: grupo ? grupo.nombre_grupo_equipo : ''
             });
           }}
-        />
-
+        /> 
+        */}
 
       </ScrollView>
     </SafeAreaView>
