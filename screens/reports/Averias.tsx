@@ -281,20 +281,21 @@ export default function Averias() {
           valueKey="id_grupo_backlog"
           labelKey="nombre_falla"
           selectedValue={averiaSelected}
-          onValueChange={(val) => {
-            console.log('[Averias] Avería seleccionada:', val);
-            setAveriaSelected(val as number);
-          }}
+          onValueChange={(val) => setAveriaSelected(val as number)}
+          disabled={grupoSelected == null || equipoSelected == null}
           placeholder={
             grupoSelected == null
               ? 'Seleccione un grupo'
               : equipoSelected == null
                 ? 'Seleccione un equipo'
-                : 'Seleccione una avería'
+                : averias.length === 0
+                  ? 'Sin averías registradas'
+                  : 'Seleccione una avería'
           }
           loading={loadingAverias}
           error={errorAverias}
         />
+
 
         {/* Se podria habilitar en un futuro */}
         {/* <BtnOutlineSecundary
