@@ -8,6 +8,8 @@ import Toast from 'react-native-toast-message';
 import BottomTabNavigator from './navigation/BottomTabNavigator';
 import AveriasScreen from './screens/reports/Averias';
 import FiltrosAvanzados from './screens/reports/FiltrosAvanzados';
+import CargarImagen from './screens/reports/CargarImagen';
+
 // Definir los tipos para los parámetros de navegación
 export type AuthStackParamList = {
   Domain: undefined;
@@ -16,6 +18,7 @@ export type AuthStackParamList = {
   Main: undefined;
   Averias: undefined;
   FiltrosAvanzados: { grupoId: number, grupoName: string;};
+  CargarImagen: undefined;
   // Añade aquí otras rutas si es necesario
 };
 
@@ -38,6 +41,7 @@ export default function App() {
         <Stack.Screen name="Main" component={BottomTabNavigator} />
         <Stack.Screen name="Averias" component={AveriasScreen} />
         <Stack.Screen name="FiltrosAvanzados" component={FiltrosAvanzados} />
+        <Stack.Screen name="CargarImagen" component={CargarImagen} />
       </Stack.Navigator>
     </NavigationContainer>
     <Toast />

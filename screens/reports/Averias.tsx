@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import {
   View, Text, TextInput, StyleSheet,
   ScrollView, SafeAreaView,
-  TouchableOpacity
+  TouchableOpacity,
+  Modal
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import HeaderTitle from '../../components/common/HeaderTitle';
@@ -17,7 +18,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../App';
 import { fetchGrupoEquipoBacklog, GrupoEquipoBacklog } from '../../services/reports/averias/grupoEquipoBacklogService';
 import { showToast } from '../../services/ToastService';
-import Toast from 'react-native-toast-message';
+
 
 export default function Averias() {
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
@@ -56,6 +57,7 @@ export default function Averias() {
 
   // Contador para acciones correctivas ficticias
   const [accionCount, setAccionCount] = useState(1);
+  const [modalVisible, setModalVisible] = useState(false);
 
   // Carga inicial y depuración
   useEffect(() => console.log('[Averias] formulario inicial →', formulario), []);
@@ -132,8 +134,9 @@ export default function Averias() {
   // Handler para crear acción correctiva
   const handleCrearAccionCorrectiva = () => {
     const mensaje = `Se ha creado la acción AC${accionCount} - ejemplo notificación`;
-    showToast('success', mensaje, undefined, {position: 'top'});
+    showToast('success', mensaje, undefined, { position: 'top' });
     setAccionCount(prev => prev + 1);
+    setModalVisible(true);
   };
 
   return (
@@ -186,6 +189,47 @@ export default function Averias() {
           <Text style={styles.createButtonText}>+ Crear acción correctiva</Text>
         </TouchableOpacity>
       </ScrollView>
+      <Modal
+  animationType="slide"
+  transparent={true}
+  visible={modalVisible}
+  onRequestClose={() => setModalVisible(false)}
+>
+  <View style={styles.modalOverlay}>
+          {/* Cabecera estilo web */}
+          <View style={styles.modalHeader}>
+        <Text style={styles.modalHeaderText}>
+          Acción correctiva creada con éxito
+        </Text>
+        <TouchableOpacity onPress={() => setModalVisible(false)}>
+          <Text style={styles.closeButtonText}>✕</Text>
+        </TouchableOpacity>
+      </View>
+    <View style={styles.modalContent}>
+
+
+      {/* Cuerpo */}
+      <Text style={styles.modalText}>¿Desea agregar imágenes?</Text>
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity
+          style={styles.yesButton}
+          onPress={() => {
+            setModalVisible(false);
+            navigation.navigate('CargarImagen');
+          }}
+        >
+          <Text style={styles.buttonText}>Sí</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.noButton}
+          onPress={() => setModalVisible(false)}
+        >
+          <Text style={styles.buttonText}>No</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  </View>
+</Modal>
     </SafeAreaView>
   );
 }
@@ -198,5 +242,77 @@ const styles = StyleSheet.create({
   pickerWrapper: { marginTop: 4 },
   textArea: { height: 100, textAlignVertical: 'top' },
   createButton: { marginTop: 20, backgroundColor: '#4CAF50', padding: 14, borderRadius: 8, alignItems: 'center' },
-  createButtonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' }
+  createButtonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
+
+  // encabezado del modal
+  modalHeader: {
+    width: '80%',
+    flexDirection: 'row',
+    backgroundColor: '#1B2A56',  // azul oscuro similar
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
+  },
+  modalHeaderText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  closeButtonText: {
+    color: '#FFF',
+    fontSize: 18,
+  },
+  modalContent: {
+    width: '80%',
+    maxHeight: '60%',
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 10,
+    // para que no redondee la parte superior que ya lo hace el header:
+    overflow: 'hidden',
+  },
+  // cuerpo del modal
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+  },
+  modalText: {
+    fontSize: 18,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  yesButton: {
+    backgroundColor: '#28A745',
+    padding: 10,
+    borderRadius: 5,
+    flex: 1,
+    marginRight: 10,
+  },
+  noButton: {
+    backgroundColor: '#DC3545',
+    padding: 10,
+    borderRadius: 5,
+    flex: 1,
+    marginLeft: 10,
+  },
+  buttonText: {
+    color: 'white',
+    textAlign: 'center',
+    fontSize: 16,
+  },
 });
