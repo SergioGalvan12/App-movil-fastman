@@ -27,6 +27,8 @@ interface SelectProps<T> {
   loading?: boolean;
   /** Si no vacío, mostramos el mensaje de error */
   error?: string;
+  /** Deshabilita el control */
+  disabled?: boolean;
   /** Estilos custom para el wrapper */
   style?: ViewStyle;
   /** Estilos custom para el texto de error */
@@ -42,6 +44,7 @@ export default function Select<T extends Record<string, any>>({
   placeholder = '— Selecciona —',
   loading = false,
   error = '',
+  disabled = false,
   style,
   errorStyle,
 }: SelectProps<T>) {
@@ -60,6 +63,7 @@ export default function Select<T extends Record<string, any>>({
         selectedValue={selectedValue}
         onValueChange={(value) => onValueChange(value === '' ? null : value)}
         style={styles.picker}
+        enabled={!disabled}
       >
         {/* 4) Opción vacía */}
         <Picker.Item label={placeholder} value={''} />
