@@ -6,9 +6,9 @@ import apiClient, { ApiResponse } from '../../apiClient';
  * Corresponde a cada objeto que devuelve GET /grupo-equipo-backlog/
  */
 export interface GrupoEquipoBacklog {
-  id_grupo_backlog: number;
+  id_grupo_backlog: number;  
+  nombre_falla: string;
   id_grupo_equipo: number;
-  nombre_backlog: string;
   // ...añade aquí otros campos si los necesitas
 }
 
