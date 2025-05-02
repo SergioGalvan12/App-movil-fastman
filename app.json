@@ -4,25 +4,41 @@
     "slug": "fastman-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/fastman.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/fastman.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
+      "infoPlist": {
+        "NSCameraUsageDescription": "Necesitamos acceder a tu cámara para tomar fotos de la avería.",
+        "NSPhotoLibraryUsageDescription": "Necesitamos acceder a tu galería para seleccionar fotos existentes."
+      },
       "supportsTablet": true
     },
     "android": {
+      "package": "com.mauricioasg2002.fastmanapp",
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ],
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/fastman.png",
         "backgroundColor": "#ffffff"
       }
     },
     "web": {
-      "favicon": "./assets/favicon.png"
-    }
+      "favicon": "./assets/fastman.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "cf3ecac9-667f-4a35-8b70-38b306da12d8"
+      }
+    },
+    "owner": "mauricioasg2002"
   }
 }
