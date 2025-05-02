@@ -15,7 +15,9 @@
     "ios": {
       "infoPlist": {
         "NSCameraUsageDescription": "Necesitamos acceder a tu cámara para tomar fotos de la avería.",
-        "NSPhotoLibraryUsageDescription": "Necesitamos acceder a tu galería para seleccionar fotos existentes."
+        "NSPhotoLibraryUsageDescription": "Necesitamos acceder a tu galería para seleccionar fotos existentes.",
+        "NSLocationWhenInUseUsageDescription": "Necesitamos tu ubicación para registrar el lugar del reporte.",
+    "NSLocationAlwaysAndWhenInUseUsageDescription": "Necesitamos tu ubicación para registrar el lugar del reporte."
       },
       "supportsTablet": true
     },
@@ -24,7 +26,9 @@
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
+        "WRITE_EXTERNAL_STORAGE",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/fastman.png",
