@@ -1,12 +1,13 @@
 // screens/dashboard/DashboardScreen.tsx
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { ensureImagePermissions } from '../../services/permisos/permissions';
+import { ensureImagePermissions, ensureLocationPermissions } from '../../services/permisos/permissions';
 
 export default function DashboardScreen() {
   useEffect(() => {
     // Tras el login, pedimos permisos antes de mostrar el contenido
     ensureImagePermissions();
+    ensureLocationPermissions();
   }, []);
 
   return (
