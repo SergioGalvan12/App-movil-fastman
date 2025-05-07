@@ -4,7 +4,7 @@
     "slug": "fastman-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/fastman.png",
+    "icon": "./assets/fastmanLogo.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
