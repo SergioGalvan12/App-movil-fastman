@@ -7,17 +7,16 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import HeaderTitle from '../../components/common/HeaderTitle';
-import SelectPersonal from './SelectPersonal';
+import SelectPersonal from '../../components/common/SelectPersonal';
 import Select from '../../components/common/Select';
-import { fetchTurnos, TurnoInterface } from '../../services/turnoService';
-import { fetchGrupoEquipos, GrupoEquipo } from '../../services/grupoEquipoService';
-import { fetchEquipos, Equipo } from '../../services/equipoService';
-import MenuItem from '../../components/common/MenuItem';
+import { fetchTurnos, TurnoInterface } from '../../services/reports/turnos/turnoService';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../App';
 import { fetchGrupoEquipoBacklog, GrupoEquipoBacklog } from '../../services/reports/averias/grupoEquipoBacklogService';
-import { showToast } from '../../services/ToastService';
+import { showToast } from '../../services/notifications/ToastService';
+import { fetchGrupoEquipos, GrupoEquipo } from '../../services/reports/equipos/grupoEquipoService';
+import { Equipo, fetchEquipos } from '../../services/reports/equipos/equipoService';
 
 
 export default function Averias() {

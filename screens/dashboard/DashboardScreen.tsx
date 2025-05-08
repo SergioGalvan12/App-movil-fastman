@@ -1,7 +1,7 @@
 // screens/dashboard/DashboardScreen.tsx
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { ensureImagePermissions, ensureLocationPermissions } from '../../services/permisos/permissions';
+import { ensureImagePermissions, ensureLocationPermissions } from '../../services/reports/permisos/permissions';
 
 export default function DashboardScreen() {
   useEffect(() => {

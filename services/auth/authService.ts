@@ -1,4 +1,4 @@
-// services/authService.ts
+// services/auth/authService.ts
 import apiClient, { ApiResponse } from '../apiClient';
 import { saveSession} from './authStorage';
 

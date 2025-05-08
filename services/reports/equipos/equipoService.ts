@@ -1,5 +1,5 @@
 // service/equipoService.ts
-import apiClient, { ApiResponse } from './apiClient';
+import apiClient, { ApiResponse } from '../../apiClient';
 
 export interface Equipo {
   id_equipo: number;

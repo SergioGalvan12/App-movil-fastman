@@ -1,6 +1,5 @@
 // Un pequeño helper para guardar y leer los datos de sesión
 // services/authStorage.ts
-// services/authStorage.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEYS = {
