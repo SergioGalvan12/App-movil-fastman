@@ -17,11 +17,15 @@ import { fetchGrupoEquipoBacklog, GrupoEquipoBacklog } from '../../services/repo
 import { showToast } from '../../services/notifications/ToastService';
 import { fetchGrupoEquipos, GrupoEquipo } from '../../services/reports/equipos/grupoEquipoService';
 import { Equipo, fetchEquipos } from '../../services/reports/equipos/equipoService';
-
+import { useAuth } from '../../contexts/AuthContext';
+import { BacklogPayload, createBacklog } from '../../services/reports/averias/backlogService';
 
 
 export default function Averias() {
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
+
+  const { empresaId, personalId } = useAuth();
+  const [loadingAccion, setLoadingAccion] = useState<boolean>(false);
 
   // Estado central del formulario
   const [formulario, setFormulario] = useState<{ id_personal: number }>({ id_personal: 0 });
@@ -55,8 +59,7 @@ export default function Averias() {
   const [loadingAverias, setLoadingAverias] = useState(false);
   const [errorAverias, setErrorAverias] = useState('');
 
-  // Contador para acciones correctivas ficticias
-  const [accionCount, setAccionCount] = useState(1);
+  // Contador para acciones correctivas
   const [modalVisible, setModalVisible] = useState(false);
 
   // Carga inicial y depuración
@@ -132,12 +135,66 @@ export default function Averias() {
   }, [averiaSelected]);
 
   // Handler para crear acción correctiva
-  const handleCrearAccionCorrectiva = () => {
-    const mensaje = `Se ha creado la acción AC${accionCount} - ejemplo notificación`;
-    showToast('success', mensaje, undefined, { position: 'top' });
-    setAccionCount(prev => prev + 1);
-    setModalVisible(true);
+  // Sustituye tu versión anterior por esta:
+  const handleCrearAccionCorrectiva = async () => {
+    // Encuentra la falla seleccionada, que ahora tiene id_backlog_plantilla
+    const sel = averias.find(a => a.id_grupo_backlog === averiaSelected);
+    // 1) Arma el payload exacto que espera tu API:
+    const payload: BacklogPayload = {
+      id_backlog: null,
+      id_backlog_pub: sel?.nombre_falla || descripcion,
+      // el backend lo generará como “ACx – …”
+      id_empresa: empresaId,             // viene de useAuth()
+      numero_economico_equipo: equipoSelected!,
+      descripcion_backlog: descripcion,
+      descripcion_equipo: '',            // o añade más info si quieres
+      estatus: null,
+      fecha_backlog: fecha.toISOString().slice(0, 10), // YYYY-MM-DD
+      ejecutada_backlog: false,
+      fecha_ejecucion_orden_trabajo: null,
+      tipo_backlog: 'MC',
+      ot_created: false,
+      id_ubicacion: null,
+      id_area: null,
+      id_proceso: null,
+      id_subproceso: null,
+      id_orden_trabajo: null,
+      grupo_equipo: grupoSelected!,
+      id_marca_equipo: null,
+      id_modelo_equipo: null,
+      nombre_falla: sel?.nombre_falla || '',  // opcional si ya envias error_origen
+      // Aquí usamos id_backlog_plantilla, que es la FK correcta
+      error_origen: sel!.id_backlog_plantilla,
+      id_personal: personalId,
+      id_turno: turno!,
+      actividades_backlog: [],
+      status_backlog: true,
+      id_equipo: equipoSelected!,
+      id_grupo_equipo: grupoSelected!,
+    };
+    // >>> LOG del payload que vamos a enviar
+    console.log('[Averias] Payload createBacklog →', JSON.stringify(payload, null, 2));
+
+    try {
+      setLoadingAccion(true);
+      const res = await createBacklog(payload);
+      // >>> LOG de la respuesta completa del backend
+      console.log('[Averias] Response createBacklog →', res);
+      if (res.success && res.data) {
+        showToast('success', `Se ha creado la acción: ${res.data.id_backlog_pub}`);
+        setModalVisible(true);
+      } else {
+        throw new Error(res.error || 'Respuesta inesperada');
+      }
+    } catch (err: any) {
+      console.error('Error creando backlog:', err);
+      showToast('error', 'No se pudo crear la acción', err.message || 'Intenta de nuevo');
+      console.error('[Averias] Error creando backlog →', err);
+    } finally {
+      setLoadingAccion(false);
+    }
   };
+
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -185,51 +242,58 @@ export default function Averias() {
           onChangeText={setDescripcion} placeholder="Describe la avería..." />
 
         {/* Crear acción correctiva */}
-        <TouchableOpacity style={styles.createButton} onPress={handleCrearAccionCorrectiva}>
-          <Text style={styles.createButtonText}>+ Crear acción correctiva</Text>
+        <TouchableOpacity
+          style={[styles.createButton, loadingAccion && styles.createButtonDisabled]}
+          onPress={handleCrearAccionCorrectiva}
+          disabled={loadingAccion}
+        >
+          {loadingAccion
+            ? <Text style={styles.createButtonText}>Creando...</Text>
+            : <Text style={styles.createButtonText}>+ Crear acción correctiva</Text>
+          }
         </TouchableOpacity>
       </ScrollView>
       <Modal
-  animationType="slide"
-  transparent={true}
-  visible={modalVisible}
-  onRequestClose={() => setModalVisible(false)}
->
-  <View style={styles.modalOverlay}>
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
           {/* Cabecera estilo web */}
           <View style={styles.modalHeader}>
-        <Text style={styles.modalHeaderText}>
-          Acción correctiva creada con éxito
-        </Text>
-        <TouchableOpacity onPress={() => setModalVisible(false)}>
-          <Text style={styles.closeButtonText}>✕</Text>
-        </TouchableOpacity>
-      </View>
-    <View style={styles.modalContent}>
+            <Text style={styles.modalHeaderText}>
+              Acción correctiva creada con éxito
+            </Text>
+            <TouchableOpacity onPress={() => setModalVisible(false)}>
+              <Text style={styles.closeButtonText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.modalContent}>
 
 
-      {/* Cuerpo */}
-      <Text style={styles.modalText}>¿Desea agregar imágenes?</Text>
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={styles.yesButton}
-          onPress={() => {
-            setModalVisible(false);
-            navigation.navigate('CargarImagen');
-          }}
-        >
-          <Text style={styles.buttonText}>Sí</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.noButton}
-          onPress={() => setModalVisible(false)}
-        >
-          <Text style={styles.buttonText}>No</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  </View>
-</Modal>
+            {/* Cuerpo */}
+            <Text style={styles.modalText}>¿Desea agregar imágenes?</Text>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={styles.yesButton}
+                onPress={() => {
+                  setModalVisible(false);
+                  navigation.navigate('CargarImagen');
+                }}
+              >
+                <Text style={styles.buttonText}>Sí</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.noButton}
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={styles.buttonText}>No</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -315,4 +379,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 16,
   },
+  createButtonDisabled: {
+    backgroundColor: '#A0A0A0'
+  }
 });

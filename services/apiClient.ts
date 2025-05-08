@@ -41,6 +41,8 @@ class ApiClient {
     // reemplazamos baseURL en el cliente:
     const resolved = API_BASE_URL.replace('{DOMAIN}', this.domain);
     this.client.defaults.baseURL = resolved;
+    // Al cambiar de dominio, borramos cualquier token antiguo
+    this.clearAuthToken();
     console.log(`[ApiClient] Base URL resuelta: ${resolved}`);
   }
 
@@ -89,5 +91,10 @@ class ApiClient {
   }
 }
 
-export const apiClient = new ApiClient();
+const _apiClient = new ApiClient();
+export const apiClient = _apiClient;
 export default apiClient;
+
+// Exportamos funciones de control de token para importarlas directamente
+export const setAuthToken = (token: string) => _apiClient.setAuthToken(token);
+export const clearAuthToken = () => _apiClient.clearAuthToken();

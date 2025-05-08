@@ -17,7 +17,8 @@ export interface LoginResponse {
 
   // Interfaz para personal-me:
 export interface PersonalMe {
-    id_personal: number;
+    id_personal: string;
+    id_equipo: number;
     nombre_personal: string;
     apaterno_personal: string;
     amaterno_personal: string;
@@ -103,7 +104,7 @@ export const login = async (
             username,
             empresaId,
             accessToken,
-            personalId: personal.id_personal,   // aquí tu id_personal
+            personalId: personal.id_equipo,   // aquí tu id_personal
             personalName: `${personal.nombre_personal} ${personal.apaterno_personal} ${personal.amaterno_personal}`
           });
         } else {
