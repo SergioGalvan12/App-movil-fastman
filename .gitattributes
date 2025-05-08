@@ -1,0 +1,4 @@
+# Para que al hacer merge de cualquier rama, Git use siempre
+# la versión local (ours) de estos env:
+.env.production merge=ours
+.env.development merge=ours

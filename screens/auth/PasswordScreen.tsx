@@ -14,8 +14,8 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { AuthStackParamList } from '../../App';
 import CustomCheckbox from '../../components/common/CustomCheckbox';
-import { login } from '../../services/authService';
-import { showToast } from '../../services/ToastService';
+import { login } from '../../services/auth/authService';
+import { showToast } from '../../services/notifications/ToastService';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 type PasswordScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Password'>;

@@ -10,13 +10,11 @@ import {
 } from 'react-native';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-
 import HeaderTitle from '../../components/common/HeaderTitle';
 import SearchInput from '../../components/common/SearchInput';
 import Select from '../../components/common/Select';
-
 import { AuthStackParamList } from '../../App';
-import { fetchGrupoEquipos, GrupoEquipo } from '../../services/grupoEquipoService';
+import { fetchGrupoEquipos, GrupoEquipo } from '../../services/reports/equipos/grupoEquipoService';
 import { fetchMarcas, Marca } from '../../services/reports/averias/marcaService';
 import { fetchModelos, Modelo } from '../../services/reports/averias/modeloService';
 import { ClasificacionUbicacion, fetchClasificacionesUbicacion } from '../../services/reports/averias/clasificacionService';

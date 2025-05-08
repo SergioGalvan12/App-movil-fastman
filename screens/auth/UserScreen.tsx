@@ -4,9 +4,9 @@ import { View, Text, TextInput, StyleSheet, Image, TouchableOpacity, ActivityInd
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { AuthStackParamList } from '../../App';
-import { checkUser } from '../../services/authService';
-import { showToast } from '../../services/ToastService';
-import axios from 'axios';
+import { checkUser } from '../../services/auth/authService';
+import { showToast } from '../../services/notifications/ToastService';
+
 
 
 type UserScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'User'>;

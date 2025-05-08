@@ -1,8 +1,10 @@
-// components/SelectPersonal.tsx
+// components/SelectPersonal.tsx (deberia estar ahi)
+// Este componente es un selector de personal
+// screen/reports/SelectPersonal.tsx (aqui se encuentra de momento este componente)
 import React, { useEffect, useState } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import apiClient, { ApiResponse } from '../services/apiClient';
+import apiClient, { ApiResponse } from '../../services/apiClient';
 
 /**
  * Interfaz mínima que describe un elemento de “personal”
