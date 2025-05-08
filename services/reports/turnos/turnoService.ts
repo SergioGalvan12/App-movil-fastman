@@ -1,5 +1,5 @@
 // services/turnoService.ts
-import apiClient, { ApiResponse } from './apiClient';
+import apiClient, { ApiResponse } from '../../apiClient';
 
 /**
  * Interfaz que describe un turno según la API.

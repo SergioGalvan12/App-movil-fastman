@@ -1,5 +1,5 @@
 // service/grupoEquipoService.ts
-import apiClient, { ApiResponse } from './apiClient';
+import apiClient, { ApiResponse } from '../../apiClient';
 
 export interface GrupoEquipo {
   id_grupo_equipo: number;

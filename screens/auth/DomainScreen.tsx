@@ -5,7 +5,7 @@ import { View, Text, TextInput, StyleSheet, Image, TouchableOpacity, ActivityInd
 import { StackNavigationProp } from '@react-navigation/stack';
 import { AuthStackParamList } from '../../App';
 import { checkDomain } from '../../services/auth/authService';
-import { showToast } from '../../services/ToastService';
+import { showToast } from '../../services/notifications/ToastService';
 import apiClient from '../../services/apiClient';
 
 
