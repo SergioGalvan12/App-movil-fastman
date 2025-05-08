@@ -17,6 +17,8 @@ import CustomCheckbox from '../../components/common/CustomCheckbox';
 import { login } from '../../services/auth/authService';
 import { showToast } from '../../services/notifications/ToastService';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { useAuth } from '../../contexts/AuthContext';
+import { getCurrentSession } from '../../services/auth/authStorage';
 
 type PasswordScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Password'>;
 type PasswordScreenRouteProp = RouteProp<AuthStackParamList, 'Password'>;
@@ -28,6 +30,7 @@ type Props = {
 
 export default function PasswordScreen({ navigation, route }: Props) {
   const { domain, username, empresaId } = route.params;
+  const { signIn } = useAuth();
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);   // estado para el ojo
   const [rememberMe, setRememberMe] = useState(false);
@@ -50,6 +53,12 @@ export default function PasswordScreen({ navigation, route }: Props) {
       console.warn('Resultado login:', result);
 
       if (result.success) {
+        // 2) Leemos la sesión recién guardada en AsyncStorage...
+        const session = await getCurrentSession();
+        if (session) {
+          // 3) ...y la pasamos al Context para que useAuth() la refleje
+          signIn(session);
+        }
         navigation.navigate('Main');
         showToast('success', 'Login exitoso', 'Has iniciado sesión correctamente');
       } else {

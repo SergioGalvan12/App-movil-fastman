@@ -9,6 +9,7 @@ import BottomTabNavigator from './navigation/BottomTabNavigator';
 import AveriasScreen from './screens/reports/Averias';
 import FiltrosAvanzados from './screens/reports/FiltrosAvanzados';
 import CargarImagen from './screens/reports/CargarImagen';
+import { AuthProvider } from './contexts/AuthContext';
 
 // Definir los tipos para los parámetros de navegación
 export type AuthStackParamList = {
@@ -17,7 +18,7 @@ export type AuthStackParamList = {
   Password: { domain: string; username: string; empresaId?: number };
   Main: undefined;
   Averias: undefined;
-  FiltrosAvanzados: { grupoId: number, grupoName: string;};
+  FiltrosAvanzados: { grupoId: number, grupoName: string; };
   CargarImagen: undefined;
   // Añade aquí otras rutas si es necesario
 };
@@ -26,25 +27,25 @@ const Stack = createNativeStackNavigator<AuthStackParamList>();
 
 export default function App() {
   return (
-    <>
-    <NavigationContainer>
-      <Stack.Navigator 
-        id={undefined}
-        screenOptions={{ 
-          headerShown: false,
-          contentStyle: { backgroundColor: '#EFF0FA' }
-        }}
-      >
-        <Stack.Screen name="Domain" component={DomainScreen} />
-        <Stack.Screen name="User" component={UserScreen} />
-        <Stack.Screen name="Password" component={PasswordScreen} />
-        <Stack.Screen name="Main" component={BottomTabNavigator} />
-        <Stack.Screen name="Averias" component={AveriasScreen} />
-        <Stack.Screen name="FiltrosAvanzados" component={FiltrosAvanzados} />
-        <Stack.Screen name="CargarImagen" component={CargarImagen} />
-      </Stack.Navigator>
-    </NavigationContainer>
-    <Toast />
-    </>
+    <AuthProvider>
+      <NavigationContainer>
+        <Stack.Navigator
+          id={undefined}
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: '#EFF0FA' }
+          }}
+        >
+          <Stack.Screen name="Domain" component={DomainScreen} />
+          <Stack.Screen name="User" component={UserScreen} />
+          <Stack.Screen name="Password" component={PasswordScreen} />
+          <Stack.Screen name="Main" component={BottomTabNavigator} />
+          <Stack.Screen name="Averias" component={AveriasScreen} />
+          <Stack.Screen name="FiltrosAvanzados" component={FiltrosAvanzados} />
+          <Stack.Screen name="CargarImagen" component={CargarImagen} />
+        </Stack.Navigator>
+      </NavigationContainer>
+      <Toast />
+    </AuthProvider>
   );
 }

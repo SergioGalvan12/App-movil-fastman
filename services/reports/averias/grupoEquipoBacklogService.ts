@@ -9,6 +9,7 @@ export interface GrupoEquipoBacklog {
   id_grupo_backlog: number;  
   nombre_falla: string;
   id_grupo_equipo: number;
+  id_backlog_plantilla: number;   // ← NUEVO
   // ...añade aquí otros campos si los necesitas
 }
 

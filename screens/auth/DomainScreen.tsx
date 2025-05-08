@@ -7,7 +7,7 @@ import { AuthStackParamList } from '../../App';
 import { checkDomain } from '../../services/auth/authService';
 import { showToast } from '../../services/notifications/ToastService';
 import apiClient from '../../services/apiClient';
-
+import { clearAuthToken } from '../../services/apiClient'; 
 
 type DomainScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Domain'>;
 type Props = { navigation: DomainScreenNavigationProp; };
@@ -27,6 +27,7 @@ export default function DomainScreen({ navigation }: Props) {
     // 1) Si es "local", configuro API en modo DEV y salto directamente:
     if (raw === 'local') {
       apiClient.setDomain('local');    // <-- fuerza DEV en configService
+      clearAuthToken(); // limpiamos cualquier token anterior
       navigation.navigate('User', { domain: raw, username: '' });
       return;
     }
@@ -35,6 +36,7 @@ export default function DomainScreen({ navigation }: Props) {
     setLoading(true);
     try {
       apiClient.setDomain(raw);        // <-- fuerza PROD en configService
+      clearAuthToken();
       const result = await checkDomain(raw);
       if (result.success) {
         navigation.navigate('User', { domain: raw, username: '' });
