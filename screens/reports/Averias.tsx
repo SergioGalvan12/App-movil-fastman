@@ -63,8 +63,8 @@ export default function Averias() {
   // Contador para acciones correctivas
   const [modalVisible, setModalVisible] = useState(false);
 
-  // guardamos el id del backlog creado
-  const [createdBacklogId, setCreatedBacklogId] = useState<number | null>(null);
+ // guardamos el id del backlog creado
+ const [createdBacklogId, setCreatedBacklogId] = useState<number | null>(null);
 
 
   // Carga inicial y depuración
@@ -186,10 +186,8 @@ export default function Averias() {
       // >>> LOG de la respuesta completa del backend
       console.log('[Averias] Response createBacklog →', res);
       if (res.success && res.data) {
-
         // guardamos el id para pasar a la pantalla de imágenes
         setCreatedBacklogId(res.data.id_backlog);
-
         showToast('success', `Se ha creado la acción: ${res.data.id_backlog_pub}`);
         setModalVisible(true);
       } else {
@@ -285,20 +283,20 @@ export default function Averias() {
             <Text style={styles.modalText}>¿Desea agregar imágenes?</Text>
             <View style={styles.buttonContainer}>
 
-              {!!createdBacklogId && (
-                <TouchableOpacity
-                  style={styles.yesButton}
-                  onPress={() => {
-                    setModalVisible(false);
-                    navigation.navigate('CargarImagen', {
-                      backlogId: createdBacklogId,
-                      empresaId
-                    });
-                  }}
-                >
-                  <Text style={styles.buttonText}>Sí</Text>
-                </TouchableOpacity>
-              )}
+             {!!createdBacklogId && (
+               <TouchableOpacity
+                 style={styles.yesButton}
+                 onPress={() => {
+                   setModalVisible(false);
+                   navigation.navigate('CargarImagen', {
+                     backlogId: createdBacklogId,
+                     empresaId
+                   });
+                 }}
+               >
+                 <Text style={styles.buttonText}>Sí</Text>
+               </TouchableOpacity>
+             )}
 
               <TouchableOpacity
                 style={styles.noButton}
