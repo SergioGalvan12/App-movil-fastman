@@ -1,3 +1,4 @@
+//src: screens/reports/Averias.tsx
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, TextInput, StyleSheet,
@@ -17,8 +18,9 @@ import { fetchGrupoEquipoBacklog, GrupoEquipoBacklog } from '../../services/repo
 import { showToast } from '../../services/notifications/ToastService';
 import { fetchGrupoEquipos, GrupoEquipo } from '../../services/reports/equipos/grupoEquipoService';
 import { Equipo, fetchEquipos } from '../../services/reports/equipos/equipoService';
-import { useAuth } from '../../contexts/AuthContext';
 import { BacklogPayload, createBacklog } from '../../services/reports/averias/backlogService';
+import { useAuth } from '../../contexts/AuthContext';
+import { fetchBacklogImages, uploadBacklogImage } from '../../services/reports/averias/backlogImagenService';
 
 
 export default function Averias() {
@@ -61,6 +63,10 @@ export default function Averias() {
 
   // Contador para acciones correctivas
   const [modalVisible, setModalVisible] = useState(false);
+
+ // guardamos el id del backlog creado
+ const [createdBacklogId, setCreatedBacklogId] = useState<number | null>(null);
+
 
   // Carga inicial y depuración
   useEffect(() => console.log('[Averias] formulario inicial →', formulario), []);
@@ -181,6 +187,8 @@ export default function Averias() {
       // >>> LOG de la respuesta completa del backend
       console.log('[Averias] Response createBacklog →', res);
       if (res.success && res.data) {
+        // guardamos el id para pasar a la pantalla de imágenes
+        setCreatedBacklogId(res.data.id_backlog);
         showToast('success', `Se ha creado la acción: ${res.data.id_backlog_pub}`);
         setModalVisible(true);
       } else {
@@ -275,15 +283,22 @@ export default function Averias() {
             {/* Cuerpo */}
             <Text style={styles.modalText}>¿Desea agregar imágenes?</Text>
             <View style={styles.buttonContainer}>
-              <TouchableOpacity
-                style={styles.yesButton}
-                onPress={() => {
-                  setModalVisible(false);
-                  navigation.navigate('CargarImagen');
-                }}
-              >
-                <Text style={styles.buttonText}>Sí</Text>
-              </TouchableOpacity>
+
+             {!!createdBacklogId && (
+               <TouchableOpacity
+                 style={styles.yesButton}
+                 onPress={() => {
+                   setModalVisible(false);
+                   navigation.navigate('CargarImagen', {
+                     backlogId: createdBacklogId,
+                     empresaId
+                   });
+                 }}
+               >
+                 <Text style={styles.buttonText}>Sí</Text>
+               </TouchableOpacity>
+             )}
+
               <TouchableOpacity
                 style={styles.noButton}
                 onPress={() => setModalVisible(false)}

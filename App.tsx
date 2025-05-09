@@ -19,7 +19,7 @@ export type AuthStackParamList = {
   Main: undefined;
   Averias: undefined;
   FiltrosAvanzados: { grupoId: number, grupoName: string; };
-  CargarImagen: undefined;
+  CargarImagen: { backlogId: number; empresaId: number };
   // Añade aquí otras rutas si es necesario
 };
 
