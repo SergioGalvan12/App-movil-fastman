@@ -1,13 +1,14 @@
 // screens/Inicio/DomainScreen.tsx
 // Este archivo contiene la pantalla de inicio de sesión donde el usuario ingresa el dominio de su empresa.
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, StyleSheet, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { AuthStackParamList } from '../../App';
 import { checkDomain } from '../../services/auth/authService';
 import { showToast } from '../../services/notifications/ToastService';
 import apiClient from '../../services/apiClient';
-import { clearAuthToken } from '../../services/apiClient'; 
+import { clearAuthToken } from '../../services/apiClient';
+import { getCurrentSession, getRememberMe } from '../../services/auth/authStorage'; // ← importamos
 
 type DomainScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Domain'>;
 type Props = { navigation: DomainScreenNavigationProp; };
@@ -17,6 +18,24 @@ export default function DomainScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // ← Al montar la pantalla, comprobamos si el usuario había marcado "Recuérdame"
+  useEffect(() => {
+    (async () => {
+      const remember = await getRememberMe();
+      if (remember) {
+        const session = await getCurrentSession();
+        if (session) {
+          // Si existe sesión y el flag está activo, saltamos DIRECTO a PasswordScreen
+          navigation.replace('Password', {
+            domain: session.domain,
+            username: session.username,
+            empresaId: session.empresaId
+          });
+        }
+      }
+    })();
+  }, [navigation]);
+
   const handleNext = async () => {
     const raw = domain.trim().toLowerCase();
     if (!raw) {
@@ -24,7 +43,7 @@ export default function DomainScreen({ navigation }: Props) {
       return;
     }
 
-    // 1) Si es "local", configuro API en modo DEV y salto directamente:
+    //  Si es "local", configuro API en modo DEV y salto directamente:
     if (raw === 'local') {
       apiClient.setDomain('local');    // <-- fuerza DEV en configService
       clearAuthToken(); // limpiamos cualquier token anterior
@@ -32,7 +51,7 @@ export default function DomainScreen({ navigation }: Props) {
       return;
     }
 
-    // 2) En otro caso, produccion: chequeo existencia del dominio
+    // En otro caso, produccion: chequeo existencia del dominio
     setLoading(true);
     try {
       apiClient.setDomain(raw);        // <-- fuerza PROD en configService
@@ -63,32 +82,30 @@ export default function DomainScreen({ navigation }: Props) {
         placeholder="Ingresa el dominio (ej: gpp)"
         style={styles.input}
         placeholderTextColor="#999"
-        onChangeText={(text) => {
+        onChangeText={text => {
           setDomain(text);
           setError('');
         }}
-        autoCapitalize='none'
-        keyboardType='url'
+        autoCapitalize="none"
+        keyboardType="url"
         editable={!loading}
       />
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
-      
-      <TouchableOpacity 
-      style={[styles.button, loading && styles.buttonDisabled]}
-      onPress={handleNext}
-      disabled={loading}
+
+      <TouchableOpacity
+        style={[styles.button, loading && styles.buttonDisabled]}
+        onPress={handleNext}
+        disabled={loading}
       >
         {loading ? (
           <ActivityIndicator color="#FFF" size="small" />
         ) : (
           <Text style={styles.buttonText}>Siguiente</Text>
         )}
-
       </TouchableOpacity>
 
       <Text style={styles.footer}>© Copyright Fastman 2025</Text>
-
       <View style={styles.linksContainer}>
         <Text style={styles.link}>Aviso de privacidad</Text>
         <Text style={styles.link}>Política de privacidad</Text>
