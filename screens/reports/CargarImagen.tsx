@@ -10,15 +10,18 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
+
 import {
   fetchBacklogImages,
   uploadBacklogImage,
   BacklogImageInterface,
 } from '../../services/reports/averias/backlogImagenService';
 import { showToast } from '../../services/notifications/ToastService';
+import { AuthStackParamList } from '../../App';
 
 // Definimos los params que esperamos de la navegación
 type CargarImagenRouteProp = RouteProp<
@@ -26,8 +29,11 @@ type CargarImagenRouteProp = RouteProp<
   'CargarImagen'
 >;
 
+// Tipamos correctamente navigation para que 'Main' sea válido
+type CargarImagenNavProp = NativeStackNavigationProp<AuthStackParamList, 'CargarImagen'>;
+
 export default function CargarImagen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<CargarImagenNavProp>();
   const { params } = useRoute<CargarImagenRouteProp>();
   const { backlogId, empresaId } = params;
 
@@ -36,15 +42,13 @@ export default function CargarImagen() {
   const [uploading, setUploading] = useState(false);
   const [existingImages, setExistingImages] = useState<BacklogImageInterface[]>([]);
 
-  // 1) Al montar, cargamos imágenes ya existentes para este backlog
+  // 1) Cargar imágenes existentes al montar
   useEffect(() => {
     (async () => {
       try {
-        console.log('[CargarImagen] fetchBacklogImages backlogId→', backlogId);
         const resp = await fetchBacklogImages(backlogId);
         if (resp.success && resp.data) {
           setExistingImages(resp.data);
-          console.log('[CargarImagen] imágenes existentes →', resp.data);
         }
       } catch (e) {
         console.error('[CargarImagen] Error cargando imágenes', e);
@@ -52,7 +56,7 @@ export default function CargarImagen() {
     })();
   }, [backlogId]);
 
-  // 2) (Opcional) Verificamos permisos de ubicación
+  // 2) Verificar permisos de ubicación (opcional)
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -67,7 +71,7 @@ export default function CargarImagen() {
     })();
   }, []);
 
-  // 3) Funciones para elegir o tomar foto
+  // 3) Tomar o seleccionar foto
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
@@ -80,7 +84,9 @@ export default function CargarImagen() {
       aspect: [4, 3],
       quality: 1,
     });
-    if (!result.canceled) setImageUri(result.assets[0].uri);
+    if (!result.canceled) {
+      setImageUri(result.assets[0].uri);
+    }
   };
 
   const pickImage = async () => {
@@ -95,7 +101,9 @@ export default function CargarImagen() {
       aspect: [4, 3],
       quality: 1,
     });
-    if (!result.canceled) setImageUri(result.assets[0].uri);
+    if (!result.canceled) {
+      setImageUri(result.assets[0].uri);
+    }
   };
 
   // 4) Subir la imagen seleccionada
@@ -103,15 +111,14 @@ export default function CargarImagen() {
     if (!imageUri) return;
     setUploading(true);
     try {
-      console.log('[CargarImagen] uploadBacklogImage payload →', { backlogId, empresaId, imageUri });
       const resp = await uploadBacklogImage(backlogId, empresaId, imageUri);
-      console.log('[CargarImagen] upload response →', resp);
       if (resp.success && resp.data) {
         showToast('success', 'Imagen subida con éxito');
-        // refrescamos la lista:
+        // refrescamos la lista y limpiamos el preview
         const list = await fetchBacklogImages(backlogId);
-        if (list.success && list.data) setExistingImages(list.data);
-        // limpiar preview para permitir nuevas subidas
+        if (list.success && list.data) {
+          setExistingImages(list.data);
+        }
         setImageUri(null);
       } else {
         throw new Error(resp.error || 'Error al subir imagen');
@@ -124,23 +131,43 @@ export default function CargarImagen() {
     }
   };
 
+  // 5) Confirmación al cerrar: muestra alerta, toast y navega a 'Main'
+  const handleFinish = () => {
+    Alert.alert(
+      'Terminar carga',
+      'Ya no podrás subir más imágenes para esta acción. ¿Deseas finalizar?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Finalizar',
+          style: 'destructive',
+          onPress: () => {
+            setModalVisible(false);
+            showToast('success', 'Carga de imágenes finalizada');
+            navigation.navigate('Main');
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <Modal
       animationType="slide"
       transparent
       visible={modalVisible}
-      onRequestClose={() => setModalVisible(false)}
+      onRequestClose={handleFinish}
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <Text style={styles.title}>Cargar Imagen</Text>
 
-          {/* Previsualización de la nueva imagen seleccionada */}
+          {/* Previsualización */}
           {imageUri && (
             <Image source={{ uri: imageUri }} style={styles.imagePreview} />
           )}
 
-          {/* Botones para elegir o tomar foto */}
+          {/* Tomar / Seleccionar */}
           <View style={styles.buttonContainer}>
             <TouchableOpacity style={styles.actionButton} onPress={takePhoto}>
               <Text style={styles.buttonText}>Tomar Foto</Text>
@@ -150,7 +177,7 @@ export default function CargarImagen() {
             </TouchableOpacity>
           </View>
 
-          {/* Botón para subir */}
+          {/* Subir */}
           {imageUri && (
             <TouchableOpacity
               style={[styles.uploadButton, uploading && { opacity: 0.6 }]}
@@ -163,30 +190,31 @@ export default function CargarImagen() {
             </TouchableOpacity>
           )}
 
-          {/* Lista simple de imágenes ya cargadas (URL) */}
+          {/* Imágenes ya cargadas */}
           {existingImages.length > 0 && (
             <View style={{ marginTop: 16, width: '100%' }}>
-              <Text style={{ fontWeight: 'bold', marginBottom: 8 }}>Imágenes existentes:</Text>
-              {existingImages.map((img) => (
-                <Image
-                  key={img.id_imagen}
-                  source={{ uri: img.imagen_url }}
-                  style={{ width: 80, height: 80, marginRight: 8, marginBottom: 8 }}
-                />
-              ))}
+              <Text style={{ fontWeight: 'bold', marginBottom: 8 }}>
+                Imágenes existentes:
+              </Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                {existingImages.map(img => (
+                  <Image
+                    key={img.id_imagen}
+                    source={{ uri: img.imagen_url }}
+                    style={styles.thumb}
+                  />
+                ))}
+              </View>
             </View>
           )}
 
-          {/* Cancelar / Cerrar */}
+          {/* Botón para finalizar y volver a 'Main' */}
           <View style={styles.buttonContainer}>
             <TouchableOpacity
               style={styles.cancelButton}
-              onPress={() => {
-                setModalVisible(false);
-                navigation.goBack();
-              }}
+              onPress={handleFinish}
             >
-              <Text style={styles.buttonText}>Cerrar</Text>
+              <Text style={styles.buttonText}>Finalizar</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -198,35 +226,38 @@ export default function CargarImagen() {
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1, justifyContent: 'center', alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)'
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   modalContent: {
     width: '85%', backgroundColor: 'white', borderRadius: 10,
-    padding: 20, alignItems: 'center'
+    padding: 20, alignItems: 'center',
   },
   title: {
-    fontSize: 22, fontWeight: 'bold', marginBottom: 16, color: '#1E3A8A'
+    fontSize: 22, fontWeight: 'bold', marginBottom: 16, color: '#1E3A8A',
   },
   imagePreview: {
-    width: 200, height: 200, borderRadius: 8, marginBottom: 12
+    width: 200, height: 200, borderRadius: 8, marginBottom: 12,
   },
   buttonContainer: {
     flexDirection: 'row', justifyContent: 'space-between',
-    width: '100%', marginVertical: 8
+    width: '100%', marginVertical: 8,
   },
   actionButton: {
     flex: 1, backgroundColor: '#28A745', padding: 12,
-    borderRadius: 8, marginHorizontal: 4
+    borderRadius: 8, marginHorizontal: 4,
   },
   uploadButton: {
     width: '100%', backgroundColor: '#2563EB',
-    padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 8
+    padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 8,
   },
   cancelButton: {
     flex: 1, backgroundColor: '#DC3545', padding: 12,
-    borderRadius: 8, marginHorizontal: 4
+    borderRadius: 8, marginHorizontal: 4,
   },
   buttonText: {
-    color: 'white', textAlign: 'center', fontSize: 16
+    color: 'white', textAlign: 'center', fontSize: 16,
+  },
+  thumb: {
+    width: 80, height: 80, marginRight: 8, marginBottom: 8, borderRadius: 4,
   },
 });
