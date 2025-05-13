@@ -18,7 +18,7 @@ import { login } from '../../services/auth/authService';
 import { showToast } from '../../services/notifications/ToastService';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useAuth } from '../../contexts/AuthContext';
-import { getCurrentSession } from '../../services/auth/authStorage';
+import { getCurrentSession, setRememberMe } from '../../services/auth/authStorage';
 
 type PasswordScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Password'>;
 type PasswordScreenRouteProp = RouteProp<AuthStackParamList, 'Password'>;
@@ -33,7 +33,7 @@ export default function PasswordScreen({ navigation, route }: Props) {
   const { signIn } = useAuth();
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);   // estado para el ojo
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMeState] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -53,10 +53,12 @@ export default function PasswordScreen({ navigation, route }: Props) {
       console.warn('Resultado login:', result);
 
       if (result.success) {
-        // 2) Leemos la sesión recién guardada en AsyncStorage...
+        // ← GUARDA EL FLAG "Recuérdame" según el estado del checkbox
+        await setRememberMe(rememberMe);
+        // Leemos la sesión recién guardada en AsyncStorage...
         const session = await getCurrentSession();
         if (session) {
-          // 3) ...y la pasamos al Context para que useAuth() la refleje
+          // la pasamos al Context para que useAuth() la refleje
           signIn(session);
         }
         navigation.navigate('Main');
@@ -89,8 +91,8 @@ export default function PasswordScreen({ navigation, route }: Props) {
       <Text style={styles.label}>Contraseña</Text>
       <View style={styles.inputContainer}>
         <TextInput
-          placeholder='Contraseña'
-          placeholderTextColor='#999'
+          placeholder="Contraseña"
+          placeholderTextColor="#999"
           style={styles.input}
           secureTextEntry={!showPassword}
           value={password}
@@ -107,21 +109,23 @@ export default function PasswordScreen({ navigation, route }: Props) {
           <Icon
             name={showPassword ? 'visibility-off' : 'visibility'}
             size={24}
-            color='#5D74A6'
+            color="#5D74A6"
           />
         </TouchableOpacity>
       </View>
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
+      {/* Checkbox "Recuérdame" */}
       <View style={styles.checkboxContainer}>
         <CustomCheckbox
           label="Recuérdame"
           value={rememberMe}
-          onChange={() => setRememberMe(!rememberMe)}
+          onChange={() => setRememberMeState(v => !v)}
         />
       </View>
 
+      {/* Botón Iniciar sesión */}
       <TouchableOpacity
         style={[styles.button, loading && styles.buttonDisabled]}
         onPress={handleLogin}
@@ -134,6 +138,7 @@ export default function PasswordScreen({ navigation, route }: Props) {
         )}
       </TouchableOpacity>
 
+      {/* Botón Regresar */}
       <TouchableOpacity
         style={styles.backButton}
         onPress={() => navigation.goBack()}

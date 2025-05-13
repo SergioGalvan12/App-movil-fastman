@@ -9,6 +9,7 @@ const STORAGE_KEYS = {
   ACCESS: '@fastman:accessToken',
   PERSONAL_ID: '@fastman:personalId',
   PERSONAL_NAME: '@fastman:personalName',
+  REMEMBER_ME: '@fastman:rememberMe'
 };
 
 /** Guarda la sesión completa tras login exitoso */
@@ -57,4 +58,19 @@ export async function getCurrentSession(): Promise<{
     personalId: Number(data[STORAGE_KEYS.PERSONAL_ID]!) || 0,
     personalName: data[STORAGE_KEYS.PERSONAL_NAME]!,
   };
+}
+
+/** Guarda flag de “Recuérdame” */
+export async function setRememberMe(value: boolean): Promise<void> {
+  if (value) {
+    await AsyncStorage.setItem(STORAGE_KEYS.REMEMBER_ME, 'true');
+  } else {
+    await AsyncStorage.removeItem(STORAGE_KEYS.REMEMBER_ME);
+  }
+}
+
+/** Lee flag de “Recuérdame” */
+export async function getRememberMe(): Promise<boolean> {
+  const val = await AsyncStorage.getItem(STORAGE_KEYS.REMEMBER_ME);
+  return val === 'true';
 }
