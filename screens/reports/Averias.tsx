@@ -4,7 +4,7 @@ import {
   View, Text, TextInput, StyleSheet,
   ScrollView, SafeAreaView,
   TouchableOpacity,
-  Modal
+  Modal,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import HeaderTitle from '../../components/common/HeaderTitle';
