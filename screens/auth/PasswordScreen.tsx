@@ -1,5 +1,5 @@
 //screens/auth/PasswordScreen.tsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -18,7 +18,7 @@ import { login } from '../../services/auth/authService';
 import { showToast } from '../../services/notifications/ToastService';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useAuth } from '../../contexts/AuthContext';
-import { getCurrentSession, setRememberMe } from '../../services/auth/authStorage';
+import { getCurrentSession, getRememberMe, setRememberMe } from '../../services/auth/authStorage';
 
 type PasswordScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Password'>;
 type PasswordScreenRouteProp = RouteProp<AuthStackParamList, 'Password'>;
@@ -36,6 +36,14 @@ export default function PasswordScreen({ navigation, route }: Props) {
   const [rememberMe, setRememberMeState] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // ← Inicializamos el estado del checkbox según lo guardado
+  useEffect(() => {
+    (async () => {
+      const remembered = await getRememberMe();
+      setRememberMeState(remembered);
+    })();
+  }, []);
 
   const handleLogin = async () => {
     if (!password.trim()) {
