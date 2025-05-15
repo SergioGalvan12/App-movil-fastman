@@ -13,140 +13,129 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import HeaderTitle from '../../../components/common/HeaderTitle';
 import Select from '../../../components/common/Select';
-import { fetchTurnos, TurnoInterface, } from '../../../services/reports/turnos/turnoService';
-import { fetchGrupoEquipos, GrupoEquipo, } from '../../../services/reports/equipos/grupoEquipoService';
+import { fetchTurnos, TurnoInterface } from '../../../services/reports/turnos/turnoService';
+import { fetchGrupoEquipos, GrupoEquipo } from '../../../services/reports/equipos/grupoEquipoService';
 import { fetchEquipos, Equipo } from '../../../services/reports/equipos/equipoService';
 
-type SelectOption = {
-    id: number;
-    label: string;
-};
+type SelectOption = { id: number; label: string };
 
 export default function ReporteOperacionScreen() {
-
-    // ——— Turnos ———
+    // — Estado de Turnos —
     const [turnoOptions, setTurnoOptions] = useState<SelectOption[]>([]);
     const [loadingTurnos, setLoadingTurnos] = useState(false);
     const [errorTurnos, setErrorTurnos] = useState<string>('');
 
-    // ——— Grupos de equipo ———
+    // — Estado de Grupos de Equipo —
     const [grupoOptions, setGrupoOptions] = useState<SelectOption[]>([]);
     const [loadingGrupos, setLoadingGrupos] = useState(false);
     const [errorGrupos, setErrorGrupos] = useState<string>('');
 
-    // ——— Equipos ———
+    // — Estado de Equipos —
+    const [equiposData, setEquiposData] = useState<Equipo[]>([]);
     const [equipoOptions, setEquipoOptions] = useState<SelectOption[]>([]);
     const [loadingEquipos, setLoadingEquipos] = useState(false);
     const [errorEquipos, setErrorEquipos] = useState<string>('');
 
-    // ——— Formulario ———
+    // — Estado del Formulario —
     const [fecha, setFecha] = useState<Date>(new Date());
     const [showDate, setShowDate] = useState(false);
-
     const [turno, setTurno] = useState<number | null>(null);
     const [responsable, setResponsable] = useState<string>('');
-
     const [grupoEquipo, setGrupoEquipo] = useState<number | null>(null);
     const [equipo, setEquipo] = useState<number | null>(null);
-
     const [unidadesIniciales, setUnidadesIniciales] = useState<string>('0');
     const [unidadesFinales, setUnidadesFinales] = useState<string>('0');
     const [unidadesControl, setUnidadesControl] = useState<string>('0');
-
     const [observaciones, setObservaciones] = useState<string>('');
 
-
-    // Carga de turnos al montar
+    // Carga de turnos
     useEffect(() => {
         const loadTurnos = async () => {
             setLoadingTurnos(true);
-            try {
-                const resp = await fetchTurnos();
-                if (resp.success && resp.data) {
-                    // Mapeo a { id, label }
-                    setTurnoOptions(
-                        resp.data.map((t: TurnoInterface) => ({
-                            id: t.id_turno,
-                            label: t.descripcion_turno,
-                        }))
-                    );
-                } else {
-                    setErrorTurnos(resp.error || 'Error al cargar turnos');
-                }
-            } catch (err) {
-                console.error('Error inesperado al cargar turnos:', err);
-                setErrorTurnos('Error inesperado al cargar turnos');
-            } finally {
-                setLoadingTurnos(false);
+            const resp = await fetchTurnos();
+            if (resp.success && resp.data) {
+                setTurnoOptions(
+                    resp.data.map((t: TurnoInterface) => ({
+                        id: t.id_turno,
+                        label: t.descripcion_turno,
+                    }))
+                );
+            } else {
+                setErrorTurnos(resp.error || 'Error al cargar turnos');
             }
+            setLoadingTurnos(false);
         };
-
         loadTurnos();
     }, []);
 
-
-    // — carga de grupos de equipo —
+    // Carga de grupos de equipo
     useEffect(() => {
-        const load = async () => {
+        const loadGrupos = async () => {
             setLoadingGrupos(true);
-            try {
-                const resp = await fetchGrupoEquipos();
-                if (resp.success && resp.data) {
-                    setGrupoOptions(
-                        resp.data.map((g: GrupoEquipo) => ({
-                            id: g.id_grupo_equipo,
-                            label: g.nombre_grupo_equipo,
-                        }))
-                    );
-                } else {
-                    setErrorGrupos(resp.error || 'Error al cargar grupos');
-                }
-            } catch {
-                setErrorGrupos('Error inesperado al cargar grupos');
-            } finally {
-                setLoadingGrupos(false);
+            const resp = await fetchGrupoEquipos();
+            if (resp.success && resp.data) {
+                setGrupoOptions(
+                    resp.data.map((g: GrupoEquipo) => ({
+                        id: g.id_grupo_equipo,
+                        label: g.nombre_grupo_equipo,
+                    }))
+                );
+            } else {
+                setErrorGrupos(resp.error || 'Error al cargar grupos');
             }
+            setLoadingGrupos(false);
         };
-        load();
+        loadGrupos();
     }, []);
 
-    // — carga de equipos según grupo seleccionado —
+    // Carga y paginación de equipos, filtrado por grupo seleccionado
     useEffect(() => {
-        const load = async () => {
-            if (!grupoEquipo) {
-                setEquipoOptions([]);
-                return;
-            }
+        const loadEquipos = async () => {
             setLoadingEquipos(true);
-            try {
-                const resp = await fetchEquipos();
-                if (resp.success && resp.data) {
-                    setEquipoOptions(
-                        resp.data
-                            .filter((e: Equipo) => e.id_grupo_equipo === grupoEquipo)
-                            .map((e: Equipo) => ({
-                                id: e.id_equipo,
-                                label: e.matricula_equipo,
-                            }))
-                    );
-                } else {
-                    setErrorEquipos(resp.error || 'Error al cargar equipos');
-                }
-            } catch {
-                setErrorEquipos('Error inesperado al cargar equipos');
-            } finally {
-                setLoadingEquipos(false);
+            const resp = await fetchEquipos();
+            if (resp.success && resp.data) {
+                setEquiposData(resp.data);
+                const opts = resp.data
+                    .filter(e => e.id_grupo_equipo === grupoEquipo)
+                    .map(e => ({ id: e.id_equipo, label: e.matricula_equipo }));
+                setEquipoOptions(opts);
+            } else {
+                setErrorEquipos(resp.error || 'Error al cargar equipos');
             }
+            setLoadingEquipos(false);
         };
-        // limpia selección de equipo al cambiar de grupo
-        setEquipo(null);
-        load();
+
+        if (grupoEquipo) {
+            setEquipo(null);
+            setUnidadesIniciales('0');
+            setUnidadesFinales('0');
+            setUnidadesControl('0');
+            loadEquipos();
+        } else {
+            setEquipoOptions([]);
+            setEquiposData([]);
+        }
     }, [grupoEquipo]);
 
+    // Handler al seleccionar un equipo
+    const onSelectEquipo = (value: number | null) => {
+        setEquipo(value);
+        if (!value) {
+            setUnidadesIniciales('0');
+            setUnidadesFinales('0');
+            setUnidadesControl('0');
+            return;
+        }
+        const sel = equiposData.find(e => e.id_equipo === value)!;
+        setUnidadesIniciales(sel.uso_equipo);
+        setUnidadesFinales(sel.uso_equipo);
+        setUnidadesControl(String(sel.contador_control_ot));
+    };
+
+    // Handler del botón Crear
     const handleCrearReporte = () => {
         console.log('Crear reporte…');
     };
-
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -223,7 +212,7 @@ export default function ReporteOperacionScreen() {
                     valueKey="id"
                     labelKey="label"
                     selectedValue={equipo}
-                    onValueChange={v => setEquipo(v as number)}
+                    onValueChange={v => onSelectEquipo(v as number)}
                     placeholder={
                         !grupoEquipo
                             ? 'Selecciona un grupo antes'
@@ -234,6 +223,8 @@ export default function ReporteOperacionScreen() {
                     disabled={!grupoEquipo}
                     style={styles.picker}
                 />
+
+
                 {/* Unidades iniciales */}
                 <Text style={styles.label}>* Unidades iniciales</Text>
                 <TextInput
