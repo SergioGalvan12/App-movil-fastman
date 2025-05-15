@@ -54,12 +54,14 @@ export default function ReporteOperacionScreen() {
             setLoadingTurnos(true);
             const resp = await fetchTurnos();
             if (resp.success && resp.data) {
-                setTurnoOptions(
-                    resp.data.map((t: TurnoInterface) => ({
+                const opts = resp.data
+                    .map((t: TurnoInterface) => ({
                         id: t.id_turno,
                         label: t.descripcion_turno,
                     }))
-                );
+                    // orden alfabético por label
+                    .sort((a, b) => a.label.localeCompare(b.label));
+                setTurnoOptions(opts);
             } else {
                 setErrorTurnos(resp.error || 'Error al cargar turnos');
             }
@@ -74,12 +76,14 @@ export default function ReporteOperacionScreen() {
             setLoadingGrupos(true);
             const resp = await fetchGrupoEquipos();
             if (resp.success && resp.data) {
-                setGrupoOptions(
-                    resp.data.map((g: GrupoEquipo) => ({
+                const opts = resp.data
+                    .map((g: GrupoEquipo) => ({
                         id: g.id_grupo_equipo,
                         label: g.nombre_grupo_equipo,
                     }))
-                );
+                    // orden alfabético por label
+                    .sort((a, b) => a.label.localeCompare(b.label));
+                setGrupoOptions(opts);
             } else {
                 setErrorGrupos(resp.error || 'Error al cargar grupos');
             }
@@ -97,7 +101,9 @@ export default function ReporteOperacionScreen() {
                 setEquiposData(resp.data);
                 const opts = resp.data
                     .filter(e => e.id_grupo_equipo === grupoEquipo)
-                    .map(e => ({ id: e.id_equipo, label: e.matricula_equipo }));
+                    .map(e => ({ id: e.id_equipo, label: e.matricula_equipo }))
+                    // orden alfabético por matrícula
+                    .sort((a, b) => a.label.localeCompare(b.label));
                 setEquipoOptions(opts);
             } else {
                 setErrorEquipos(resp.error || 'Error al cargar equipos');
@@ -116,6 +122,7 @@ export default function ReporteOperacionScreen() {
             setEquiposData([]);
         }
     }, [grupoEquipo]);
+
 
     // Handler al seleccionar un equipo
     const onSelectEquipo = (value: number | null) => {
@@ -297,7 +304,7 @@ export default function ReporteOperacionScreen() {
 
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#EFF0FA' },
-    container: { padding: 20, paddingBottom: 40 },
+    container: { padding: 22, paddingBottom: 40 },
     label: {
         fontWeight: 'bold',
         fontSize: 16,
