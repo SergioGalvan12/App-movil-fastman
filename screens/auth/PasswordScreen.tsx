@@ -1,5 +1,5 @@
-//screens/auth/PasswordScreen.tsx
-import React, { useState } from 'react';
+// screens/auth/PasswordScreen.tsx
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -18,7 +18,7 @@ import { login } from '../../services/auth/authService';
 import { showToast } from '../../services/notifications/ToastService';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useAuth } from '../../contexts/AuthContext';
-import { getCurrentSession, setRememberMe } from '../../services/auth/authStorage';
+import { getCurrentSession, getRememberMe, setRememberMe } from '../../services/auth/authStorage';
 
 type PasswordScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Password'>;
 type PasswordScreenRouteProp = RouteProp<AuthStackParamList, 'Password'>;
@@ -32,10 +32,18 @@ export default function PasswordScreen({ navigation, route }: Props) {
   const { domain, username, empresaId } = route.params;
   const { signIn } = useAuth();
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);   // estado para el ojo
+  const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMeState] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Inicializa el estado del checkbox según lo guardado en AsyncStorage
+  useEffect(() => {
+    (async () => {
+      const remembered = await getRememberMe();
+      setRememberMeState(remembered);
+    })();
+  }, []);
 
   const handleLogin = async () => {
     if (!password.trim()) {
@@ -53,12 +61,10 @@ export default function PasswordScreen({ navigation, route }: Props) {
       console.warn('Resultado login:', result);
 
       if (result.success) {
-        // ← GUARDA EL FLAG "Recuérdame" según el estado del checkbox
+        // Guarda el flag "Recuérdame" según el checkbox
         await setRememberMe(rememberMe);
-        // Leemos la sesión recién guardada en AsyncStorage...
         const session = await getCurrentSession();
         if (session) {
-          // la pasamos al Context para que useAuth() la refleje
           signIn(session);
         }
         navigation.navigate('Main');
@@ -77,6 +83,20 @@ export default function PasswordScreen({ navigation, route }: Props) {
     }
   };
 
+  const handleGoBack = async () => {
+    // Si el usuario tenía "Recuérdame" marcado, desmarcamos y guardamos
+    if (rememberMe) {
+      setRememberMeState(false);
+      await setRememberMe(false);
+    }
+    // Luego navegamos atrás
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate('Domain');
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Image source={require('../../assets/fastman.png')} style={styles.logo} />
@@ -87,7 +107,6 @@ export default function PasswordScreen({ navigation, route }: Props) {
       </Text>
       {empresaId && <Text style={styles.subtitle}>Empresa ID: {empresaId}</Text>}
 
-      {/* Campo Contraseña con icono de ojo */}
       <Text style={styles.label}>Contraseña</Text>
       <View style={styles.inputContainer}>
         <TextInput
@@ -102,21 +121,13 @@ export default function PasswordScreen({ navigation, route }: Props) {
           }}
           editable={!loading}
         />
-        <TouchableOpacity
-          onPress={() => setShowPassword(v => !v)}
-          style={styles.eyeButton}
-        >
-          <Icon
-            name={showPassword ? 'visibility-off' : 'visibility'}
-            size={24}
-            color="#5D74A6"
-          />
+        <TouchableOpacity onPress={() => setShowPassword(v => !v)} style={styles.eyeButton}>
+          <Icon name={showPassword ? 'visibility-off' : 'visibility'} size={24} color="#5D74A6" />
         </TouchableOpacity>
       </View>
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-      {/* Checkbox "Recuérdame" */}
       <View style={styles.checkboxContainer}>
         <CustomCheckbox
           label="Recuérdame"
@@ -125,30 +136,19 @@ export default function PasswordScreen({ navigation, route }: Props) {
         />
       </View>
 
-      {/* Botón Iniciar sesión */}
       <TouchableOpacity
         style={[styles.button, loading && styles.buttonDisabled]}
         onPress={handleLogin}
         disabled={loading}
       >
-        {loading ? (
-          <ActivityIndicator color="#FFF" size="small" />
-        ) : (
-          <Text style={styles.buttonText}>Iniciar sesión</Text>
-        )}
+        {loading ? <ActivityIndicator color="#FFF" size="small" /> : <Text style={styles.buttonText}>Iniciar sesión</Text>}
       </TouchableOpacity>
 
-      {/* Botón Regresar */}
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => navigation.goBack()}
-        disabled={loading}
-      >
+      <TouchableOpacity style={styles.backButton} onPress={handleGoBack} disabled={loading}>
         <Text style={styles.backButtonText}>Regresar</Text>
       </TouchableOpacity>
 
       <Text style={styles.footer}>© Copyright Fastman 2025</Text>
-
       <View style={styles.linksContainer}>
         <Text style={styles.link}>Aviso de privacidad</Text>
         <Text style={styles.link}>Política de privacidad</Text>
@@ -208,10 +208,6 @@ const styles = StyleSheet.create({
   },
   eyeButton: {
     padding: 8,
-  },
-  eyeIcon: {
-    width: 24,
-    height: 24,
   },
   errorText: {
     color: '#E53935',
