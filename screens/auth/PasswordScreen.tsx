@@ -85,6 +85,20 @@ export default function PasswordScreen({ navigation, route }: Props) {
     }
   };
 
+  const handleGoBack = async () => {
+    // Si el usuario tenía marcado "Recuérdame", lo desmarcamos:
+    if (rememberMe) {
+      setRememberMeState(false);  // desmarca en UI
+      await setRememberMe(false); // guarda en AsyncStorage
+    }
+    // Ahora sí navegamos atrás:
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate('Domain');
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Image source={require('../../assets/fastman.png')} style={styles.logo} />
@@ -149,7 +163,7 @@ export default function PasswordScreen({ navigation, route }: Props) {
       {/* Botón Regresar */}
       <TouchableOpacity
         style={styles.backButton}
-        onPress={() => navigation.goBack()}
+        onPress={handleGoBack}
         disabled={loading}
       >
         <Text style={styles.backButtonText}>Regresar</Text>
