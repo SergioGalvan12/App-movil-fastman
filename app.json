@@ -17,7 +17,7 @@
         "NSCameraUsageDescription": "Necesitamos acceder a tu cámara para tomar fotos de la avería.",
         "NSPhotoLibraryUsageDescription": "Necesitamos acceder a tu galería para seleccionar fotos existentes.",
         "NSLocationWhenInUseUsageDescription": "Necesitamos tu ubicación para registrar el lugar del reporte.",
-    "NSLocationAlwaysAndWhenInUseUsageDescription": "Necesitamos tu ubicación para registrar el lugar del reporte."
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Necesitamos tu ubicación para registrar el lugar del reporte."
       },
       "supportsTablet": true
     },
@@ -30,8 +30,9 @@
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION"
       ],
+      "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/fastman.png",
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       }
     },
