@@ -16,6 +16,8 @@ import Select from '../../../components/common/Select';
 import { fetchTurnos, TurnoInterface } from '../../../services/reports/turnos/turnoService';
 import { fetchGrupoEquipos, GrupoEquipo } from '../../../services/reports/equipos/grupoEquipoService';
 import { fetchEquipos, Equipo } from '../../../services/reports/equipos/equipoService';
+import { useAuth } from '../../../contexts/AuthContext';
+import { opacity } from 'react-native-reanimated/lib/typescript/Colors';
 
 type SelectOption = { id: number; label: string };
 
@@ -38,7 +40,10 @@ export default function ReporteOperacionScreen() {
   const [showDate, setShowDate] = useState(false);
 
   const [turno, setTurno] = useState<number | null>(null);
+
+  const { personalName } = useAuth();
   const [responsable, setResponsable] = useState<string>('');
+
   const [grupoEquipo, setGrupoEquipo] = useState<number | null>(null);
   const [equipo, setEquipo] = useState<number | null>(null);
 
@@ -185,8 +190,7 @@ export default function ReporteOperacionScreen() {
         <Text style={styles.label}>Responsable</Text>
         <TextInput
           style={styles.input}
-          value={responsable}
-          placeholder="— José Luis Cárdenas —"
+          value={personalName}       // ← aquí el nombre dinámico
           editable={false}
         />
 
