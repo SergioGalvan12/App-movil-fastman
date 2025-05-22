@@ -11,88 +11,112 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { CompositeNavigationProp, useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+
 import HeaderTitle from '../../../components/common/HeaderTitle';
 import Select from '../../../components/common/Select';
+import { useAuth } from '../../../contexts/AuthContext';
+import { showToast } from '../../../services/notifications/ToastService';
+
 import { fetchTurnos, TurnoInterface } from '../../../services/reports/turnos/turnoService';
 import { fetchGrupoEquipos, GrupoEquipo } from '../../../services/reports/equipos/grupoEquipoService';
 import { fetchEquipos, Equipo } from '../../../services/reports/equipos/equipoService';
-import { useAuth } from '../../../contexts/AuthContext';
-import { opacity } from 'react-native-reanimated/lib/typescript/Colors';
+import {
+  createReporteOperacion,
+  ReporteOperacionPayload
+} from '../../../services/reports/operativos/reporteOperacionService';
+import { AuthStackParamList } from '../../../App';
+
+type TabParamList = {
+  Dashboard: undefined;
+  Reportes: undefined;
+  Notificaciones: undefined;
+};
+type NavigationProp = CompositeNavigationProp<
+  NativeStackNavigationProp<AuthStackParamList>,
+  BottomTabNavigationProp<TabParamList>
+>;
 
 type SelectOption = { id: number; label: string };
 
 export default function ReporteOperacionScreen() {
+  const navigation = useNavigation<NavigationProp>();
+  const { personalId, personalName } = useAuth();
+
   // — Estados Turno —
   const [turnoOptions, setTurnoOptions] = useState<SelectOption[]>([]);
   const [loadingTurnos, setLoadingTurnos] = useState(false);
-  const [errorTurnos, setErrorTurnos] = useState<string>('');
-  // — Estados Grupo —
+  const [errorTurnos, setErrorTurnos] = useState('');
+
+  // — Estados Grupo de Equipo —
   const [grupoOptions, setGrupoOptions] = useState<SelectOption[]>([]);
   const [loadingGrupos, setLoadingGrupos] = useState(false);
-  const [errorGrupos, setErrorGrupos] = useState<string>('');
-  // — Estados Equipo —
+  const [errorGrupos, setErrorGrupos] = useState('');
+
+  // — Estados Equipos —
   const [equiposData, setEquiposData] = useState<Equipo[]>([]);
   const [equipoOptions, setEquipoOptions] = useState<SelectOption[]>([]);
   const [loadingEquipos, setLoadingEquipos] = useState(false);
-  const [errorEquipos, setErrorEquipos] = useState<string>('');
+  const [errorEquipos, setErrorEquipos] = useState('');
+
   // — Estados Formulario —
-  const [fecha, setFecha] = useState<Date>(new Date());
+  const [fecha, setFecha] = useState(new Date());
   const [showDate, setShowDate] = useState(false);
-
   const [turno, setTurno] = useState<number | null>(null);
-
-  const { personalName } = useAuth();
-  const [responsable, setResponsable] = useState<string>('');
-
   const [grupoEquipo, setGrupoEquipo] = useState<number | null>(null);
   const [equipo, setEquipo] = useState<number | null>(null);
+  const [unidadesIniciales, setUnidadesIniciales] = useState('0');
+  const [unidadesFinales, setUnidadesFinales] = useState('0');
+  const [unidadesControl, setUnidadesControl] = useState('0');
+  const [observaciones, setObservaciones] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  const [unidadesIniciales, setUnidadesIniciales] = useState<string>('0');
-  const [unidadesFinales, setUnidadesFinales] = useState<string>('0');
-  const [unidadesControl, setUnidadesControl] = useState<string>('0');
-  const [observaciones, setObservaciones] = useState<string>('');
-
-  // Load Turnos
+  // 1) Carga de turnos
   useEffect(() => {
-    const loadTurnos = async () => {
+    ; (async () => {
       setLoadingTurnos(true);
       const resp = await fetchTurnos();
       if (resp.success && resp.data) {
         setTurnoOptions(
           resp.data
-            .map((t: TurnoInterface) => ({ id: t.id_turno, label: t.descripcion_turno }))
+            .map(t => ({ id: t.id_turno, label: t.descripcion_turno }))
             .sort((a, b) => a.label.localeCompare(b.label))
         );
       } else {
         setErrorTurnos(resp.error || 'Error al cargar turnos');
       }
       setLoadingTurnos(false);
-    };
-    loadTurnos();
+    })();
   }, []);
 
-  // Load Grupos
+  // 2) Carga de grupos de equipo
   useEffect(() => {
-    const load = async () => {
+    ; (async () => {
       setLoadingGrupos(true);
       const resp = await fetchGrupoEquipos();
       if (resp.success && resp.data) {
         setGrupoOptions(
           resp.data
-            .map((g: GrupoEquipo) => ({ id: g.id_grupo_equipo, label: g.nombre_grupo_equipo }))
+            .map(g => ({ id: g.id_grupo_equipo, label: g.nombre_grupo_equipo }))
             .sort((a, b) => a.label.localeCompare(b.label))
         );
       } else {
         setErrorGrupos(resp.error || 'Error al cargar grupos');
       }
       setLoadingGrupos(false);
-    };
-    load();
+    })();
   }, []);
 
-  // Load y Paginación de Equipos al cambiar Grupo
+  // 3) Carga de equipos paginados al cambiar grupo
   useEffect(() => {
-    const load = async () => {
+    if (!grupoEquipo) {
+      setEquipoOptions([]);
+      setEquiposData([]);
+      return;
+    }
+    ; (async () => {
       setLoadingEquipos(true);
       const resp = await fetchEquipos();
       if (resp.success && resp.data) {
@@ -107,21 +131,15 @@ export default function ReporteOperacionScreen() {
         setErrorEquipos(resp.error || 'Error al cargar equipos');
       }
       setLoadingEquipos(false);
-    };
-
-    if (grupoEquipo) {
+      // limpiar lecturas previas
       setEquipo(null);
       setUnidadesIniciales('0');
       setUnidadesFinales('0');
       setUnidadesControl('0');
-      load();
-    } else {
-      setEquipoOptions([]);
-      setEquiposData([]);
-    }
+    })();
   }, [grupoEquipo]);
 
-  // Al seleccionar equipo: setear unidades iniciales/finales
+  // 4) Al seleccionar equipo, fijar lecturas
   const onSelectEquipo = (value: number | null) => {
     setEquipo(value);
     if (!value) {
@@ -134,22 +152,73 @@ export default function ReporteOperacionScreen() {
     setUnidadesFinales(sel.uso_equipo);
   };
 
-  // Recalcular unidades de control = final - inicial
+  // 5) Recalcular unidades de control
   useEffect(() => {
     const init = parseFloat(unidadesIniciales) || 0;
     const fin = parseFloat(unidadesFinales) || 0;
     setUnidadesControl((fin - init).toFixed(2));
   }, [unidadesIniciales, unidadesFinales]);
 
-  // Crear reporte (más adelante)
-  const handleCrearReporte = () => {
-    console.log('Crear reporte…');
+  // 6) Crear reporte
+  const handleCrearReporte = async () => {
+    if (!turno || !grupoEquipo || !equipo) {
+      showToast('error', 'Faltan campos', 'Selecciona turno, grupo y equipo');
+      return;
+    }
+    setSaving(true);
+
+    try {
+      // 6.1) obtener registro completo del equipo desde la lista ya cargada
+      const eq = equiposData.find(e => e.id_equipo === equipo);
+      if (!eq) throw new Error('Equipo no encontrado');
+
+      // 6.2) armar payload idéntico al de la web
+      const payload: ReporteOperacionPayload = {
+        id_guia: null,
+        numero_economico_equipo: eq.id_equipo,
+        id_personal: personalId,
+        id_turno: turno,
+        id_empresa: eq.id_empresa,
+        id_ubicacion: eq.id_ubicacion,
+        id_area: eq.id_area,
+        id_proceso: eq.id_proceso,
+        id_subproceso: eq.id_subproceso,
+        id_grupo_equipo: eq.id_grupo_equipo,
+        unidad: null,
+        descripcion_guia: observaciones,
+        fecha_guia: fecha.toISOString(),
+        consumo_unitario: true,
+        km_hrs_inicio: unidadesIniciales,
+        km_hrs_final: unidadesFinales,
+        status_checklist_reporte: '',
+        producto_1: '',
+        producto_2: '',
+        producto_3: '',
+        produccion_1: '',
+        produccion_2: '',
+        produccion_3: '',
+        status_guia_inspeccion: true,
+      };
+
+      // 6.3) enviar al servicio
+      const res = await createReporteOperacion(payload);
+      if (res.success && res.data) {
+        showToast('success', 'Reporte creado', `ID: ${res.data.id_guia}`);
+        navigation.getParent<BottomTabNavigationProp<any>>()?.navigate('Reportes');
+      } else {
+        throw new Error(res.error || 'Error al crear reporte');
+      }
+    } catch (err: any) {
+      console.error('Error guardando el reporte:', err);
+      showToast('error', 'Error', err.message || 'No se pudo crear el reporte');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
-
         <HeaderTitle title="Información del reporte" />
 
         {/* Fecha */}
@@ -190,7 +259,7 @@ export default function ReporteOperacionScreen() {
         <Text style={styles.label}>Responsable</Text>
         <TextInput
           style={styles.input}
-          value={personalName}       // ← aquí el nombre dinámico
+          value={personalName}
           editable={false}
         />
 
@@ -216,7 +285,7 @@ export default function ReporteOperacionScreen() {
           labelKey="label"
           selectedValue={equipo}
           onValueChange={v => onSelectEquipo(v as number)}
-          placeholder={!grupoEquipo ? 'Selecciona un grupo antes' : 'Selecciona un equipo'}
+          placeholder={!grupoEquipo ? 'Selecciona grupo antes' : 'Selecciona un equipo'}
           loading={loadingEquipos}
           error={errorEquipos}
           disabled={!grupoEquipo}
@@ -241,7 +310,7 @@ export default function ReporteOperacionScreen() {
           keyboardType="numeric"
         />
 
-        {/* Unidades de control (no editable) */}
+        {/* Unidades de control */}
         <Text style={styles.label}>Unidades de control</Text>
         <TextInput
           style={styles.input}
@@ -260,23 +329,27 @@ export default function ReporteOperacionScreen() {
         />
         <Text style={styles.counter}>{observaciones.length}/250</Text>
 
-        {/* Crear reporte */}
-        <TouchableOpacity style={styles.createButton} onPress={handleCrearReporte}>
-          <Text style={styles.createButtonText}>+ Crear reporte</Text>
+        {/* Botón Crear reporte */}
+        <TouchableOpacity
+          style={[styles.createButton, saving && styles.createButtonDisabled]}
+          onPress={handleCrearReporte}
+          disabled={saving}
+        >
+          <Text style={styles.createButtonText}>
+            {saving ? 'Guardando...' : '+ Crear reporte'}
+          </Text>
         </TouchableOpacity>
 
-        {/* Predefinidos */}
+        {/* Nota sobre consumos predefinidos */}
         <View style={styles.predef}>
           <Text>Reportar consumos de manera predefinida:</Text>
           <Ionicons name="checkmark-circle" size={20} style={styles.iconOK} />
         </View>
-
         <Text style={styles.note}>
-          Nota: Elegir la opción predefinida generará los consumos del
-          reporte a partir de los definidos en productos. Si deseas
-          generar nuevos consumos, deberás hacerlo manualmente en su sección.
+          Nota: Elegir la opción predefinida generará los consumos del reporte a
+          partir de los definidos en productos. Si deseas generar nuevos consumos,
+          deberás hacerlo manualmente en su sección.
         </Text>
-
         <Text style={styles.required}>* Campos requeridos</Text>
       </ScrollView>
     </SafeAreaView>
@@ -310,6 +383,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
   },
+  createButtonDisabled: { backgroundColor: '#A0A0A0' },
   createButtonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
   predef: { flexDirection: 'row', alignItems: 'center', marginTop: 20 },
   iconOK: { color: '#28A745', marginLeft: 8 },
