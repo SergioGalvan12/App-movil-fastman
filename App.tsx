@@ -11,6 +11,7 @@ import FiltrosAvanzados from './screens/reports/FiltrosAvanzados';
 import CargarImagen from './screens/reports/CargarImagen';
 import { AuthProvider } from './contexts/AuthContext';
 import ReporteOperacionScreen from './screens/reports/operativo/ReporteOperacion';
+import ReporteVariablesScreen from './screens/reports/variables/ReporteVariables';
 
 // Definir los tipos para los parámetros de navegación
 export type AuthStackParamList = {
@@ -21,8 +22,9 @@ export type AuthStackParamList = {
   Averias: undefined;
   FiltrosAvanzados: { grupoId: number, grupoName: string; };
   CargarImagen: { backlogId: number; empresaId: number };
-  ReporteOperacion: undefined; // Añade aquí el nuevo reporte
-  // Añade aquí otras rutas si es necesario
+  ReporteOperacion: undefined; 
+  ReporteVariables: undefined;
+
 };
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
@@ -45,6 +47,7 @@ export default function App() {
           <Stack.Screen name="Averias" component={AveriasScreen} />
           <Stack.Screen name="FiltrosAvanzados" component={FiltrosAvanzados} />
           <Stack.Screen name="ReporteOperacion" component={ReporteOperacionScreen} />
+          <Stack.Screen name="ReporteVariables" component={ReporteVariablesScreen} />
           <Stack.Screen name="CargarImagen" component={CargarImagen} /> 
         </Stack.Navigator>
       </NavigationContainer>

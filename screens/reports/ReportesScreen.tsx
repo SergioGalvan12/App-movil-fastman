@@ -48,6 +48,11 @@ export default function ReportesScreen() {
           onPress={() => handlePress('ReporteOperacion')}
         />
 
+        {/* Nuevo: Reporte de Variables */}
+        <MenuItem
+          title="Reporte de Variables"
+          onPress={() => handlePress('ReporteVariables')}
+        />
       </ScrollView>
     </View>
   );
