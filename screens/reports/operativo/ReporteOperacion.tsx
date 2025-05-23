@@ -8,6 +8,7 @@ import {
   TextInput,
   StyleSheet,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -75,7 +76,7 @@ export default function ReporteOperacionScreen() {
 
   // 1) Carga de turnos
   useEffect(() => {
-    ; (async () => {
+    ;(async () => {
       setLoadingTurnos(true);
       const resp = await fetchTurnos();
       if (resp.success && resp.data) {
@@ -93,7 +94,7 @@ export default function ReporteOperacionScreen() {
 
   // 2) Carga de grupos de equipo
   useEffect(() => {
-    ; (async () => {
+    ;(async () => {
       setLoadingGrupos(true);
       const resp = await fetchGrupoEquipos();
       if (resp.success && resp.data) {
@@ -116,7 +117,7 @@ export default function ReporteOperacionScreen() {
       setEquiposData([]);
       return;
     }
-    ; (async () => {
+    ;(async () => {
       setLoadingEquipos(true);
       const resp = await fetchEquipos();
       if (resp.success && resp.data) {
@@ -148,8 +149,8 @@ export default function ReporteOperacionScreen() {
       return;
     }
     const sel = equiposData.find(e => e.id_equipo === value)!;
-    setUnidadesIniciales(sel.uso_equipo);
-    setUnidadesFinales(sel.uso_equipo);
+    setUnidadesIniciales(sel.uso_equipo || '0.00');
+    setUnidadesFinales(sel.uso_equipo || '0.00');
   };
 
   // 5) Recalcular unidades de control
@@ -159,7 +160,18 @@ export default function ReporteOperacionScreen() {
     setUnidadesControl((fin - init).toFixed(2));
   }, [unidadesIniciales, unidadesFinales]);
 
-  // 6) Crear reporte
+  // 6) Confirmación y creación
+  const confirmAndCreate = () => {
+    Alert.alert(
+      'Confirmación',
+      '¿Quieres generar el reporte operativo?',
+      [
+        { text: 'No', style: 'cancel' },
+        { text: 'Sí', onPress: handleCrearReporte },
+      ]
+    );
+  };
+
   const handleCrearReporte = async () => {
     if (!turno || !grupoEquipo || !equipo) {
       showToast('error', 'Faltan campos', 'Selecciona turno, grupo y equipo');
@@ -168,11 +180,9 @@ export default function ReporteOperacionScreen() {
     setSaving(true);
 
     try {
-      // 6.1) obtener registro completo del equipo desde la lista ya cargada
       const eq = equiposData.find(e => e.id_equipo === equipo);
       if (!eq) throw new Error('Equipo no encontrado');
 
-      // 6.2) armar payload idéntico al de la web
       const payload: ReporteOperacionPayload = {
         id_guia: null,
         numero_economico_equipo: eq.id_equipo,
@@ -200,11 +210,10 @@ export default function ReporteOperacionScreen() {
         status_guia_inspeccion: true,
       };
 
-      // 6.3) enviar al servicio
       const res = await createReporteOperacion(payload);
       if (res.success && res.data) {
         showToast('success', 'Reporte creado', `ID: ${res.data.id_guia}`);
-        navigation.getParent<BottomTabNavigationProp<any>>()?.navigate('Reportes');
+        navigation.navigate('Main');
       } else {
         throw new Error(res.error || 'Error al crear reporte');
       }
@@ -332,7 +341,7 @@ export default function ReporteOperacionScreen() {
         {/* Botón Crear reporte */}
         <TouchableOpacity
           style={[styles.createButton, saving && styles.createButtonDisabled]}
-          onPress={handleCrearReporte}
+          onPress={confirmAndCreate}
           disabled={saving}
         >
           <Text style={styles.createButtonText}>
