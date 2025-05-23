@@ -17,6 +17,10 @@ import { fetchGrupoEquipos, GrupoEquipo } from '../../../services/reports/equipo
 import { Equipo, fetchEquipos } from '../../../services/reports/equipos/equipoService';
 import { useAuth } from '../../../contexts/AuthContext';
 import { showToast } from '../../../services/notifications/ToastService';
+import { fetchPersonals, Personal } from '../../../services/reports/personal/personalService';
+
+//tipo que añade fullName a Personal
+type PersonalOption = Personal & { fullName: string };
 
 export default function ReporteVariablesScreen() {
     const { empresaId, personalId } = useAuth();
@@ -31,7 +35,12 @@ export default function ReporteVariablesScreen() {
     const [turnosList, setTurnosList] = useState<TurnoInterface[]>([]);
     const [turno, setTurno] = useState<number | null>(null);
 
-    // Variables de control (TODO: reemplazar con fetch real)
+    // — estados para el Select de personal —
+    const [personalsOptions, setPersonalsOptions] = useState<PersonalOption[]>([]);
+    const [selectedPersonal, setSelectedPersonal] = useState<number | null>(null);
+    const [loadingPersonals, setLoadingPersonals] = useState(true);
+    const [errorPersonals, setErrorPersonals] = useState<string>('');
+    // Variables de control
     const [variablesList] = useState<{ id: number; nombre: string }[]>([
         // ejemplo provisional
         { id: 1, nombre: 'Temperatura' },
@@ -78,6 +87,36 @@ export default function ReporteVariablesScreen() {
         // TODO: armar payload y llamar a tu servicio crearReporteVariables
         showToast('info', 'En desarrollo', 'Próximamente podrás crear tu reporte de variables.');
     };
+
+
+    // Al montar, cargamos el personal y generamos el fullName
+    useEffect(() => {
+        (async () => {
+            try {
+                setLoadingPersonals(true);
+                const resp = await fetchPersonals();
+                if (resp.success && resp.data) {
+                    // 1) Mapeamos para añadir fullName
+                    const mapped: PersonalOption[] = resp.data.map(p => ({
+                        ...p,
+                        fullName: `${p.nombre_personal} ${p.apaterno_personal}`
+                    }));
+                    // 2) Ordenamos A → Z por fullName
+                    const sorted = mapped.sort((a, b) =>
+                        a.fullName.localeCompare(b.fullName, 'es', { sensitivity: 'base' })
+                    );
+                    setPersonalsOptions(sorted);
+                } else {
+                    setErrorPersonals(resp.error ?? 'Error al cargar personal');
+                }
+            } catch {
+                setErrorPersonals('Error inesperado al cargar personal');
+            } finally {
+                setLoadingPersonals(false);
+            }
+        })();
+    }, []);
+
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -135,6 +174,19 @@ export default function ReporteVariablesScreen() {
                     selectedValue={turno}
                     onValueChange={v => setTurno(v as number)}
                     placeholder="— Selecciona un turno —"
+                />
+
+                <Text style={styles.label}>Personal</Text>
+                <Select<PersonalOption>
+                    options={personalsOptions}
+                    valueKey="id_personal"     // campo interno
+                    labelKey="fullName"        // mostramos nombre + apellido paterno
+                    selectedValue={selectedPersonal}
+                    onValueChange={v => setSelectedPersonal(v as number)}
+                    placeholder="— Selecciona un personal —"
+                    loading={loadingPersonals}
+                    error={errorPersonals}
+                    style={styles.pickerWrapper}
                 />
 
                 {/* Variable de control */}
@@ -206,4 +258,7 @@ const styles = StyleSheet.create({
     input: { backgroundColor: '#FFF', padding: 12, borderRadius: 10, borderColor: '#1B2A56', borderWidth: 1, marginTop: 4 },
     createButton: { marginTop: 20, backgroundColor: '#4CAF50', padding: 14, borderRadius: 8, alignItems: 'center' },
     createButtonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
+    pickerWrapper: {
+        marginTop: 4,
+    },
 });

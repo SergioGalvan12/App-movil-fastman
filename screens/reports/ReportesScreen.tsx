@@ -3,6 +3,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import MenuItem from '../../components/common/MenuItem';
 import { useNavigation } from '@react-navigation/native';
+import { fetchPersonals, Personal } from '../../services/reports/personal/personalService';
 
 export default function ReportesScreen() {
   const navigation = useNavigation();
