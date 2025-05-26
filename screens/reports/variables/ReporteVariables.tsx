@@ -163,7 +163,7 @@ export default function ReporteVariablesScreen() {
 
   // Llamada al servicio POST
   const createReporte = async () => {
-    // 1) Validamos que tengamos todos los datos
+    // 1) Validación básica
     if (
       selectedVariable == null ||
       selectedPersonal == null ||
@@ -176,24 +176,22 @@ export default function ReporteVariablesScreen() {
       return;
     }
 
-    // 2) Buscamos el objeto Equipo para sacarle la matrícula limpia
+    // 2) Objeto equipo y extracción sólo de dígitos para la matrícula
     const equipoObj = equipos.find(e => e.id_equipo === equipoSelected)!;
-    // Extraemos sólo dígitos de la matrícula
-    const numero_economico =
-      equipoObj.matricula_equipo.replace(/\D/g, '');
+    const numero_economico = equipoObj.matricula_equipo.replace(/\D/g, '');
 
-    // 3) Armamos el payload EXACTO que tu API espera
+    // 3) Armado del payload
     const payload: CreateReporteManttoPredictivoPayload = {
-      id_mantto_pred: selectedVariable,          // numérico o string con dígitos
-      id_personal: selectedPersonal,          // **NUMÉRICO** (no “TecMto 2”)
+      id_mantto_pred: selectedVariable,           // ya es number
+      id_personal: selectedPersonal,           // ahora es number
       id_turno: turno,
       id_equipo: equipoSelected,
-      numero_economico_equipo: numero_economico, // sólo “4215”
+      numero_economico_equipo: numero_economico,  // sólo dígitos
       id_grupo_equipo: grupoSelected,
       valor_reporte: valor.trim(),
       codigo_reporte: codigo,
       fecha_reporte: `${fecha.toISOString().slice(0, 10)}T00:00:00`,
-      hora_reporte: hora.toTimeString().slice(0, 8),  // “HH:MM:SS”
+      hora_reporte: hora.toTimeString().slice(0, 8),  // "HH:MM:SS"
       id_empresa: empresaId
     };
 
@@ -276,7 +274,7 @@ export default function ReporteVariablesScreen() {
           valueKey="id_personal"
           labelKey="fullName"
           selectedValue={selectedPersonal}
-          onValueChange={v => setSelectedPersonal(v as number)}
+          onValueChange={v => setSelectedPersonal(Number(v))}  // <-- aquí!
           placeholder="— Selecciona un personal —"
           loading={loadingPersonals}
           error={errorPersonals}
