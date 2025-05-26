@@ -18,6 +18,7 @@ import { Equipo, fetchEquipos } from '../../../services/reports/equipos/equipoSe
 import { useAuth } from '../../../contexts/AuthContext';
 import { showToast } from '../../../services/notifications/ToastService';
 import { fetchPersonals, Personal } from '../../../services/reports/personal/personalService';
+import { fetchVariablesControl, VariableControl } from '../../../services/reports/variables/mantenimientoPredictivoService';
 
 //tipo que añade fullName a Personal
 type PersonalOption = Personal & { fullName: string };
@@ -40,14 +41,6 @@ export default function ReporteVariablesScreen() {
     const [selectedPersonal, setSelectedPersonal] = useState<number | null>(null);
     const [loadingPersonals, setLoadingPersonals] = useState(true);
     const [errorPersonals, setErrorPersonals] = useState<string>('');
-    // Variables de control
-    const [variablesList] = useState<{ id: number; nombre: string }[]>([
-        // ejemplo provisional
-        { id: 1, nombre: 'Temperatura' },
-        { id: 2, nombre: 'Presión' },
-        { id: 3, nombre: 'Humedad' },
-    ]);
-    const [variableControl, setVariableControl] = useState<number | null>(null);
 
     // Código y valor
     const [codigo, setCodigo] = useState('');
@@ -58,6 +51,12 @@ export default function ReporteVariablesScreen() {
     const [grupoSelected, setGrupoSelected] = useState<number | null>(null);
     const [equipos, setEquipos] = useState<Equipo[]>([]);
     const [equipoSelected, setEquipoSelected] = useState<number | null>(null);
+
+    //variables de control
+    const [variables, setVariables] = useState<VariableControl[]>([]);
+    const [selectedVariable, setSelectedVariable] = useState<number | null>(null);
+    const [loadingVariables, setLoadingVariables] = useState(true);
+    const [errorVariables, setErrorVariables] = useState<string>('');
 
     // Carga inicial de datos
     useEffect(() => {
@@ -117,6 +116,29 @@ export default function ReporteVariablesScreen() {
         })();
     }, []);
 
+    // Carga de variables al montar
+    useEffect(() => {
+        (async () => {
+            try {
+                setLoadingVariables(true);
+                const resp = await fetchVariablesControl();
+                if (resp.success && resp.data) {
+                    // opcional: ordenar A–Z por descripción
+                    const sorted = resp.data.sort((a, b) =>
+                        a.descripcion_mantto_pred
+                            .localeCompare(b.descripcion_mantto_pred, 'es', { sensitivity: 'base' })
+                    );
+                    setVariables(sorted);
+                } else {
+                    setErrorVariables(resp.error ?? 'Error al cargar variables');
+                }
+            } catch {
+                setErrorVariables('Error inesperado al cargar variables');
+            } finally {
+                setLoadingVariables(false);
+            }
+        })();
+    }, []);
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -189,36 +211,6 @@ export default function ReporteVariablesScreen() {
                     style={styles.pickerWrapper}
                 />
 
-                {/* Variable de control */}
-                <Text style={styles.label}>Variable de control</Text>
-                <Select<{ id: number; nombre: string }>
-                    options={variablesList}
-                    valueKey="id"
-                    labelKey="nombre"
-                    selectedValue={variableControl}
-                    onValueChange={v => setVariableControl(v as number)}
-                    placeholder="— Selecciona una variable —"
-                />
-
-                {/* Código */}
-                <Text style={styles.label}>Código</Text>
-                <TextInput
-                    style={styles.input}
-                    value={codigo}
-                    onChangeText={setCodigo}
-                    placeholder="Código"
-                />
-
-                {/* Valor */}
-                <Text style={styles.label}>Valor</Text>
-                <TextInput
-                    style={styles.input}
-                    value={valor}
-                    onChangeText={setValor}
-                    keyboardType="numeric"
-                    placeholder="0"
-                />
-
                 {/* Grupo y Equipo */}
                 <Text style={styles.label}>Grupo de equipo</Text>
                 <Select<GrupoEquipo>
@@ -238,6 +230,39 @@ export default function ReporteVariablesScreen() {
                     selectedValue={equipoSelected}
                     onValueChange={v => setEquipoSelected(v as number)}
                     placeholder="— Selecciona un equipo —"
+                />
+
+                {/* — Variable de control — */}
+                <Text style={styles.label}>Variable de control</Text>
+                <Select<VariableControl>
+                    options={variables}
+                    valueKey="id_mantto_pred"
+                    labelKey="descripcion_mantto_pred"
+                    selectedValue={selectedVariable}
+                    onValueChange={v => setSelectedVariable(v as number)}
+                    placeholder="— Selecciona una variable —"
+                    loading={loadingVariables}
+                    error={errorVariables}
+                    style={styles.pickerWrapper}
+                />
+
+                {/* Código */}
+                <Text style={styles.label}>Código</Text>
+                <TextInput
+                    style={styles.input}
+                    value={codigo}
+                    onChangeText={setCodigo}
+                    placeholder="Código"
+                />
+
+                {/* Valor */}
+                <Text style={styles.label}>Valor</Text>
+                <TextInput
+                    style={styles.input}
+                    value={valor}
+                    onChangeText={setValor}
+                    keyboardType="numeric"
+                    placeholder="0"
                 />
 
                 {/* Botón Crear */}
