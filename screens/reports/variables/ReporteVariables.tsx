@@ -51,9 +51,9 @@ export default function ReporteVariablesScreen() {
   const [turnosList, setTurnosList] = useState<TurnoInterface[]>([]);
   const [turno, setTurno] = useState<number | null>(null);
 
-  // Personal
+  // Personal (now string)
   const [personalsOptions, setPersonalsOptions] = useState<PersonalOption[]>([]);
-  const [selectedPersonal, setSelectedPersonal] = useState<number | null>(null);
+  const [selectedPersonal, setSelectedPersonal] = useState<string | null>(null);
   const [loadingPersonals, setLoadingPersonals] = useState(true);
   const [errorPersonals, setErrorPersonals] = useState<string>('');
 
@@ -163,7 +163,6 @@ export default function ReporteVariablesScreen() {
 
   // Llamada al servicio POST
   const createReporte = async () => {
-    // 1) Validación básica
     if (
       selectedVariable == null ||
       selectedPersonal == null ||
@@ -176,23 +175,21 @@ export default function ReporteVariablesScreen() {
       return;
     }
 
-    // 2) Objeto equipo y extracción sólo de dígitos para la matrícula
     const equipoObj = equipos.find(e => e.id_equipo === equipoSelected)!;
     const numero_economico = equipoObj.matricula_equipo.replace(/\D/g, '');
 
-    // 3) Armado del payload
     const payload: CreateReporteManttoPredictivoPayload = {
-      id_mantto_pred: selectedVariable,           // ya es number
-      id_personal: selectedPersonal,           // ahora es number
-      id_turno: turno,
-      id_equipo: equipoSelected,
-      numero_economico_equipo: numero_economico,  // sólo dígitos
-      id_grupo_equipo: grupoSelected,
-      valor_reporte: valor.trim(),
-      codigo_reporte: codigo,
-      fecha_reporte: `${fecha.toISOString().slice(0, 10)}T00:00:00`,
-      hora_reporte: hora.toTimeString().slice(0, 8),  // "HH:MM:SS"
-      id_empresa: empresaId
+      id_mantto_pred:   selectedVariable,
+      id_personal:      selectedPersonal,       // ahora string válido
+      id_turno:         turno,
+      id_equipo:        equipoSelected,
+      numero_economico_equipo: numero_economico,
+      id_grupo_equipo:  grupoSelected,
+      valor_reporte:    valor.trim(),
+      codigo_reporte:   codigo,
+      fecha_reporte:    `${fecha.toISOString().slice(0, 10)}T00:00:00`,
+      hora_reporte:     hora.toTimeString().slice(0, 8),
+      id_empresa:       empresaId
     };
 
     try {
@@ -274,7 +271,7 @@ export default function ReporteVariablesScreen() {
           valueKey="id_personal"
           labelKey="fullName"
           selectedValue={selectedPersonal}
-          onValueChange={v => setSelectedPersonal(Number(v))}  // <-- aquí!
+          onValueChange={v => setSelectedPersonal(v as string | null)}
           placeholder="— Selecciona un personal —"
           loading={loadingPersonals}
           error={errorPersonals}
@@ -348,13 +345,13 @@ export default function ReporteVariablesScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#EFF0FA', padding: 20, paddingTop: 35 },
-  container: { flex: 1, backgroundColor: '#EFF0FA' },
-  row: { flexDirection: 'row', justifyContent: 'space-between' },
-  col: { flex: 1, marginRight: 10 },
-  label: { fontWeight: 'bold', fontSize: 16, marginTop: 12, color: '#1B2A56' },
-  input: { backgroundColor: '#FFF', padding: 12, borderRadius: 10, borderColor: '#1B2A56', borderWidth: 1, marginTop: 4 },
-  pickerWrapper: { marginTop: 4 },
-  createButton: { marginTop: 20, backgroundColor: '#004F9F', padding: 14, borderRadius: 8, alignItems: 'center' },
+  safeArea:         { flex: 1, backgroundColor: '#EFF0FA', padding: 20, paddingTop: 35 },
+  container:        { flex: 1, backgroundColor: '#EFF0FA' },
+  row:              { flexDirection: 'row', justifyContent: 'space-between' },
+  col:              { flex: 1, marginRight: 10 },
+  label:            { fontWeight: 'bold', fontSize: 16, marginTop: 12, color: '#1B2A56' },
+  input:            { backgroundColor: '#FFF', padding: 12, borderRadius: 10, borderColor: '#1B2A56', borderWidth: 1, marginTop: 4 },
+  pickerWrapper:    { marginTop: 4 },
+  createButton:     { marginTop: 20, backgroundColor: '#004F9F', padding: 14, borderRadius: 8, alignItems: 'center' },
   createButtonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
 });
