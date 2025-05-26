@@ -163,24 +163,38 @@ export default function ReporteVariablesScreen() {
 
   // Llamada al servicio POST
   const createReporte = async () => {
-    if (!selectedVariable || !selectedPersonal || !turno || !equipoSelected || !grupoSelected) {
+    // 1) Validamos que tengamos todos los datos
+    if (
+      selectedVariable == null ||
+      selectedPersonal == null ||
+      turno == null ||
+      equipoSelected == null ||
+      grupoSelected == null ||
+      valor.trim() === ''
+    ) {
       showToast('error', 'Datos incompletos', 'Por favor llena todos los campos obligatorios.');
       return;
     }
 
+    // 2) Buscamos el objeto Equipo para sacarle la matrícula limpia
     const equipoObj = equipos.find(e => e.id_equipo === equipoSelected)!;
+    // Extraemos sólo dígitos de la matrícula
+    const numero_economico =
+      equipoObj.matricula_equipo.replace(/\D/g, '');
+
+    // 3) Armamos el payload EXACTO que tu API espera
     const payload: CreateReporteManttoPredictivoPayload = {
-      id_mantto_pred: selectedVariable,
-      id_personal:    selectedPersonal,
-      id_turno:       turno,
-      id_equipo:      equipoSelected,
-      numero_economico_equipo: equipoObj.matricula_equipo,
+      id_mantto_pred: selectedVariable,          // numérico o string con dígitos
+      id_personal: selectedPersonal,          // **NUMÉRICO** (no “TecMto 2”)
+      id_turno: turno,
+      id_equipo: equipoSelected,
+      numero_economico_equipo: numero_economico, // sólo “4215”
       id_grupo_equipo: grupoSelected,
-      valor_reporte:  valor,
+      valor_reporte: valor.trim(),
       codigo_reporte: codigo,
-      fecha_reporte:  `${fecha.toISOString().slice(0,10)}T00:00:00`,
-      hora_reporte:   `${String(hora.getHours()).padStart(2,'0')}:${String(hora.getMinutes()).padStart(2,'0')}:00`,
-      id_empresa:     empresaId
+      fecha_reporte: `${fecha.toISOString().slice(0, 10)}T00:00:00`,
+      hora_reporte: hora.toTimeString().slice(0, 8),  // “HH:MM:SS”
+      id_empresa: empresaId
     };
 
     try {
@@ -336,13 +350,13 @@ export default function ReporteVariablesScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea:         { flex: 1, backgroundColor: '#EFF0FA', padding: 20, paddingTop: 35 },
-  container:        { flex: 1, backgroundColor: '#EFF0FA' },
-  row:              { flexDirection: 'row', justifyContent: 'space-between' },
-  col:              { flex: 1, marginRight: 10 },
-  label:            { fontWeight: 'bold', fontSize: 16, marginTop: 12, color: '#1B2A56' },
-  input:            { backgroundColor: '#FFF', padding: 12, borderRadius: 10, borderColor: '#1B2A56', borderWidth: 1, marginTop: 4 },
-  pickerWrapper:    { marginTop: 4 },
-  createButton:     { marginTop: 20, backgroundColor: '#004F9F', padding: 14, borderRadius: 8, alignItems: 'center' },
+  safeArea: { flex: 1, backgroundColor: '#EFF0FA', padding: 20, paddingTop: 35 },
+  container: { flex: 1, backgroundColor: '#EFF0FA' },
+  row: { flexDirection: 'row', justifyContent: 'space-between' },
+  col: { flex: 1, marginRight: 10 },
+  label: { fontWeight: 'bold', fontSize: 16, marginTop: 12, color: '#1B2A56' },
+  input: { backgroundColor: '#FFF', padding: 12, borderRadius: 10, borderColor: '#1B2A56', borderWidth: 1, marginTop: 4 },
+  pickerWrapper: { marginTop: 4 },
+  createButton: { marginTop: 20, backgroundColor: '#004F9F', padding: 14, borderRadius: 8, alignItems: 'center' },
   createButtonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
 });
