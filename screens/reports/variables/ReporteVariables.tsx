@@ -1,31 +1,53 @@
 // src/screens/reports/variables/ReporteVariables.tsx
 
 import React, { useState, useEffect } from 'react';
-import { SafeAreaView, ScrollView, View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import {
+  SafeAreaView,
+  ScrollView,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert
+} from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { fetchVariablesControl, VariableControl } from '../../../services/reports/variables/mantenimientoPredictivoService';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
+import HeaderTitle from '../../../components/common/HeaderTitle';
+import Select from '../../../components/common/Select';
+import { showToast } from '../../../services/notifications/ToastService';
+
+import { AuthStackParamList } from '../../../App';
+import { useAuth } from '../../../contexts/AuthContext';
+
 import { fetchTurnos, TurnoInterface } from '../../../services/reports/turnos/turnoService';
 import { fetchPersonals, Personal } from '../../../services/reports/personal/personalService';
 import { fetchGrupoEquipos, GrupoEquipo } from '../../../services/reports/equipos/grupoEquipoService';
 import { Equipo, fetchEquipos } from '../../../services/reports/equipos/equipoService';
-import { showToast } from '../../../services/notifications/ToastService';
-import { useAuth } from '../../../contexts/AuthContext';
-import Select from '../../../components/common/Select';
-import HeaderTitle from '../../../components/common/HeaderTitle';
 
-// Extendemos Personal para mostrar nombre + apellido paterno
+import {
+  fetchVariablesControl,
+  createReporteManttoPredictivo,
+  VariableControl,
+  CreateReporteManttoPredictivoPayload
+} from '../../../services/reports/variables/mantenimientoPredictivoService';
+
+// Extendemos Personal para mostrar Nombre + Apellido paterno
 type PersonalOption = Personal & { fullName: string };
 
 export default function ReporteVariablesScreen() {
-  const { empresaId, personalId } = useAuth();
+  const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
+  const { empresaId } = useAuth();
 
-  // Fecha y hora
+  // Fecha & Hora
   const [fecha, setFecha] = useState(new Date());
   const [showDate, setShowDate] = useState(false);
   const [hora, setHora] = useState(new Date());
   const [showTime, setShowTime] = useState(false);
 
-  // Turnos
+  // Turno
   const [turnosList, setTurnosList] = useState<TurnoInterface[]>([]);
   const [turno, setTurno] = useState<number | null>(null);
 
@@ -35,36 +57,29 @@ export default function ReporteVariablesScreen() {
   const [loadingPersonals, setLoadingPersonals] = useState(true);
   const [errorPersonals, setErrorPersonals] = useState<string>('');
 
-  // Grupo y equipo
+  // Grupo & Equipo
   const [grupos, setGrupos] = useState<GrupoEquipo[]>([]);
   const [grupoSelected, setGrupoSelected] = useState<number | null>(null);
   const [equipos, setEquipos] = useState<Equipo[]>([]);
   const [equipoSelected, setEquipoSelected] = useState<number | null>(null);
 
-  // Variables de control
+  // Variable de control
   const [variables, setVariables] = useState<VariableControl[]>([]);
   const [selectedVariable, setSelectedVariable] = useState<number | null>(null);
   const [loadingVariables, setLoadingVariables] = useState(true);
   const [errorVariables, setErrorVariables] = useState<string>('');
 
-  // Código y valor
+  // Código & Valor
   const [codigo, setCodigo] = useState('');
   const [valor, setValor] = useState('');
 
-  // Carga inicial de datos
+  // Carga inicial de turnos y grupos
   useEffect(() => {
-    // Turnos
-    fetchTurnos().then(resp => {
-      if (resp.success && resp.data) setTurnosList(resp.data);
-    });
-
-    // Grupos de equipo
-    fetchGrupoEquipos().then(resp => {
-      if (resp.success && resp.data) setGrupos(resp.data);
-    });
+    fetchTurnos().then(r => r.success && r.data && setTurnosList(r.data));
+    fetchGrupoEquipos().then(r => r.success && r.data && setGrupos(r.data));
   }, []);
 
-  // Carga de personal
+  // Carga inicial de personal
   useEffect(() => {
     (async () => {
       try {
@@ -75,10 +90,11 @@ export default function ReporteVariablesScreen() {
             ...p,
             fullName: `${p.nombre_personal} ${p.apaterno_personal}`
           }));
-          const sorted = mapped.sort((a, b) =>
-            a.fullName.localeCompare(b.fullName, 'es', { sensitivity: 'base' })
+          setPersonalsOptions(
+            mapped.sort((a, b) =>
+              a.fullName.localeCompare(b.fullName, 'es', { sensitivity: 'base' })
+            )
           );
-          setPersonalsOptions(sorted);
         } else {
           setErrorPersonals(resp.error ?? 'Error al cargar personal');
         }
@@ -90,17 +106,18 @@ export default function ReporteVariablesScreen() {
     })();
   }, []);
 
-  // Carga de variables de control
+  // Carga inicial de variables de control
   useEffect(() => {
     (async () => {
       try {
         setLoadingVariables(true);
         const resp = await fetchVariablesControl();
         if (resp.success && resp.data) {
-          const sorted = resp.data.sort((a, b) =>
-            a.descripcion_mantto_pred.localeCompare(b.descripcion_mantto_pred, 'es', { sensitivity: 'base' })
+          setVariables(
+            resp.data.sort((a, b) =>
+              a.descripcion_mantto_pred.localeCompare(b.descripcion_mantto_pred, 'es', { sensitivity: 'base' })
+            )
           );
-          setVariables(sorted);
         } else {
           setErrorVariables(resp.error ?? 'Error al cargar variables');
         }
@@ -112,27 +129,71 @@ export default function ReporteVariablesScreen() {
     })();
   }, []);
 
-  // Recarga de equipos cuando cambia grupo
+  // Recarga de equipos cuando cambia grupo seleccionado
   useEffect(() => {
     if (!grupoSelected) {
       setEquipos([]);
       return;
     }
-    fetchEquipos().then(resp => {
-      if (resp.success && resp.data) {
-        setEquipos(resp.data.filter(e => e.id_grupo_equipo === grupoSelected));
+    fetchEquipos().then(r => {
+      if (r.success && r.data) {
+        setEquipos(r.data.filter(e => e.id_grupo_equipo === grupoSelected));
       }
     });
   }, [grupoSelected]);
 
-  // Auto-completar código al seleccionar variable
+  // Auto-completar el campo Código al cambiar variable
   useEffect(() => {
     const sel = variables.find(v => v.id_mantto_pred === selectedVariable);
     setCodigo(sel?.id_mantto_pred_pub ?? '');
   }, [selectedVariable, variables]);
 
-  const handleCrearReporte = () => {
-    showToast('info', 'En desarrollo', 'Próximamente podrás crear tu reporte de variables.');
+  // Confirmación antes de crear
+  const handleConfirmCreate = () => {
+    Alert.alert(
+      'Crear reporte',
+      '¿Deseas crear este reporte?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Crear', onPress: createReporte }
+      ],
+      { cancelable: true }
+    );
+  };
+
+  // Llamada al servicio POST
+  const createReporte = async () => {
+    if (!selectedVariable || !selectedPersonal || !turno || !equipoSelected || !grupoSelected) {
+      showToast('error', 'Datos incompletos', 'Por favor llena todos los campos obligatorios.');
+      return;
+    }
+
+    const equipoObj = equipos.find(e => e.id_equipo === equipoSelected)!;
+    const payload: CreateReporteManttoPredictivoPayload = {
+      id_mantto_pred: selectedVariable,
+      id_personal:    selectedPersonal,
+      id_turno:       turno,
+      id_equipo:      equipoSelected,
+      numero_economico_equipo: equipoObj.matricula_equipo,
+      id_grupo_equipo: grupoSelected,
+      valor_reporte:  valor,
+      codigo_reporte: codigo,
+      fecha_reporte:  `${fecha.toISOString().slice(0,10)}T00:00:00`,
+      hora_reporte:   `${String(hora.getHours()).padStart(2,'0')}:${String(hora.getMinutes()).padStart(2,'0')}:00`,
+      id_empresa:     empresaId
+    };
+
+    try {
+      const resp = await createReporteManttoPredictivo(payload);
+      if (resp.success && resp.data) {
+        showToast('success', `Se ha creado el reporte: ${resp.data.codigo_reporte}`);
+        navigation.navigate('Main');
+      } else {
+        throw new Error(resp.error);
+      }
+    } catch (err: any) {
+      showToast('error', 'Error al crear reporte', err.message || '');
+    }
   };
 
   return (
@@ -140,7 +201,7 @@ export default function ReporteVariablesScreen() {
       <ScrollView style={styles.container}>
         <HeaderTitle title="Reporte de Variables" />
 
-        {/* Fecha y Hora */}
+        {/* Fecha & Hora */}
         <View style={styles.row}>
           <View style={styles.col}>
             <Text style={styles.label}>Fecha</Text>
@@ -208,7 +269,7 @@ export default function ReporteVariablesScreen() {
           style={styles.pickerWrapper}
         />
 
-        {/* Grupo y Equipo */}
+        {/* Grupo de equipo */}
         <Text style={styles.label}>Grupo de equipo</Text>
         <Select<GrupoEquipo>
           options={grupos}
@@ -220,6 +281,7 @@ export default function ReporteVariablesScreen() {
           style={styles.pickerWrapper}
         />
 
+        {/* Equipo */}
         <Text style={styles.label}>Equipo</Text>
         <Select<Equipo>
           options={equipos}
@@ -265,8 +327,8 @@ export default function ReporteVariablesScreen() {
         />
 
         {/* Botón Crear */}
-        <TouchableOpacity style={styles.createButton} onPress={handleCrearReporte}>
-          <Text style={styles.createButtonText}>+ Crear reporte</Text>
+        <TouchableOpacity style={styles.createButton} onPress={handleConfirmCreate}>
+          <Text style={styles.createButtonText}>+ Nuevo reporte</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -274,13 +336,13 @@ export default function ReporteVariablesScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea:    { flex: 1, backgroundColor: '#EFF0FA', padding: 20, paddingTop: 35 },
-  container:   { flex: 1, backgroundColor: '#EFF0FA' },
-  row:         { flexDirection: 'row', justifyContent: 'space-between' },
-  col:         { flex: 1, marginRight: 10 },
-  label:       { fontWeight: 'bold', fontSize: 16, marginTop: 12, color: '#1B2A56' },
-  input:       { backgroundColor: '#FFF', padding: 12, borderRadius: 10, borderColor: '#1B2A56', borderWidth: 1, marginTop: 4 },
-  pickerWrapper:{ marginTop: 4 },
-  createButton:{ marginTop: 20, backgroundColor: '#4CAF50', padding: 14, borderRadius: 8, alignItems: 'center' },
-  createButtonText:{ color: '#FFF', fontSize: 16, fontWeight: 'bold' },
+  safeArea:         { flex: 1, backgroundColor: '#EFF0FA', padding: 20, paddingTop: 35 },
+  container:        { flex: 1, backgroundColor: '#EFF0FA' },
+  row:              { flexDirection: 'row', justifyContent: 'space-between' },
+  col:              { flex: 1, marginRight: 10 },
+  label:            { fontWeight: 'bold', fontSize: 16, marginTop: 12, color: '#1B2A56' },
+  input:            { backgroundColor: '#FFF', padding: 12, borderRadius: 10, borderColor: '#1B2A56', borderWidth: 1, marginTop: 4 },
+  pickerWrapper:    { marginTop: 4 },
+  createButton:     { marginTop: 20, backgroundColor: '#004F9F', padding: 14, borderRadius: 8, alignItems: 'center' },
+  createButtonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
 });
