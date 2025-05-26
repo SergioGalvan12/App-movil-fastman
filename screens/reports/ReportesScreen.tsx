@@ -3,6 +3,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import MenuItem from '../../components/common/MenuItem';
 import { useNavigation } from '@react-navigation/native';
+import { fetchPersonals, Personal } from '../../services/reports/personal/personalService';
 
 export default function ReportesScreen() {
   const navigation = useNavigation();
@@ -48,6 +49,11 @@ export default function ReportesScreen() {
           onPress={() => handlePress('ReporteOperacion')}
         />
 
+        {/* Nuevo: Reporte de Variables */}
+        <MenuItem
+          title="Reporte de Variables"
+          onPress={() => handlePress('ReporteVariables')}
+        />
       </ScrollView>
     </View>
   );
