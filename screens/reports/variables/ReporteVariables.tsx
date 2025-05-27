@@ -39,7 +39,7 @@ type PersonalOption = Personal & { fullName: string };
 
 export default function ReporteVariablesScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
-  const { empresaId } = useAuth();
+  const { empresaId, personalId } = useAuth();
 
   // Fecha & Hora
   const [fecha, setFecha] = useState(new Date());
@@ -51,7 +51,7 @@ export default function ReporteVariablesScreen() {
   const [turnosList, setTurnosList] = useState<TurnoInterface[]>([]);
   const [turno, setTurno] = useState<number | null>(null);
 
-  // Personal (now string)
+  // Personal (string code)
   const [personalsOptions, setPersonalsOptions] = useState<PersonalOption[]>([]);
   const [selectedPersonal, setSelectedPersonal] = useState<string | null>(null);
   const [loadingPersonals, setLoadingPersonals] = useState(true);
@@ -165,7 +165,7 @@ export default function ReporteVariablesScreen() {
   const createReporte = async () => {
     if (
       selectedVariable == null ||
-      selectedPersonal == null ||
+      !selectedPersonal ||
       turno == null ||
       equipoSelected == null ||
       grupoSelected == null ||
@@ -175,21 +175,27 @@ export default function ReporteVariablesScreen() {
       return;
     }
 
+    // Extraer sólo dígitos de la matrícula
     const equipoObj = equipos.find(e => e.id_equipo === equipoSelected)!;
     const numero_economico = equipoObj.matricula_equipo.replace(/\D/g, '');
 
+    // Intentar parsear id_personal; si falla, usar personalId del contexto
+    const parsedPersonal = parseInt(selectedPersonal, 10);
+    const idPersonalToSend = Number.isNaN(parsedPersonal) ? personalId : parsedPersonal;
+
+    // Armado del payload
     const payload: CreateReporteManttoPredictivoPayload = {
-      id_mantto_pred:   selectedVariable,
-      id_personal:      selectedPersonal,       // ahora string válido
-      id_turno:         turno,
-      id_equipo:        equipoSelected,
-      numero_economico_equipo: numero_economico,
-      id_grupo_equipo:  grupoSelected,
-      valor_reporte:    valor.trim(),
-      codigo_reporte:   codigo,
-      fecha_reporte:    `${fecha.toISOString().slice(0, 10)}T00:00:00`,
-      hora_reporte:     hora.toTimeString().slice(0, 8),
-      id_empresa:       empresaId
+      id_mantto_pred:           selectedVariable,
+      id_personal:              idPersonalToSend,
+      id_turno:                 turno,
+      id_equipo:                equipoSelected,
+      numero_economico_equipo:  numero_economico,
+      id_grupo_equipo:          grupoSelected,
+      valor_reporte:            valor.trim(),
+      codigo_reporte:           codigo,
+      fecha_reporte:            `${fecha.toISOString().slice(0,10)}T00:00:00`,
+      hora_reporte:             hora.toTimeString().slice(0,8),
+      id_empresa:               empresaId
     };
 
     try {
@@ -278,7 +284,7 @@ export default function ReporteVariablesScreen() {
           style={styles.pickerWrapper}
         />
 
-        {/* Grupo de equipo */}
+        {/* Grupo */}
         <Text style={styles.label}>Grupo de equipo</Text>
         <Select<GrupoEquipo>
           options={grupos}
@@ -314,7 +320,7 @@ export default function ReporteVariablesScreen() {
           loading={loadingVariables}
           error={errorVariables}
           style={styles.pickerWrapper}
-        />
+        /> 
 
         {/* Código */}
         <Text style={styles.label}>Código</Text>
