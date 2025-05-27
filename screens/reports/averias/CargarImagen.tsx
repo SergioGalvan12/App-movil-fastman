@@ -19,9 +19,9 @@ import {
   fetchBacklogImages,
   uploadBacklogImage,
   BacklogImageInterface,
-} from '../../services/reports/averias/backlogImagenService';
-import { showToast } from '../../services/notifications/ToastService';
-import { AuthStackParamList } from '../../App';
+} from '../../../services/reports/averias/backlogImagenService';
+import { showToast } from '../../../services/notifications/ToastService';
+import { AuthStackParamList } from '../../../App';
 
 // Definimos los params que esperamos de la navegación
 type CargarImagenRouteProp = RouteProp<
