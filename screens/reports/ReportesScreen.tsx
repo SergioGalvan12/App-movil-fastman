@@ -3,20 +3,21 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import MenuItem from '../../components/common/MenuItem';
 import { useNavigation } from '@react-navigation/native';
+import { fetchPersonals, Personal } from '../../services/reports/personal/personalService';
 
 export default function ReportesScreen() {
   const navigation = useNavigation();
 
   const handlePress = (routeName: string) => {
     // Navega a la pantalla que quieras
-    navigation.navigate(routeName as never); 
+    navigation.navigate(routeName as never);
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Reportes</Text>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        
+
         {/* <MenuItem 
           title="Órdenes de trabajo" 
           onPress={() => handlePress('OrdenesTrabajo')} 
@@ -36,17 +37,23 @@ export default function ReportesScreen() {
           title="Reporte de Consumos" 
           onPress={() => handlePress('ReporteConsumos')} 
         /> */}
-        
-        <MenuItem 
-          title="Reporte de Avería (MC)" 
-          onPress={() => handlePress('Averias')} 
+
+        <MenuItem
+          title="Reporte de Avería (MC)"
+          onPress={() => handlePress('Averias')}
         />
-        
-        {/* <MenuItem 
-          title="Reporte de Variables de Control" 
-          onPress={() => handlePress('ReporteVariables')} 
-        /> */}
-        
+
+        {/* Nuevo: Reporte Operativo */}
+        <MenuItem
+          title="Reporte Operativo"
+          onPress={() => handlePress('ReporteOperacion')}
+        />
+
+        {/* Nuevo: Reporte de Variables */}
+        <MenuItem
+          title="Reporte de Variables"
+          onPress={() => handlePress('ReporteVariables')}
+        />
       </ScrollView>
     </View>
   );

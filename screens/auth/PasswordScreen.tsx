@@ -1,4 +1,4 @@
-// screens/auth/PasswordScreen.tsx
+//screens/auth/PasswordScreen.tsx
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -37,7 +37,7 @@ export default function PasswordScreen({ navigation, route }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Inicializa el estado del checkbox según lo guardado en AsyncStorage
+  // ← Inicializamos el estado del checkbox según lo guardado
   useEffect(() => {
     (async () => {
       const remembered = await getRememberMe();
@@ -84,12 +84,12 @@ export default function PasswordScreen({ navigation, route }: Props) {
   };
 
   const handleGoBack = async () => {
-    // Si el usuario tenía "Recuérdame" marcado, desmarcamos y guardamos
+    // Si el usuario tenía marcado "Recuérdame", lo desmarcamos:
     if (rememberMe) {
-      setRememberMeState(false);
-      await setRememberMe(false);
+      setRememberMeState(false);  // desmarca en UI
+      await setRememberMe(false); // guarda en AsyncStorage
     }
-    // Luego navegamos atrás
+    // Ahora sí navegamos atrás:
     if (navigation.canGoBack()) {
       navigation.goBack();
     } else {
@@ -144,7 +144,12 @@ export default function PasswordScreen({ navigation, route }: Props) {
         {loading ? <ActivityIndicator color="#FFF" size="small" /> : <Text style={styles.buttonText}>Iniciar sesión</Text>}
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.backButton} onPress={handleGoBack} disabled={loading}>
+      {/* Botón Regresar */}
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={handleGoBack}
+        disabled={loading}
+      >
         <Text style={styles.backButtonText}>Regresar</Text>
       </TouchableOpacity>
 
