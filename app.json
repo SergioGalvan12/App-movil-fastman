@@ -6,6 +6,10 @@
     "orientation": "portrait",
     "icon": "./assets/adaptive-icon.png",
     "userInterfaceStyle": "light",
+    "plugins": [
+      "expo-system-ui",
+      "./withDisableForcedDarkModeAndroid"
+    ],
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/fastman.png",
@@ -13,6 +17,7 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
+      "userInterfaceStyle": "light",
       "infoPlist": {
         "NSCameraUsageDescription": "Necesitamos acceder a tu cámara para tomar fotos de la avería.",
         "NSPhotoLibraryUsageDescription": "Necesitamos acceder a tu galería para seleccionar fotos existentes.",
@@ -22,6 +27,7 @@
       "supportsTablet": true
     },
     "android": {
+      "userInterfaceStyle": "light",
       "package": "com.mauricioasg2002.fastmanapp",
       "permissions": [
         "CAMERA",
