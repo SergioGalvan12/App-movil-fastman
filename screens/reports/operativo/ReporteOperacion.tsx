@@ -74,9 +74,9 @@ export default function ReporteOperacionScreen() {
   const [observaciones, setObservaciones] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // 1) Carga de turnos
+  // Carga de turnos
   useEffect(() => {
-    ;(async () => {
+    ; (async () => {
       setLoadingTurnos(true);
       const resp = await fetchTurnos();
       if (resp.success && resp.data) {
@@ -92,9 +92,9 @@ export default function ReporteOperacionScreen() {
     })();
   }, []);
 
-  // 2) Carga de grupos de equipo
+  // Carga de grupos de equipo
   useEffect(() => {
-    ;(async () => {
+    ; (async () => {
       setLoadingGrupos(true);
       const resp = await fetchGrupoEquipos();
       if (resp.success && resp.data) {
@@ -110,14 +110,14 @@ export default function ReporteOperacionScreen() {
     })();
   }, []);
 
-  // 3) Carga de equipos paginados al cambiar grupo
+  // Carga de equipos paginados al cambiar grupo
   useEffect(() => {
     if (!grupoEquipo) {
       setEquipoOptions([]);
       setEquiposData([]);
       return;
     }
-    ;(async () => {
+    ; (async () => {
       setLoadingEquipos(true);
       const resp = await fetchEquipos();
       if (resp.success && resp.data) {
@@ -132,7 +132,8 @@ export default function ReporteOperacionScreen() {
         setErrorEquipos(resp.error || 'Error al cargar equipos');
       }
       setLoadingEquipos(false);
-      // limpiar lecturas previas
+
+      // limpiar previos
       setEquipo(null);
       setUnidadesIniciales('0');
       setUnidadesFinales('0');
@@ -140,7 +141,7 @@ export default function ReporteOperacionScreen() {
     })();
   }, [grupoEquipo]);
 
-  // 4) Al seleccionar equipo, fijar lecturas
+  // Selección de equipo fija lecturas
   const onSelectEquipo = (value: number | null) => {
     setEquipo(value);
     if (!value) {
@@ -153,14 +154,14 @@ export default function ReporteOperacionScreen() {
     setUnidadesFinales(sel.uso_equipo || '0.00');
   };
 
-  // 5) Recalcular unidades de control
+  // Recalcular unidades de control
   useEffect(() => {
-    const init = parseFloat(unidadesIniciales) || 0;
-    const fin = parseFloat(unidadesFinales) || 0;
-    setUnidadesControl((fin - init).toFixed(2));
+    const ui = parseFloat(unidadesIniciales) || 0;
+    const uf = parseFloat(unidadesFinales) || 0;
+    setUnidadesControl((uf - ui).toFixed(2));
   }, [unidadesIniciales, unidadesFinales]);
 
-  // 6) Confirmación y creación
+  // Confirmación y creación
   const confirmAndCreate = () => {
     Alert.alert(
       'Confirmación',
@@ -180,20 +181,27 @@ export default function ReporteOperacionScreen() {
     setSaving(true);
 
     try {
-      const eq = equiposData.find(e => e.id_equipo === equipo);
-      if (!eq) throw new Error('Equipo no encontrado');
+      const sel = equiposData.find(e => e.id_equipo === equipo)!;
+      const ui = parseFloat(unidadesIniciales) || 0;
+      const uf = parseFloat(unidadesFinales) || 0;
+
+      if (uf < ui) {
+        showToast('error', 'Lecturas inválidas', 'La lectura final debe ser ≥ inicial');
+        setSaving(false);
+        return;
+      }
 
       const payload: ReporteOperacionPayload = {
         id_guia: null,
-        numero_economico_equipo: eq.id_equipo,
+        numero_economico_equipo: sel.id_equipo,
         id_personal: personalId,
         id_turno: turno,
-        id_empresa: eq.id_empresa,
-        id_ubicacion: eq.id_ubicacion,
-        id_area: eq.id_area,
-        id_proceso: eq.id_proceso,
-        id_subproceso: eq.id_subproceso,
-        id_grupo_equipo: eq.id_grupo_equipo,
+        id_empresa: sel.id_empresa,
+        id_ubicacion: sel.id_ubicacion,
+        id_area: sel.id_area,
+        id_proceso: sel.id_proceso,
+        id_subproceso: sel.id_subproceso,
+        id_grupo_equipo: sel.id_grupo_equipo,
         unidad: null,
         descripcion_guia: observaciones,
         fecha_guia: fecha.toISOString(),
@@ -212,7 +220,22 @@ export default function ReporteOperacionScreen() {
 
       const res = await createReporteOperacion(payload);
       if (res.success && res.data) {
-        showToast('success', 'Reporte creado', `ID: ${res.data.id_guia}`);
+        const det: any = res.data;
+        const numEco = det.numero_economico_equipo_text
+          ?? String(det.numero_economico_equipo);
+        const desc = det.descripcion_equipo
+          ?? sel.matricula_equipo;
+        const fechaStr = det.fecha_guia
+          ? new Date(det.fecha_guia).toLocaleDateString('es-ES', {
+            day: '2-digit', month: '2-digit', year: 'numeric'
+          })
+          : fecha.toLocaleDateString('es-ES');
+
+        showToast(
+          'success',
+          'Se ha creado el reporte',
+          `${numEco} – ${desc} (${fechaStr})`
+        );
         navigation.navigate('Main');
       } else {
         throw new Error(res.error || 'Error al crear reporte');
@@ -224,6 +247,7 @@ export default function ReporteOperacionScreen() {
       setSaving(false);
     }
   };
+
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -266,11 +290,7 @@ export default function ReporteOperacionScreen() {
 
         {/* Responsable */}
         <Text style={styles.label}>Responsable</Text>
-        <TextInput
-          style={styles.input}
-          value={personalName}
-          editable={false}
-        />
+        <TextInput style={styles.input} value={personalName} editable={false} />
 
         {/* Grupo de equipo */}
         <Text style={styles.label}>* Grupo de equipo</Text>
@@ -355,9 +375,8 @@ export default function ReporteOperacionScreen() {
           <Ionicons name="checkmark-circle" size={20} style={styles.iconOK} />
         </View>
         <Text style={styles.note}>
-          Nota: Elegir la opción predefinida generará los consumos del reporte a
-          partir de los definidos en productos. Si deseas generar nuevos consumos,
-          deberás hacerlo manualmente en su sección.
+          Nota: Elegir la opción predefinida generará los consumos a partir de
+          productos predefinidos. Para consumos manuales, ve a su sección.
         </Text>
         <Text style={styles.required}>* Campos requeridos</Text>
       </ScrollView>
@@ -395,7 +414,7 @@ const styles = StyleSheet.create({
   createButtonDisabled: { backgroundColor: '#A0A0A0' },
   createButtonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
   predef: { flexDirection: 'row', alignItems: 'center', marginTop: 20 },
-  iconOK: { color: '#28A745', marginLeft: 8 },
+  iconOK: { color: '#28A745', marginLeft: -20 },
   note: { marginTop: 8, fontSize: 14, lineHeight: 20, color: '#333' },
   required: { marginTop: 20, fontStyle: 'italic', color: '#333' },
 });

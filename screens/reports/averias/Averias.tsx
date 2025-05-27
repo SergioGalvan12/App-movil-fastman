@@ -7,20 +7,20 @@ import {
   Modal,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import HeaderTitle from '../../components/common/HeaderTitle';
-import SelectPersonal from '../../components/common/SelectPersonal';
-import Select from '../../components/common/Select';
-import { fetchTurnos, TurnoInterface } from '../../services/reports/turnos/turnoService';
+import HeaderTitle from '../../../components/common/HeaderTitle';
+import SelectPersonal from '../../../components/common/SelectPersonal';
+import Select from '../../../components/common/Select';
+import { fetchTurnos, TurnoInterface } from '../../../services/reports/turnos/turnoService';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { AuthStackParamList } from '../../App';
-import { fetchGrupoEquipoBacklog, GrupoEquipoBacklog } from '../../services/reports/averias/grupoEquipoBacklogService';
-import { showToast } from '../../services/notifications/ToastService';
-import { fetchGrupoEquipos, GrupoEquipo } from '../../services/reports/equipos/grupoEquipoService';
-import { Equipo, fetchEquipos } from '../../services/reports/equipos/equipoService';
-import { BacklogPayload, createBacklog } from '../../services/reports/averias/backlogService';
-import { useAuth } from '../../contexts/AuthContext';
-import { fetchBacklogImages, uploadBacklogImage } from '../../services/reports/averias/backlogImagenService';
+import { AuthStackParamList } from '../../../App';
+import { fetchGrupoEquipoBacklog, GrupoEquipoBacklog } from '../../../services/reports/averias/grupoEquipoBacklogService';
+import { showToast } from '../../../services/notifications/ToastService';
+import { fetchGrupoEquipos, GrupoEquipo } from '../../../services/reports/equipos/grupoEquipoService';
+import { Equipo, fetchEquipos } from '../../../services/reports/equipos/equipoService';
+import { BacklogPayload, createBacklog } from '../../../services/reports/averias/backlogService';
+import { useAuth } from '../../../contexts/AuthContext';
+import { fetchBacklogImages, uploadBacklogImage } from '../../../services/reports/averias/backlogImagenService';
 
 export default function Averias() {
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
@@ -140,19 +140,15 @@ export default function Averias() {
   }, [averiaSelected]);
 
   // Handler para crear acción correctiva
-  // Sustituye tu versión anterior por esta:
   const handleCrearAccionCorrectiva = async () => {
-    // Encuentra la falla seleccionada, que ahora tiene id_backlog_plantilla
     const sel = averias.find(a => a.id_grupo_backlog === averiaSelected);
-    // 1) Arma el payload exacto que espera tu API:
     const payload: BacklogPayload = {
       id_backlog: null,
       id_backlog_pub: sel?.nombre_falla || descripcion,
-      // el backend lo generará como “ACx – …”
-      id_empresa: empresaId,             // viene de useAuth()
+      id_empresa: empresaId,
       numero_economico_equipo: equipoSelected!,
       descripcion_backlog: descripcion,
-      descripcion_equipo: '',            // o añade más info si quieres
+      descripcion_equipo: '',            
       estatus: null,
       fecha_backlog: fecha.toISOString().slice(0, 10), // YYYY-MM-DD
       ejecutada_backlog: false,
@@ -167,8 +163,7 @@ export default function Averias() {
       grupo_equipo: grupoSelected!,
       id_marca_equipo: null,
       id_modelo_equipo: null,
-      nombre_falla: sel?.nombre_falla || '',  // opcional si ya envias error_origen
-      // Aquí usamos id_backlog_plantilla, que es la FK correcta
+      nombre_falla: sel?.nombre_falla || '', 
       error_origen: sel!.id_backlog_plantilla,
       id_personal: personalId,
       id_turno: turno!,
@@ -177,16 +172,13 @@ export default function Averias() {
       id_equipo: equipoSelected!,
       id_grupo_equipo: grupoSelected!,
     };
-    // >>> LOG del payload que vamos a enviar
     console.log('[Averias] Payload createBacklog →', JSON.stringify(payload, null, 2));
 
     try {
       setLoadingAccion(true);
       const res = await createBacklog(payload);
-      // >>> LOG de la respuesta completa del backend
       console.log('[Averias] Response createBacklog →', res);
       if (res.success && res.data) {
-        // guardamos el id para pasar a la pantalla de imágenes
         setCreatedBacklogId(res.data.id_backlog);
         showToast('success', `Se ha creado la acción: ${res.data.id_backlog_pub}`);
         setModalVisible(true);
