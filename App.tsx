@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import DomainScreen from './screens/auth/DomainScreen';
 import UserScreen from './screens/auth/UserScreen';
@@ -12,6 +12,19 @@ import CargarImagen from './screens/reports/averias/CargarImagen';
 import { AuthProvider } from './contexts/AuthContext';
 import ReporteOperacionScreen from './screens/reports/operativo/ReporteOperacion';
 import ReporteVariablesScreen from './screens/reports/variables/ReporteVariables';
+
+const LightTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    background: '#FFFFFF',
+    text:       '#1B2A56',
+    primary:    '#1B2A56',
+    card:       '#FFFFFF',
+    border:     '#DDDDDD',
+    notification: '#FF453A',
+  },
+};
 
 // Definir los tipos para los parámetros de navegación
 export type AuthStackParamList = {
@@ -32,7 +45,7 @@ const Stack = createNativeStackNavigator<AuthStackParamList>();
 export default function App() {
   return (
     <AuthProvider>
-      <NavigationContainer>
+      <NavigationContainer theme={LightTheme}>
         <Stack.Navigator
           id={undefined}
           screenOptions={{
