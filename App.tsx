@@ -12,16 +12,18 @@ import CargarImagen from './screens/reports/averias/CargarImagen';
 import { AuthProvider } from './contexts/AuthContext';
 import ReporteOperacionScreen from './screens/reports/operativo/ReporteOperacion';
 import ReporteVariablesScreen from './screens/reports/variables/ReporteVariables';
+import ReporteOperativoSecuencial from './screens/reports/operativo/ReporteOperativoSecuencial';
+import TipoReporteOperacionScreen from './screens/reports/operativo/TipoReporteOperacionScreen';
 
 const LightTheme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
     background: '#FFFFFF',
-    text:       '#1B2A56',
-    primary:    '#1B2A56',
-    card:       '#FFFFFF',
-    border:     '#DDDDDD',
+    text: '#1B2A56',
+    primary: '#1B2A56',
+    card: '#FFFFFF',
+    border: '#DDDDDD',
     notification: '#FF453A',
   },
 };
@@ -35,9 +37,10 @@ export type AuthStackParamList = {
   Averias: undefined;
   FiltrosAvanzados: { grupoId: number, grupoName: string; };
   CargarImagen: { backlogId: number; empresaId: number };
-  ReporteOperacion: undefined; 
   ReporteVariables: undefined;
-
+  TipoReporteOperacion: undefined;
+  ReporteOperacion: undefined;
+  ReporteOperativoSecuencial: undefined;
 };
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
@@ -59,9 +62,11 @@ export default function App() {
           <Stack.Screen name="Main" component={BottomTabNavigator} />
           <Stack.Screen name="Averias" component={AveriasScreen} />
           <Stack.Screen name="FiltrosAvanzados" component={FiltrosAvanzados} />
+          <Stack.Screen name="TipoReporteOperacion" component={TipoReporteOperacionScreen} />
           <Stack.Screen name="ReporteOperacion" component={ReporteOperacionScreen} />
+          <Stack.Screen name="ReporteOperativoSecuencial" component={ReporteOperativoSecuencial} />
           <Stack.Screen name="ReporteVariables" component={ReporteVariablesScreen} />
-          <Stack.Screen name="CargarImagen" component={CargarImagen} /> 
+          <Stack.Screen name="CargarImagen" component={CargarImagen} />
         </Stack.Navigator>
       </NavigationContainer>
       <Toast />
