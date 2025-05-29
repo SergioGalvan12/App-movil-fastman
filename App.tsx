@@ -15,18 +15,6 @@ import ReporteVariablesScreen from './screens/reports/variables/ReporteVariables
 import ReporteOperativoSecuencial from './screens/reports/operativo/ReporteOperativoSecuencial';
 import TipoReporteOperacionScreen from './screens/reports/operativo/TipoReporteOperacionScreen';
 
-const LightTheme = {
-  ...DefaultTheme,
-  colors: {
-    ...DefaultTheme.colors,
-    background: '#FFFFFF',
-    text: '#1B2A56',
-    primary: '#1B2A56',
-    card: '#FFFFFF',
-    border: '#DDDDDD',
-    notification: '#FF453A',
-  },
-};
 
 const LightTheme = {
   ...DefaultTheme,
