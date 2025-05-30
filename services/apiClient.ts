@@ -1,47 +1,122 @@
 // services/apiClient.ts
-import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
-import { API_BASE_URL, API_TIMEOUT } from '@env';  // vendrán de .env.production
+import axios, {
+  AxiosInstance,
+  AxiosRequestConfig,
+  AxiosError,
+  InternalAxiosRequestConfig,
+  AxiosRequestHeaders,
+} from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { jwtDecode } from 'jwt-decode';
+import { API_BASE_URL, API_TIMEOUT } from '@env';
+import { getAccessToken, getRefreshToken } from './auth/authStorage';
+
 console.log('[ApiClient] Variables de entorno →', { API_BASE_URL, API_TIMEOUT });
-/**
- * ApiResponse<T> estructura estándar de respuesta:
- *  - success: éxito o no
- *  - data: datos en caso de éxito
- *  - error: mensaje en caso de fallo
- */
+
+const TOKEN_KEYS = {
+  ACCESS:     '@fastman:accessToken',
+  REFRESH:    '@fastman:refreshToken',
+  ACCESS_EXP: '@fastman:accessExp',
+};
+
 export interface ApiResponse<T> {
   success: boolean;
-  data?: T;
-  error?: string;
+  data?:    T;
+  error?:   string;
 }
 
 class ApiClient {
   private client: AxiosInstance;
-  private domain?: string; // guardaremos aquí el subdominio en runtime
+  private domain?: string;
 
   constructor() {
-    // Creamos cliente axios con timeout de .env.production
     this.client = axios.create({
-      baseURL: API_BASE_URL,          // URL base con placeholder `{DOMAIN}` aún
+      baseURL: API_BASE_URL,
       timeout: Number(API_TIMEOUT),
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     });
-    // Interceptor global de errores
+
+    // 1) Inyectar automáticamente el access token en cada petición
+    this.client.interceptors.request.use(
+      async (config: InternalAxiosRequestConfig) => {
+        const token = await getAccessToken();
+        if (token) {
+          // Aseguramos que exista un objeto headers compatible
+          if (!config.headers) {
+            config.headers = {} as AxiosRequestHeaders;
+          }
+          // Mutamos directamente la propiedad Authorization
+          // @ts-ignore: permitimos esta asignación pese al tipo rigid de AxiosHeaders
+          (config.headers as AxiosRequestHeaders).Authorization = `Bearer ${token}`;
+        }
+        return config;
+      },
+      (error) => Promise.reject(error)
+    );
+
+    // 2) Capturar 401 y refrescar token "on the fly"
     this.client.interceptors.response.use(
       (res) => res,
-      (err) => Promise.reject(err)
+      async (err: AxiosError & { config?: any }) => {
+        const originalReq = err.config;
+        if (
+          err.response?.status === 401 &&
+          originalReq &&
+          !originalReq._retry
+        ) {
+          originalReq._retry = true;
+          const refresh = await getRefreshToken();
+          if (!refresh) {
+            console.warn('[ApiClient] No hay refresh token, logout necesario');
+            return Promise.reject(err);
+          }
+          try {
+            const { data } = await axios.post(
+              `${this.client.defaults.baseURL}/token/refresh/`,
+              { refresh }
+            );
+            const { access, refresh: newRefresh } = data as {
+              access: string;
+              refresh: string;
+            };
+
+            // Extraer exp del JWT renovado
+            let exp = '';
+            try {
+              const { exp: expSec } = jwtDecode<{ exp: number }>(access);
+              exp = String(expSec);
+            } catch {
+              console.warn('[ApiClient] No se pudo decodificar exp del JWT renovado');
+            }
+
+            // Guardar nuevos tokens
+            await AsyncStorage.multiSet([
+              [TOKEN_KEYS.ACCESS,  access],
+              [TOKEN_KEYS.REFRESH, newRefresh],
+              [TOKEN_KEYS.ACCESS_EXP, exp],
+            ]);
+            console.log('[ApiClient] Tokens renovados on the fly');
+
+            // Actualizar header por defecto y de la petición original
+            this.client.defaults.headers.common['Authorization'] = `Bearer ${access}`;
+            originalReq.headers['Authorization'] = `Bearer ${access}`;
+
+            // Reintentar petición original
+            return this.client(originalReq);
+          } catch (refreshErr) {
+            console.error('[ApiClient] Error al refrescar token:', refreshErr);
+            return Promise.reject(refreshErr);
+          }
+        }
+        return Promise.reject(err);
+      }
     );
   }
 
-  /**
-   * Configura en runtime el subdominio (por ejemplo 'gpp' o 'otro').
-   * Lo usaremos para reemplazar {DOMAIN} en la URL base.
-   */
   setDomain(domain: string) {
     this.domain = domain.trim();
-    // reemplazamos baseURL en el cliente:
     const resolved = API_BASE_URL.replace('{DOMAIN}', this.domain);
     this.client.defaults.baseURL = resolved;
-    // Al cambiar de dominio, borramos cualquier token antiguo
     this.clearAuthToken();
     console.log(`[ApiClient] Base URL resuelta: ${resolved}`);
   }
@@ -49,6 +124,7 @@ class ApiClient {
   setAuthToken(token: string) {
     this.client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   }
+
   clearAuthToken() {
     delete this.client.defaults.headers.common['Authorization'];
   }
@@ -56,13 +132,9 @@ class ApiClient {
   private handleError(error: any): ApiResponse<any> {
     let msg = 'Error desconocido';
     if (axios.isAxiosError(error)) {
-      if (error.response) {
-        msg = `Error ${error.response.status}: ${error.response.statusText}`;
-      } else if (error.request) {
-        msg = 'No se recibió respuesta del servidor';
-      } else {
-        msg = error.message;
-      }
+      if (error.response)      msg = `Error ${error.response.status}: ${error.response.statusText}`;
+      else if (error.request) msg = 'No se recibió respuesta del servidor';
+      else                     msg = error.message;
     }
     console.error('[ApiClient] API Error:', msg);
     return { success: false, error: msg };
@@ -79,7 +151,11 @@ class ApiClient {
     }
   }
 
-  async post<T>(endpoint: string, body?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
+  async post<T>(
+    endpoint: string,
+    body?: any,
+    config?: AxiosRequestConfig
+  ): Promise<ApiResponse<T>> {
     try {
       const url = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
       console.log(`[ApiClient] POST → ${this.client.defaults.baseURL}${url}`, body);
@@ -92,9 +168,7 @@ class ApiClient {
 }
 
 const _apiClient = new ApiClient();
-export const apiClient = _apiClient;
+export const apiClient    = _apiClient;
 export default apiClient;
-
-// Exportamos funciones de control de token para importarlas directamente
-export const setAuthToken = (token: string) => _apiClient.setAuthToken(token);
+export const setAuthToken   = (token: string) => _apiClient.setAuthToken(token);
 export const clearAuthToken = () => _apiClient.clearAuthToken();

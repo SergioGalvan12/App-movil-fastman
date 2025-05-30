@@ -14,14 +14,15 @@ import apiClient from '../services/apiClient';
  * Shape de la sesión que almacenamos en AsyncStorage tras el login
  */
 interface AuthSession {
-    domain: string;
-    username: string;
-    empresaId: number;
-    accessToken: string;
-    personalId: number;
-    personalName: string;
+  domain: string
+  username: string
+  empresaId: number
+  accessToken: string
+  refreshToken: string      // ← nuevo
+  accessExp: number | null  // ← nuevo
+  personalId: number
+  personalName: string
 }
-
 /**
  * Lo que exponemos a través del contexto de autenticación
  */
