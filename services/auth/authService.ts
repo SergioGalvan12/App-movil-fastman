@@ -6,7 +6,6 @@ import { saveSession } from './authStorage';
 export interface UserCompany {
   pk_empresa: number;
   nombre_empresa: string;
-  // Otras propiedades que vengan en la respuesta
 }
 
 export interface LoginResponse {
@@ -106,7 +105,7 @@ export const login = async (
           empresaId,
           accessToken: access,
           refreshToken: refresh,
-          personalId: Number(personal.id_personal),
+          personalId: personal.id_equipo,
           personalName: `${personal.nombre_personal} ${personal.apaterno_personal} ${personal.amaterno_personal}`.trim(),
         });
         console.log('[authService] Sesión guardada en AsyncStorage');
