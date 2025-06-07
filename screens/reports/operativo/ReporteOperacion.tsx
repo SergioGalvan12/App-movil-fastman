@@ -29,6 +29,12 @@ import {
   ReporteOperacionPayload
 } from '../../../services/reports/operativos/reporteOperacionService';
 import { AuthStackParamList } from '../../../App';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 type TabParamList = {
   Dashboard: undefined;
@@ -191,6 +197,13 @@ export default function ReporteOperacionScreen() {
         return;
       }
 
+      // Hora local correcta usando dayjs
+      const nowUTC = dayjs().utc();
+      const fechaUTCString = nowUTC.format('YYYY-MM-DDTHH:mm:ss');
+
+
+      console.log('[DEBUG] Hora local enviada:', fechaUTCString);
+
       const payload: ReporteOperacionPayload = {
         id_guia: null,
         numero_economico_equipo: sel.id_equipo,
@@ -204,7 +217,7 @@ export default function ReporteOperacionScreen() {
         id_grupo_equipo: sel.id_grupo_equipo,
         unidad: null,
         descripcion_guia: observaciones,
-        fecha_guia: fecha.toISOString(),
+        fecha_guia: fechaUTCString, // <-- Ya corregida
         consumo_unitario: true,
         km_hrs_inicio: unidadesIniciales,
         km_hrs_final: unidadesFinales,
@@ -258,7 +271,14 @@ export default function ReporteOperacionScreen() {
         <Text style={styles.label}>* Fecha</Text>
         <TextInput
           style={styles.input}
-          value={fecha.toLocaleDateString()}
+          value={fecha.toLocaleString('es-MX', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+          })}
           editable={false}
           onFocus={() => setShowDate(true)}
         />

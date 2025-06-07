@@ -36,14 +36,14 @@ export default function TipoReporteOperacionScreen() {
                     <Text style={styles.text}>Seleccione el tipo de reporte operativo</Text>
 
                     {/* Opciones de reporte */}
-                    <MenuItem
+                    {/* <MenuItem
                         title="Reporte Global"
                         onPress={() => navigation.navigate('ReporteOperacion')}
                     />
                     <MenuItem
                         title="Reporte Secuencial"
                         onPress={() => navigation.navigate('ReporteOperativoSecuencial')}
-                    />
+                    /> */}
                 </ScrollView>
             </View>
         </>
