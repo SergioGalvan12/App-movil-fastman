@@ -24,6 +24,7 @@ import { fetchTurnos, TurnoInterface } from '../../../services/reports/turnos/tu
 import { fetchPersonals, Personal } from '../../../services/reports/personal/personalService';
 import { fetchGrupoEquipos, GrupoEquipo } from '../../../services/reports/equipos/grupoEquipoService';
 import { Equipo, fetchEquipos } from '../../../services/reports/equipos/equipoService';
+import HeaderWithBack from '../../../components/common/HeaderWithBack';
 
 import {
   fetchVariablesControl,
@@ -203,7 +204,7 @@ export default function ReporteVariablesScreen() {
         contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 20, paddingTop: 10 }}
         keyboardShouldPersistTaps="handled"
       >
-        <HeaderTitle title="Reporte de Variables" />
+        <HeaderWithBack title="Reporte de Variables" />
 
         {/* Fecha & Hora */}
         <View style={styles.row}>
