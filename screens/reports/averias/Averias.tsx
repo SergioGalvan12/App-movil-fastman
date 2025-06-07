@@ -5,6 +5,7 @@ import {
   ScrollView, SafeAreaView,
   TouchableOpacity,
   Modal,
+  Alert,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import HeaderTitle from '../../../components/common/HeaderTitle';
@@ -67,6 +68,7 @@ export default function Averias() {
 
   // guardamos el id del backlog creado
   const [createdBacklogId, setCreatedBacklogId] = useState<number | null>(null);
+  const [createdBacklogTitulo, setCreatedBacklogTitulo] = useState<string>('');
 
 
   // Carga inicial y depuración
@@ -141,6 +143,22 @@ export default function Averias() {
     setDescripcion(sel?.nombre_falla || '');
   }, [averiaSelected]);
 
+  const confirmarDatosAveria = () => {
+    const grupo = grupos.find(g => g.id_grupo_equipo === grupoSelected)?.nombre_grupo_equipo || '-';
+    const equipo = equipos.find(e => e.id_equipo === equipoSelected)?.matricula_equipo || '-';
+    const turnoTexto = turnosList.find(t => t.id_turno === turno)?.descripcion_turno || '-';
+    const falla = descripcion || '—';
+
+    Alert.alert(
+      '¿Confirmar datos del reporte?',
+      `Grupo: ${grupo}\nEquipo: ${equipo}\nTurno: ${turnoTexto}\nFalla: ${falla}`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Sí, continuar', onPress: handleCrearAccionCorrectiva }
+      ]
+    );
+  };
+
   // Handler para crear acción correctiva
   const handleCrearAccionCorrectiva = async () => {
     dayjs.extend(utc);
@@ -185,6 +203,9 @@ export default function Averias() {
         setCreatedBacklogId(res.data.id_backlog);
         showToast('success', `Se ha creado la acción: ${res.data.id_backlog_pub}`);
         setModalVisible(true);
+        // Guardar el ID del backlog creado para usarlo en el notification
+        setCreatedBacklogId(res.data.id_backlog);
+        setCreatedBacklogTitulo(res.data.id_backlog_pub || descripcion);
       } else {
         throw new Error(res.error || 'Respuesta inesperada');
       }
@@ -258,7 +279,7 @@ export default function Averias() {
         {/* Crear acción correctiva */}
         <TouchableOpacity
           style={[styles.createButton, loadingAccion && styles.createButtonDisabled]}
-          onPress={handleCrearAccionCorrectiva}
+          onPress={confirmarDatosAveria}
           disabled={loadingAccion}
         >
           {loadingAccion
@@ -297,7 +318,8 @@ export default function Averias() {
                     setModalVisible(false);
                     navigation.navigate('CargarImagen', {
                       backlogId: createdBacklogId,
-                      empresaId
+                      empresaId,
+                      titulo: createdBacklogTitulo
                     });
                   }}
                 >
@@ -307,13 +329,27 @@ export default function Averias() {
 
               <TouchableOpacity
                 style={styles.noButton}
-                  onPress={() => {
-                    setModalVisible(false);
-                    navigation.navigate('Main');
-                  }}
+                onPress={() => {
+                  Alert.alert(
+                    '¿Finalizar sin agregar imágenes?',
+                    'No podrás editar la acción desde la app una vez finalizada.',
+                    [
+                      { text: 'Cancelar', style: 'cancel' },
+                      {
+                        text: 'Sí, finalizar',
+                        onPress: () => {
+                          setModalVisible(false);
+                          showToast('success', 'Acción sin imágenes', `Se creó: ${createdBacklogTitulo}`);
+                          navigation.navigate('Main');
+                        }
+                      }
+                    ]
+                  );
+                }}
               >
                 <Text style={styles.buttonText}>No</Text>
               </TouchableOpacity>
+
             </View>
           </View>
         </View>

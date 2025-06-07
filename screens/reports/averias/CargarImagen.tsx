@@ -25,7 +25,7 @@ import { AuthStackParamList } from '../../../App';
 
 // Definimos los params que esperamos de la navegación
 type CargarImagenRouteProp = RouteProp<
-  { CargarImagen: { backlogId: number; empresaId: number } },
+  { CargarImagen: { backlogId: number; empresaId: number; titulo?: string } },
   'CargarImagen'
 >;
 
@@ -35,7 +35,7 @@ type CargarImagenNavProp = NativeStackNavigationProp<AuthStackParamList, 'Cargar
 export default function CargarImagen() {
   const navigation = useNavigation<CargarImagenNavProp>();
   const { params } = useRoute<CargarImagenRouteProp>();
-  const { backlogId, empresaId } = params;
+  const { backlogId, empresaId, titulo} = params;
 
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(true);
@@ -143,7 +143,7 @@ export default function CargarImagen() {
           style: 'destructive',
           onPress: () => {
             setModalVisible(false);
-            showToast('success', 'Carga de imágenes finalizada');
+            showToast('success', 'Carga imagenes exitosa', `Se completó: ${titulo || 'acción correctiva'}`);
             navigation.navigate('Main');
           },
         },

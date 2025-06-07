@@ -36,7 +36,7 @@ export type AuthStackParamList = {
   Main: undefined;
   Averias: undefined;
   FiltrosAvanzados: { grupoId: number, grupoName: string; };
-  CargarImagen: { backlogId: number; empresaId: number };
+  CargarImagen: { backlogId: number; empresaId: number, titulo: string };
   ReporteVariables: undefined;
   // TipoReporteOperacion: undefined;
   ReporteOperacion: undefined;
