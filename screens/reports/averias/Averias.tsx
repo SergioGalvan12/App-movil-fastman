@@ -21,6 +21,8 @@ import { Equipo, fetchEquipos } from '../../../services/reports/equipos/equipoSe
 import { BacklogPayload, createBacklog } from '../../../services/reports/averias/backlogService';
 import { useAuth } from '../../../contexts/AuthContext';
 import { fetchBacklogImages, uploadBacklogImage } from '../../../services/reports/averias/backlogImagenService';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 
 export default function Averias() {
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
@@ -63,8 +65,8 @@ export default function Averias() {
   // Contador para acciones correctivas
   const [modalVisible, setModalVisible] = useState(false);
 
- // guardamos el id del backlog creado
- const [createdBacklogId, setCreatedBacklogId] = useState<number | null>(null);
+  // guardamos el id del backlog creado
+  const [createdBacklogId, setCreatedBacklogId] = useState<number | null>(null);
 
 
   // Carga inicial y depuración
@@ -141,6 +143,7 @@ export default function Averias() {
 
   // Handler para crear acción correctiva
   const handleCrearAccionCorrectiva = async () => {
+    dayjs.extend(utc);
     const sel = averias.find(a => a.id_grupo_backlog === averiaSelected);
     const payload: BacklogPayload = {
       id_backlog: null,
@@ -148,9 +151,9 @@ export default function Averias() {
       id_empresa: empresaId,
       numero_economico_equipo: equipoSelected!,
       descripcion_backlog: descripcion,
-      descripcion_equipo: '',            
+      descripcion_equipo: '',
       estatus: null,
-      fecha_backlog: fecha.toISOString().slice(0, 10), // YYYY-MM-DD
+      fecha_backlog: dayjs().utc().format('YYYY-MM-DD'),
       ejecutada_backlog: false,
       fecha_ejecucion_orden_trabajo: null,
       tipo_backlog: 'MC',
@@ -163,7 +166,7 @@ export default function Averias() {
       grupo_equipo: grupoSelected!,
       id_marca_equipo: null,
       id_modelo_equipo: null,
-      nombre_falla: sel?.nombre_falla || '', 
+      nombre_falla: sel?.nombre_falla || '',
       error_origen: sel!.id_backlog_plantilla,
       id_personal: personalId,
       id_turno: turno!,
@@ -201,7 +204,19 @@ export default function Averias() {
         <HeaderTitle title="Reporte de Avería" />
         {/* Fecha */}
         <Text style={styles.label}>* Fecha</Text>
-        <TextInput style={styles.input} value={fecha.toLocaleDateString()} onFocus={() => setShowDate(true)} editable={false} />
+        <TextInput
+          style={styles.input}
+          value={fecha.toLocaleString('es-MX', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+          })}
+          onFocus={() => setShowDate(true)}
+          editable={false}
+        />
         {showDate && <DateTimePicker value={fecha} mode="date" display="default" onChange={(_, d) => d && setFecha(d)} />}
 
         {/* Turno */}
@@ -275,24 +290,27 @@ export default function Averias() {
             <Text style={styles.modalText}>¿Desea agregar imágenes?</Text>
             <View style={styles.buttonContainer}>
 
-             {!!createdBacklogId && (
-               <TouchableOpacity
-                 style={styles.yesButton}
-                 onPress={() => {
-                   setModalVisible(false);
-                   navigation.navigate('CargarImagen', {
-                     backlogId: createdBacklogId,
-                     empresaId
-                   });
-                 }}
-               >
-                 <Text style={styles.buttonText}>Sí</Text>
-               </TouchableOpacity>
-             )}
+              {!!createdBacklogId && (
+                <TouchableOpacity
+                  style={styles.yesButton}
+                  onPress={() => {
+                    setModalVisible(false);
+                    navigation.navigate('CargarImagen', {
+                      backlogId: createdBacklogId,
+                      empresaId
+                    });
+                  }}
+                >
+                  <Text style={styles.buttonText}>Sí</Text>
+                </TouchableOpacity>
+              )}
 
               <TouchableOpacity
                 style={styles.noButton}
-                onPress={() => setModalVisible(false)}
+                  onPress={() => {
+                    setModalVisible(false);
+                    navigation.navigate('Main');
+                  }}
               >
                 <Text style={styles.buttonText}>No</Text>
               </TouchableOpacity>
