@@ -1,8 +1,13 @@
-// src/screens/reports/variables/ReporteVariables.tsx
 import React, { useState, useEffect } from 'react';
 import {
-  SafeAreaView, ScrollView, View, Text, TextInput, TouchableOpacity,
-  StyleSheet, Alert
+  SafeAreaView,
+  ScrollView,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation } from '@react-navigation/native';
@@ -34,7 +39,6 @@ import timezone from 'dayjs/plugin/timezone';
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-// Extendemos Personal para mostrar Nombre + Apellido paterno
 type PersonalOption = Personal & { fullName: string };
 
 export default function ReporteVariablesScreen() {
@@ -193,10 +197,12 @@ export default function ReporteVariablesScreen() {
     }
   };
 
-
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView style={styles.container}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 20, paddingTop: 10 }}
+        keyboardShouldPersistTaps="handled"
+      >
         <HeaderTitle title="Reporte de Variables" />
 
         {/* Fecha & Hora */}
@@ -334,8 +340,7 @@ export default function ReporteVariablesScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#EFF0FA', padding: 20, paddingTop: 35 },
-  container: { flex: 1, backgroundColor: '#EFF0FA' },
+  safeArea: { flex: 1, backgroundColor: '#EFF0FA', paddingTop:10, paddingBottom: 80 },
   row: { flexDirection: 'row', justifyContent: 'space-between' },
   col: { flex: 1, marginRight: 10 },
   label: { fontWeight: 'bold', fontSize: 16, marginTop: 12, color: '#1B2A56' },
