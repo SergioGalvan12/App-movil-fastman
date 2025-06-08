@@ -311,9 +311,10 @@ export default function ReporteVariablesScreen() {
       <TextInput
         style={styles.input}
         value={codigo}
-        onChangeText={setCodigo}
+        editable={false}
         placeholder="Código"
       />
+
 
       {/* Valor */}
       <Text style={styles.label}>Valor</Text>
