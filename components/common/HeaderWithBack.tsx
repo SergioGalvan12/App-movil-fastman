@@ -36,11 +36,11 @@ const styles = StyleSheet.create({
         fontSize: 18, 
         fontWeight: 'bold',
         color: '#FFF',
-        marginTop: -24, 
+        marginTop: 5, 
         textAlign: 'center',
     },
     arrow: {
-        marginTop: -24, // espacio entre la flecha y el título
+        marginTop: 5,
     },
 });
 
