@@ -5,7 +5,6 @@ import MenuItem from '../../components/common/MenuItem';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../App';
-import { fetchPersonals, Personal } from '../../services/reports/personal/personalService';
 
 export default function ReportesScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
@@ -28,7 +27,7 @@ export default function ReportesScreen() {
         {/* Nuevo: Reporte Operativo */}
         <MenuItem
           title="Reporte Operativo"
-          onPress={() => handlePress('TipoReporteOperacion')}
+          onPress={() => handlePress('ReporteOperacion')}
         />
 
         {/* Nuevo: Reporte de Variables */}

@@ -5,6 +5,7 @@ import {
   ScrollView, SafeAreaView,
   TouchableOpacity,
   Modal,
+  Alert,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import HeaderTitle from '../../../components/common/HeaderTitle';
@@ -20,7 +21,11 @@ import { fetchGrupoEquipos, GrupoEquipo } from '../../../services/reports/equipo
 import { Equipo, fetchEquipos } from '../../../services/reports/equipos/equipoService';
 import { BacklogPayload, createBacklog } from '../../../services/reports/averias/backlogService';
 import { useAuth } from '../../../contexts/AuthContext';
-import { fetchBacklogImages, uploadBacklogImage } from '../../../services/reports/averias/backlogImagenService';
+import HeaderWithBack from '../../../components/common/HeaderWithBack';
+import ReportScreenLayout from '../../../components/layouts/ReportScreenLayout';
+
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 
 export default function Averias() {
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
@@ -63,8 +68,9 @@ export default function Averias() {
   // Contador para acciones correctivas
   const [modalVisible, setModalVisible] = useState(false);
 
- // guardamos el id del backlog creado
- const [createdBacklogId, setCreatedBacklogId] = useState<number | null>(null);
+  // guardamos el id del backlog creado
+  const [createdBacklogId, setCreatedBacklogId] = useState<number | null>(null);
+  const [createdBacklogTitulo, setCreatedBacklogTitulo] = useState<string>('');
 
 
   // Carga inicial y depuración
@@ -139,8 +145,25 @@ export default function Averias() {
     setDescripcion(sel?.nombre_falla || '');
   }, [averiaSelected]);
 
+  const confirmarDatosAveria = () => {
+    const grupo = grupos.find(g => g.id_grupo_equipo === grupoSelected)?.nombre_grupo_equipo || '-';
+    const equipo = equipos.find(e => e.id_equipo === equipoSelected)?.matricula_equipo || '-';
+    const turnoTexto = turnosList.find(t => t.id_turno === turno)?.descripcion_turno || '-';
+    const falla = descripcion || '—';
+
+    Alert.alert(
+      '¿Confirmar datos del reporte?',
+      `Grupo: ${grupo}\nEquipo: ${equipo}\nTurno: ${turnoTexto}\nFalla: ${falla}`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Sí, continuar', onPress: handleCrearAccionCorrectiva }
+      ]
+    );
+  };
+
   // Handler para crear acción correctiva
   const handleCrearAccionCorrectiva = async () => {
+    dayjs.extend(utc);
     const sel = averias.find(a => a.id_grupo_backlog === averiaSelected);
     const payload: BacklogPayload = {
       id_backlog: null,
@@ -148,9 +171,9 @@ export default function Averias() {
       id_empresa: empresaId,
       numero_economico_equipo: equipoSelected!,
       descripcion_backlog: descripcion,
-      descripcion_equipo: '',            
+      descripcion_equipo: '',
       estatus: null,
-      fecha_backlog: fecha.toISOString().slice(0, 10), // YYYY-MM-DD
+      fecha_backlog: dayjs().utc().format('YYYY-MM-DD'),
       ejecutada_backlog: false,
       fecha_ejecucion_orden_trabajo: null,
       tipo_backlog: 'MC',
@@ -163,7 +186,7 @@ export default function Averias() {
       grupo_equipo: grupoSelected!,
       id_marca_equipo: null,
       id_modelo_equipo: null,
-      nombre_falla: sel?.nombre_falla || '', 
+      nombre_falla: sel?.nombre_falla || '',
       error_origen: sel!.id_backlog_plantilla,
       id_personal: personalId,
       id_turno: turno!,
@@ -182,6 +205,9 @@ export default function Averias() {
         setCreatedBacklogId(res.data.id_backlog);
         showToast('success', `Se ha creado la acción: ${res.data.id_backlog_pub}`);
         setModalVisible(true);
+        // Guardar el ID del backlog creado para usarlo en el notification
+        setCreatedBacklogId(res.data.id_backlog);
+        setCreatedBacklogTitulo(res.data.id_backlog_pub || descripcion);
       } else {
         throw new Error(res.error || 'Respuesta inesperada');
       }
@@ -196,12 +222,24 @@ export default function Averias() {
 
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <ReportScreenLayout>
       <ScrollView style={styles.container}>
-        <HeaderTitle title="Reporte de Avería" />
+        <HeaderWithBack title="Reporte de Avería" />
         {/* Fecha */}
         <Text style={styles.label}>* Fecha</Text>
-        <TextInput style={styles.input} value={fecha.toLocaleDateString()} onFocus={() => setShowDate(true)} editable={false} />
+        <TextInput
+          style={styles.input}
+          value={fecha.toLocaleString('es-MX', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+          })}
+          onFocus={() => setShowDate(true)}
+          editable={false}
+        />
         {showDate && <DateTimePicker value={fecha} mode="date" display="default" onChange={(_, d) => d && setFecha(d)} />}
 
         {/* Turno */}
@@ -243,7 +281,7 @@ export default function Averias() {
         {/* Crear acción correctiva */}
         <TouchableOpacity
           style={[styles.createButton, loadingAccion && styles.createButtonDisabled]}
-          onPress={handleCrearAccionCorrectiva}
+          onPress={confirmarDatosAveria}
           disabled={loadingAccion}
         >
           {loadingAccion
@@ -275,32 +313,50 @@ export default function Averias() {
             <Text style={styles.modalText}>¿Desea agregar imágenes?</Text>
             <View style={styles.buttonContainer}>
 
-             {!!createdBacklogId && (
-               <TouchableOpacity
-                 style={styles.yesButton}
-                 onPress={() => {
-                   setModalVisible(false);
-                   navigation.navigate('CargarImagen', {
-                     backlogId: createdBacklogId,
-                     empresaId
-                   });
-                 }}
-               >
-                 <Text style={styles.buttonText}>Sí</Text>
-               </TouchableOpacity>
-             )}
+              {!!createdBacklogId && (
+                <TouchableOpacity
+                  style={styles.yesButton}
+                  onPress={() => {
+                    setModalVisible(false);
+                    navigation.navigate('CargarImagen', {
+                      backlogId: createdBacklogId,
+                      empresaId,
+                      titulo: createdBacklogTitulo
+                    });
+                  }}
+                >
+                  <Text style={styles.buttonText}>Sí</Text>
+                </TouchableOpacity>
+              )}
 
               <TouchableOpacity
                 style={styles.noButton}
-                onPress={() => setModalVisible(false)}
+                onPress={() => {
+                  Alert.alert(
+                    '¿Finalizar sin agregar imágenes?',
+                    'No podrás editar la acción desde la app una vez finalizada.',
+                    [
+                      { text: 'Cancelar', style: 'cancel' },
+                      {
+                        text: 'Sí, finalizar',
+                        onPress: () => {
+                          setModalVisible(false);
+                          showToast('success', 'Acción sin imágenes', `Se creó: ${createdBacklogTitulo}`);
+                          navigation.navigate('Main');
+                        }
+                      }
+                    ]
+                  );
+                }}
               >
                 <Text style={styles.buttonText}>No</Text>
               </TouchableOpacity>
+
             </View>
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </ReportScreenLayout>
   );
 }
 
