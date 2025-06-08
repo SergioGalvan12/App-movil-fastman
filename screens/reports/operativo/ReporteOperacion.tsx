@@ -15,14 +15,11 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { CompositeNavigationProp, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-
-import HeaderTitle from '../../../components/common/HeaderTitle';
 import Select from '../../../components/common/Select';
 import { useAuth } from '../../../contexts/AuthContext';
 import { showToast } from '../../../services/notifications/ToastService';
-
-import { fetchTurnos, TurnoInterface } from '../../../services/reports/turnos/turnoService';
-import { fetchGrupoEquipos, GrupoEquipo } from '../../../services/reports/equipos/grupoEquipoService';
+import { fetchTurnos } from '../../../services/reports/turnos/turnoService';
+import { fetchGrupoEquipos } from '../../../services/reports/equipos/grupoEquipoService';
 import { fetchEquipos, Equipo } from '../../../services/reports/equipos/equipoService';
 import {
   createReporteOperacion,
@@ -32,6 +29,8 @@ import { AuthStackParamList } from '../../../App';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
+import HeaderWithBack from '../../../components/common/HeaderWithBack';
+import ReportScreenLayout from '../../../components/layouts/ReportScreenLayout';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -263,150 +262,146 @@ export default function ReporteOperacionScreen() {
 
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <HeaderTitle title="Información del reporte" />
-
-        {/* Fecha */}
-        <Text style={styles.label}>* Fecha</Text>
-        <TextInput
-          style={styles.input}
-          value={fecha.toLocaleString('es-MX', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-          })}
-          editable={false}
-          onFocus={() => setShowDate(true)}
+    <ReportScreenLayout>
+      <HeaderWithBack title="Reporte operativo" />
+      {/* Fecha */}
+      <Text style={styles.label}>* Fecha</Text>
+      <TextInput
+        style={styles.input}
+        value={fecha.toLocaleString('es-MX', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        })}
+        editable={false}
+        onFocus={() => setShowDate(true)}
+      />
+      {showDate && (
+        <DateTimePicker
+          value={fecha}
+          mode="date"
+          display="default"
+          onChange={(_, d) => {
+            if (d) setFecha(d);
+            setShowDate(false);
+          }}
         />
-        {showDate && (
-          <DateTimePicker
-            value={fecha}
-            mode="date"
-            display="default"
-            onChange={(_, d) => {
-              if (d) setFecha(d);
-              setShowDate(false);
-            }}
-          />
-        )}
+      )}
 
-        {/* Turno */}
-        <Text style={styles.label}>* Turno</Text>
-        <Select<SelectOption>
-          options={turnoOptions}
-          valueKey="id"
-          labelKey="label"
-          selectedValue={turno}
-          onValueChange={v => setTurno(v as number)}
-          placeholder="Selecciona un turno"
-          loading={loadingTurnos}
-          error={errorTurnos}
-          style={styles.picker}
-        />
+      {/* Turno */}
+      <Text style={styles.label}>* Turno</Text>
+      <Select<SelectOption>
+        options={turnoOptions}
+        valueKey="id"
+        labelKey="label"
+        selectedValue={turno}
+        onValueChange={v => setTurno(v as number)}
+        placeholder="Selecciona un turno"
+        loading={loadingTurnos}
+        error={errorTurnos}
+        style={styles.picker}
+      />
 
-        {/* Responsable */}
-        <Text style={styles.label}>Responsable</Text>
-        <TextInput style={styles.input} value={personalName} editable={false} />
+      {/* Responsable */}
+      <Text style={styles.label}>Responsable</Text>
+      <TextInput style={styles.input} value={personalName} editable={false} />
 
-        {/* Grupo de equipo */}
-        <Text style={styles.label}>* Grupo de equipo</Text>
-        <Select<SelectOption>
-          options={grupoOptions}
-          valueKey="id"
-          labelKey="label"
-          selectedValue={grupoEquipo}
-          onValueChange={v => setGrupoEquipo(v as number)}
-          placeholder="Selecciona un grupo"
-          loading={loadingGrupos}
-          error={errorGrupos}
-          style={styles.picker}
-        />
+      {/* Grupo de equipo */}
+      <Text style={styles.label}>* Grupo de equipo</Text>
+      <Select<SelectOption>
+        options={grupoOptions}
+        valueKey="id"
+        labelKey="label"
+        selectedValue={grupoEquipo}
+        onValueChange={v => setGrupoEquipo(v as number)}
+        placeholder="Selecciona un grupo"
+        loading={loadingGrupos}
+        error={errorGrupos}
+        style={styles.picker}
+      />
 
-        {/* Equipo */}
-        <Text style={styles.label}>* Equipo</Text>
-        <Select<SelectOption>
-          options={equipoOptions}
-          valueKey="id"
-          labelKey="label"
-          selectedValue={equipo}
-          onValueChange={v => onSelectEquipo(v as number)}
-          placeholder={!grupoEquipo ? 'Selecciona grupo antes' : 'Selecciona un equipo'}
-          loading={loadingEquipos}
-          error={errorEquipos}
-          disabled={!grupoEquipo}
-          style={styles.picker}
-        />
+      {/* Equipo */}
+      <Text style={styles.label}>* Equipo</Text>
+      <Select<SelectOption>
+        options={equipoOptions}
+        valueKey="id"
+        labelKey="label"
+        selectedValue={equipo}
+        onValueChange={v => onSelectEquipo(v as number)}
+        placeholder={!grupoEquipo ? 'Selecciona grupo antes' : 'Selecciona un equipo'}
+        loading={loadingEquipos}
+        error={errorEquipos}
+        disabled={!grupoEquipo}
+        style={styles.picker}
+      />
 
-        {/* Unidades iniciales */}
-        <Text style={styles.label}>* Unidades iniciales</Text>
-        <TextInput
-          style={styles.input}
-          value={unidadesIniciales}
-          onChangeText={setUnidadesIniciales}
-          keyboardType="numeric"
-        />
+      {/* Unidades iniciales */}
+      <Text style={styles.label}>* Unidades iniciales</Text>
+      <TextInput
+        style={styles.input}
+        value={unidadesIniciales}
+        onChangeText={setUnidadesIniciales}
+        keyboardType="numeric"
+      />
 
-        {/* Unidades finales */}
-        <Text style={styles.label}>* Unidades finales</Text>
-        <TextInput
-          style={styles.input}
-          value={unidadesFinales}
-          onChangeText={setUnidadesFinales}
-          keyboardType="numeric"
-        />
+      {/* Unidades finales */}
+      <Text style={styles.label}>* Unidades finales</Text>
+      <TextInput
+        style={styles.input}
+        value={unidadesFinales}
+        onChangeText={setUnidadesFinales}
+        keyboardType="numeric"
+      />
 
-        {/* Unidades de control */}
-        <Text style={styles.label}>Unidades de control</Text>
-        <TextInput
-          style={styles.input}
-          value={unidadesControl}
-          editable={false}
-        />
+      {/* Unidades de control */}
+      <Text style={styles.label}>Unidades de control</Text>
+      <TextInput
+        style={styles.input}
+        value={unidadesControl}
+        editable={false}
+      />
 
-        {/* Observaciones */}
-        <Text style={styles.label}>Observaciones</Text>
-        <TextInput
-          style={[styles.input, styles.textArea]}
-          multiline
-          value={observaciones}
-          onChangeText={t => t.length <= 250 && setObservaciones(t)}
-          placeholder="Escribe tus observaciones..."
-        />
-        <Text style={styles.counter}>{observaciones.length}/250</Text>
+      {/* Observaciones */}
+      <Text style={styles.label}>Observaciones</Text>
+      <TextInput
+        style={[styles.input, styles.textArea]}
+        multiline
+        value={observaciones}
+        onChangeText={t => t.length <= 250 && setObservaciones(t)}
+        placeholder="Escribe tus observaciones..."
+      />
+      <Text style={styles.counter}>{observaciones.length}/250</Text>
 
-        {/* Botón Crear reporte */}
-        <TouchableOpacity
-          style={[styles.createButton, saving && styles.createButtonDisabled]}
-          onPress={confirmAndCreate}
-          disabled={saving}
-        >
-          <Text style={styles.createButtonText}>
-            {saving ? 'Guardando...' : '+ Crear reporte'}
-          </Text>
-        </TouchableOpacity>
-
-        {/* Nota sobre consumos predefinidos */}
-        <View style={styles.predef}>
-          <Text>Reportar consumos de manera predefinida:</Text>
-          <Ionicons name="checkmark-circle" size={20} style={styles.iconOK} />
-        </View>
-        <Text style={styles.note}>
-          Nota: Elegir la opción predefinida generará los consumos a partir de
-          productos predefinidos. Para consumos manuales, ve a su sección.
+      {/* Botón Crear reporte */}
+      <TouchableOpacity
+        style={[styles.createButton, saving && styles.createButtonDisabled]}
+        onPress={confirmAndCreate}
+        disabled={saving}
+      >
+        <Text style={styles.createButtonText}>
+          {saving ? 'Guardando...' : '+ Crear reporte'}
         </Text>
-        <Text style={styles.required}>* Campos requeridos</Text>
-      </ScrollView>
-    </SafeAreaView>
+      </TouchableOpacity>
+
+      {/* Nota sobre consumos predefinidos */}
+      <View style={styles.predef}>
+        <Text>Reportar consumos de manera predefinida:</Text>
+        <Ionicons name="checkmark-circle" size={20} style={styles.iconOK} />
+      </View>
+      <Text style={styles.note}>
+        Nota: Elegir la opción predefinida generará los consumos a partir de
+        productos predefinidos. Para consumos manuales, ve a su sección.
+      </Text>
+      <Text style={styles.required}>* Campos requeridos</Text>
+    </ReportScreenLayout>
   );
 }
 
+
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#EFF0FA' },
-  container: { padding: 22, paddingBottom: 40 },
   label: {
     fontWeight: 'bold',
     fontSize: 16,
@@ -434,7 +429,7 @@ const styles = StyleSheet.create({
   createButtonDisabled: { backgroundColor: '#A0A0A0' },
   createButtonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
   predef: { flexDirection: 'row', alignItems: 'center', marginTop: 20 },
-  iconOK: { color: '#28A745', marginLeft: -20 },
+  iconOK: { color: '#28A745', marginLeft: 1 },
   note: { marginTop: 8, fontSize: 14, lineHeight: 20, color: '#333' },
   required: { marginTop: 20, fontStyle: 'italic', color: '#333' },
 });

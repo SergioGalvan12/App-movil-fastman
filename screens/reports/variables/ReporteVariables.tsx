@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-  SafeAreaView,
-  ScrollView,
   View,
   Text,
   TextInput,
@@ -13,7 +11,8 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import HeaderTitle from '../../../components/common/HeaderTitle';
+import HeaderWithBack from '../../../components/common/HeaderWithBack';
+import ReportScreenLayout from '../../../components/layouts/ReportScreenLayout';
 import Select from '../../../components/common/Select';
 import { showToast } from '../../../services/notifications/ToastService';
 
@@ -24,7 +23,6 @@ import { fetchTurnos, TurnoInterface } from '../../../services/reports/turnos/tu
 import { fetchPersonals, Personal } from '../../../services/reports/personal/personalService';
 import { fetchGrupoEquipos, GrupoEquipo } from '../../../services/reports/equipos/grupoEquipoService';
 import { Equipo, fetchEquipos } from '../../../services/reports/equipos/equipoService';
-import HeaderWithBack from '../../../components/common/HeaderWithBack';
 
 import {
   fetchVariablesControl,
@@ -199,149 +197,143 @@ export default function ReporteVariablesScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: 30, paddingHorizontal: 20, paddingTop: 10 }}
-        keyboardShouldPersistTaps="handled"
-      >
-        <HeaderWithBack title="Reporte de Variables" />
+    <ReportScreenLayout>
+      <HeaderWithBack title="Reporte de Variables" />
 
-        {/* Fecha & Hora */}
-        <View style={styles.row}>
-          <View style={styles.col}>
-            <Text style={styles.label}>Fecha</Text>
-            <TextInput
-              style={styles.input}
-              value={fecha.toLocaleDateString()}
-              onFocus={() => setShowDate(true)}
-              editable={false}
+      {/* Fecha & Hora */}
+      <View style={styles.row}>
+        <View style={styles.col}>
+          <Text style={styles.label}>Fecha</Text>
+          <TextInput
+            style={styles.input}
+            value={fecha.toLocaleDateString()}
+            onFocus={() => setShowDate(true)}
+            editable={false}
+          />
+          {showDate && (
+            <DateTimePicker
+              value={fecha}
+              mode="date"
+              display="default"
+              onChange={(_, d) => { d && setFecha(d); setShowDate(false); }}
             />
-            {showDate && (
-              <DateTimePicker
-                value={fecha}
-                mode="date"
-                display="default"
-                onChange={(_, d) => { d && setFecha(d); setShowDate(false); }}
-              />
-            )}
-          </View>
-          <View style={styles.col}>
-            <Text style={styles.label}>Hora</Text>
-            <TextInput
-              style={styles.input}
-              value={hora.toLocaleTimeString('es-MX', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true
-              })}
-              onFocus={() => setShowTime(true)}
-              editable={false}
-            />
-            {showTime && (
-              <DateTimePicker
-                value={hora}
-                mode="time"
-                display="default"
-                onChange={(_, t) => { t && setHora(t); setShowTime(false); }}
-              />
-            )}
-          </View>
+          )}
         </View>
+        <View style={styles.col}>
+          <Text style={styles.label}>Hora</Text>
+          <TextInput
+            style={styles.input}
+            value={hora.toLocaleTimeString('es-MX', {
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: true
+            })}
+            onFocus={() => setShowTime(true)}
+            editable={false}
+          />
+          {showTime && (
+            <DateTimePicker
+              value={hora}
+              mode="time"
+              display="default"
+              onChange={(_, t) => { t && setHora(t); setShowTime(false); }}
+            />
+          )}
+        </View>
+      </View>
 
-        {/* Turno */}
-        <Text style={styles.label}>Turno</Text>
-        <Select<TurnoInterface>
-          options={turnosList}
-          valueKey="id_turno"
-          labelKey="descripcion_turno"
-          selectedValue={turno}
-          onValueChange={v => setTurno(v as number)}
-          placeholder="— Selecciona un turno —"
-          style={styles.pickerWrapper}
-        />
+      {/* Turno */}
+      <Text style={styles.label}>Turno</Text>
+      <Select<TurnoInterface>
+        options={turnosList}
+        valueKey="id_turno"
+        labelKey="descripcion_turno"
+        selectedValue={turno}
+        onValueChange={v => setTurno(v as number)}
+        placeholder="— Selecciona un turno —"
+        style={styles.pickerWrapper}
+      />
 
-        {/* Personal */}
-        <Text style={styles.label}>Personal</Text>
-        <Select<PersonalOption>
-          options={personalsOptions}
-          valueKey="id_personal"
-          labelKey="fullName"
-          selectedValue={selectedPersonal}
-          onValueChange={v => setSelectedPersonal(v as string | null)}
-          placeholder="— Selecciona un personal —"
-          loading={loadingPersonals}
-          error={errorPersonals}
-          style={styles.pickerWrapper}
-        />
+      {/* Personal */}
+      <Text style={styles.label}>Personal</Text>
+      <Select<PersonalOption>
+        options={personalsOptions}
+        valueKey="id_personal"
+        labelKey="fullName"
+        selectedValue={selectedPersonal}
+        onValueChange={v => setSelectedPersonal(v as string | null)}
+        placeholder="— Selecciona un personal —"
+        loading={loadingPersonals}
+        error={errorPersonals}
+        style={styles.pickerWrapper}
+      />
 
-        {/* Grupo */}
-        <Text style={styles.label}>Grupo de equipo</Text>
-        <Select<GrupoEquipo>
-          options={grupos}
-          valueKey="id_grupo_equipo"
-          labelKey="nombre_grupo_equipo"
-          selectedValue={grupoSelected}
-          onValueChange={v => setGrupoSelected(v as number)}
-          placeholder="Todos los grupos"
-          style={styles.pickerWrapper}
-        />
+      {/* Grupo */}
+      <Text style={styles.label}>Grupo de equipo</Text>
+      <Select<GrupoEquipo>
+        options={grupos}
+        valueKey="id_grupo_equipo"
+        labelKey="nombre_grupo_equipo"
+        selectedValue={grupoSelected}
+        onValueChange={v => setGrupoSelected(v as number)}
+        placeholder="Todos los grupos"
+        style={styles.pickerWrapper}
+      />
 
-        {/* Equipo */}
-        <Text style={styles.label}>Equipo</Text>
-        <Select<Equipo>
-          options={equipos}
-          valueKey="id_equipo"
-          labelKey="matricula_equipo"
-          selectedValue={equipoSelected}
-          onValueChange={v => setEquipoSelected(v as number)}
-          placeholder="— Selecciona un equipo —"
-          style={styles.pickerWrapper}
-        />
+      {/* Equipo */}
+      <Text style={styles.label}>Equipo</Text>
+      <Select<Equipo>
+        options={equipos}
+        valueKey="id_equipo"
+        labelKey="matricula_equipo"
+        selectedValue={equipoSelected}
+        onValueChange={v => setEquipoSelected(v as number)}
+        placeholder="— Selecciona un equipo —"
+        style={styles.pickerWrapper}
+      />
 
-        {/* Variable de control */}
-        <Text style={styles.label}>Variable de control</Text>
-        <Select<VariableControl>
-          options={variables}
-          valueKey="id_mantto_pred"
-          labelKey="descripcion_mantto_pred"
-          selectedValue={selectedVariable}
-          onValueChange={v => setSelectedVariable(v as number)}
-          placeholder="— Selecciona una variable —"
-          loading={loadingVariables}
-          error={errorVariables}
-          style={styles.pickerWrapper}
-        />
+      {/* Variable de control */}
+      <Text style={styles.label}>Variable de control</Text>
+      <Select<VariableControl>
+        options={variables}
+        valueKey="id_mantto_pred"
+        labelKey="descripcion_mantto_pred"
+        selectedValue={selectedVariable}
+        onValueChange={v => setSelectedVariable(v as number)}
+        placeholder="— Selecciona una variable —"
+        loading={loadingVariables}
+        error={errorVariables}
+        style={styles.pickerWrapper}
+      />
 
-        {/* Código */}
-        <Text style={styles.label}>Código</Text>
-        <TextInput
-          style={styles.input}
-          value={codigo}
-          onChangeText={setCodigo}
-          placeholder="Código"
-        />
+      {/* Código */}
+      <Text style={styles.label}>Código</Text>
+      <TextInput
+        style={styles.input}
+        value={codigo}
+        onChangeText={setCodigo}
+        placeholder="Código"
+      />
 
-        {/* Valor */}
-        <Text style={styles.label}>Valor</Text>
-        <TextInput
-          style={styles.input}
-          value={valor}
-          onChangeText={setValor}
-          keyboardType="numeric"
-          placeholder="0"
-        />
+      {/* Valor */}
+      <Text style={styles.label}>Valor</Text>
+      <TextInput
+        style={styles.input}
+        value={valor}
+        onChangeText={setValor}
+        keyboardType="numeric"
+        placeholder="0"
+      />
 
-        {/* Botón Crear */}
-        <TouchableOpacity style={styles.createButton} onPress={handleConfirmCreate}>
-          <Text style={styles.createButtonText}>+ Nuevo reporte</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </SafeAreaView>
+      {/* Botón Crear */}
+      <TouchableOpacity style={styles.createButton} onPress={handleConfirmCreate}>
+        <Text style={styles.createButtonText}>+ Nuevo reporte</Text>
+      </TouchableOpacity>
+    </ReportScreenLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#EFF0FA', paddingTop:10, paddingBottom: 80 },
   row: { flexDirection: 'row', justifyContent: 'space-between' },
   col: { flex: 1, marginRight: 10 },
   label: { fontWeight: 'bold', fontSize: 16, marginTop: 12, color: '#1B2A56' },

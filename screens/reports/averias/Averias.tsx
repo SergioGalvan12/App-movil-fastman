@@ -21,7 +21,9 @@ import { fetchGrupoEquipos, GrupoEquipo } from '../../../services/reports/equipo
 import { Equipo, fetchEquipos } from '../../../services/reports/equipos/equipoService';
 import { BacklogPayload, createBacklog } from '../../../services/reports/averias/backlogService';
 import { useAuth } from '../../../contexts/AuthContext';
-import { fetchBacklogImages, uploadBacklogImage } from '../../../services/reports/averias/backlogImagenService';
+import HeaderWithBack from '../../../components/common/HeaderWithBack';
+import ReportScreenLayout from '../../../components/layouts/ReportScreenLayout';
+
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 
@@ -220,9 +222,9 @@ export default function Averias() {
 
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <ReportScreenLayout>
       <ScrollView style={styles.container}>
-        <HeaderTitle title="Reporte de Avería" />
+        <HeaderWithBack title="Reporte de Avería" />
         {/* Fecha */}
         <Text style={styles.label}>* Fecha</Text>
         <TextInput
@@ -354,7 +356,7 @@ export default function Averias() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </ReportScreenLayout>
   );
 }
 
