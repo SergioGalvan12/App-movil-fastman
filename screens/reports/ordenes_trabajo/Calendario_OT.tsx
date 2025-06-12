@@ -15,6 +15,7 @@ import { getResumenOrdenesTrabajoPorMes } from '../../../services/reports/ordene
 export default function Calendario_OT() {
     const [selectedDate, setSelectedDate] = useState('');
     const [markedDates, setMarkedDates] = useState<{ [key: string]: any }>({});
+    const [resumenOTs, setResumenOTs] = useState<Map<string, number>>(new Map());
 
     // Inicializar el calendario con el mes actual
     useEffect(() => {
@@ -38,7 +39,9 @@ export default function Calendario_OT() {
 
         const newMarkedDates: { [key: string]: any } = {};
 
+        const resumenMap = new Map<string, number>();
         result.data.forEach(({ fecha, ots }) => {
+            resumenMap.set(fecha, ots);
             newMarkedDates[fecha] = {
                 customStyles: {
                     container: {
@@ -54,6 +57,7 @@ export default function Calendario_OT() {
         });
 
         setMarkedDates(newMarkedDates);
+        setResumenOTs(resumenMap);
     };
 
 
@@ -82,6 +86,30 @@ export default function Calendario_OT() {
                             textSectionTitleColor: '#1B2A56',
                         }}
                     />
+                    {selectedDate !== '' && (
+                        <View style={styles.infoContainer}>
+                            <Text style={styles.infoTitle}>Órdenes de trabajo {selectedDate}</Text>
+
+                            {resumenOTs.has(selectedDate) ? (
+                                <>
+                                    <Text style={styles.infoText}>
+                                        Tienes {resumenOTs.get(selectedDate)} OT disponible{resumenOTs.get(selectedDate)! > 1 ? 's' : ''}
+                                    </Text>
+                                    <Text
+                                        style={styles.linkText}
+                                        onPress={() => {
+                                            // Aquí navegarías a la pantalla de detalles
+                                            console.log('Ir a ver OTs del día:', selectedDate);
+                                        }}
+                                    >
+                                        Ver OT disponibles
+                                    </Text>
+                                </>
+                            ) : (
+                                <Text style={styles.infoText}>No OTs asignadas</Text>
+                            )}
+                        </View>
+                    )}
 
                 </ScrollView>
             </SafeAreaView>
@@ -107,4 +135,26 @@ const styles = StyleSheet.create({
         color: '#5D74A6',
         marginBottom: 20,
     },
+    infoContainer: {
+        marginTop: 30,
+        alignItems: 'center',
+    },
+    infoTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#1B2A56',
+        marginBottom: 10,
+    },
+    infoText: {
+        fontSize: 15,
+        color: '#5D74A6',
+    },
+    linkText: {
+        marginTop: 8,
+        fontSize: 15,
+        color: '#1976d2',
+        textDecorationLine: 'underline',
+    },
+
+
 });
