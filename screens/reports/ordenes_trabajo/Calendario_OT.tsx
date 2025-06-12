@@ -4,7 +4,9 @@ import {
     View, Text, StyleSheet,
     SafeAreaView, ScrollView
 } from 'react-native';
-
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { AuthStackParamList } from '../../../App';
 import { Calendar } from 'react-native-calendars';
 import '../../../src/config/calendarLocale';
 
@@ -12,7 +14,10 @@ import HeaderWithBack from '../../../components/common/HeaderWithBack';
 import ReportScreenLayout from '../../../components/layouts/ReportScreenLayout';
 import { getResumenOrdenesTrabajoPorMes } from '../../../services/reports/ordenesTrabajo/ordenTrabajoService'
 
+// al inicio de tu componente:
+
 export default function Calendario_OT() {
+    const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
     const [selectedDate, setSelectedDate] = useState('');
     const [markedDates, setMarkedDates] = useState<{ [key: string]: any }>({});
     const [resumenOTs, setResumenOTs] = useState<Map<string, number>>(new Map());
@@ -115,8 +120,7 @@ export default function Calendario_OT() {
                                     <Text
                                         style={styles.linkText}
                                         onPress={() => {
-                                            // Aquí navegarías a la pantalla de detalles
-                                            console.log('Ir a ver OTs del día:', selectedDate);
+                                            navigation.navigate('OrdenesTrabajoDia', { fecha: selectedDate });
                                         }}
                                     >
                                         Ver OT disponibles

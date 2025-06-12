@@ -13,6 +13,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import ReporteOperacionScreen from './screens/reports/operativo/ReporteOperacion';
 import ReporteVariablesScreen from './screens/reports/variables/ReporteVariables';
 import Calendario_OT from './screens/reports/ordenes_trabajo/Calendario_OT';
+import OrdenesTrabajoDiaScreen from './screens/reports/ordenes_trabajo/OrdenesTrabajoDiaScreen';
 import './src/config/calendarLocale';
 // import ReporteOperativoSecuencial from './screens/reports/operativo/ReporteOperativoSecuencial';
 // import TipoReporteOperacionScreen from './screens/reports/operativo/TipoReporteOperacionScreen';
@@ -43,6 +44,7 @@ export type AuthStackParamList = {
   ReporteOperacion: undefined;
   // OT
   Calendario_OT: undefined;
+  OrdenesTrabajoDia: { fecha: string };
 };
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
@@ -70,6 +72,7 @@ export default function App() {
           <Stack.Screen name="ReporteVariables" component={ReporteVariablesScreen} />
           <Stack.Screen name="CargarImagen" component={CargarImagen} />
           <Stack.Screen name="Calendario_OT" component={Calendario_OT} />
+          <Stack.Screen name="OrdenesTrabajoDia" component={OrdenesTrabajoDiaScreen} />
         </Stack.Navigator>
       </NavigationContainer>
       <Toast />
