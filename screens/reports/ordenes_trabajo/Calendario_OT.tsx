@@ -40,12 +40,26 @@ export default function Calendario_OT() {
         const newMarkedDates: { [key: string]: any } = {};
 
         const resumenMap = new Map<string, number>();
+
+        const today = new Date();
+
         result.data.forEach(({ fecha, ots }) => {
-            resumenMap.set(fecha, ots);
+            const fechaOT = new Date(fecha);
+            const diffInMs = today.getTime() - fechaOT.getTime();
+            const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+            let backgroundColor = '#1976d2'; // azul por defecto (futuras o actuales)
+
+            if (diffInDays > 0 && diffInDays <= 4) {
+                backgroundColor = '#f9a825'; // amarillo
+            } else if (diffInDays > 4) {
+                backgroundColor = '#d32f2f'; // rojo
+            }
+
             newMarkedDates[fecha] = {
                 customStyles: {
                     container: {
-                        backgroundColor: ots >= 5 ? '#d32f2f' : '#1976d2',
+                        backgroundColor,
                         borderRadius: 5,
                     },
                     text: {
@@ -54,7 +68,10 @@ export default function Calendario_OT() {
                     },
                 },
             };
+
+            resumenMap.set(fecha, ots);
         });
+
 
         setMarkedDates(newMarkedDates);
         setResumenOTs(resumenMap);
