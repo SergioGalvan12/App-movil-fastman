@@ -4,6 +4,9 @@ import HeaderWithBack from '../../../components/common/HeaderWithBack';
 import ReportScreenLayout from '../../../components/layouts/ReportScreenLayout';
 import { RouteProp, useRoute } from '@react-navigation/native';
 import { getOrdenesTrabajoPorFecha } from '../../../services/reports/ordenesTrabajo/ordenTrabajoService';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { AuthStackParamList } from '../../../App';
 
 type RootStackParamList = {
     OrdenesTrabajoDia: { fecha: string };
@@ -65,6 +68,7 @@ function TarjetaOT({
     equipo: string;
     descripcion: string;
 }) {
+    const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
     return (
         <View style={styles.card}>
             <Text style={styles.label}>Orden:</Text>
@@ -76,7 +80,13 @@ function TarjetaOT({
             <Text style={styles.label}>Descripción:</Text>
             <Text>{descripcion}</Text>
 
-            <Text style={styles.boton}>Realizar OT →</Text>
+            <Text
+                style={styles.boton}
+                onPress={() => navigation.navigate('RealizarOT', { id: 33, folio: orden })} // ⚠️ cambia `33` por `id_orden_trabajo` real cuando lo tengas
+            >
+                Realizar OT →
+            </Text>
+
         </View>
     );
 }
