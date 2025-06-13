@@ -19,6 +19,9 @@ import {
   getAlmacenesPorUbicacion
 } from '../../../services/reports/ordenesTrabajo/realizarOTService';
 import Select from '../../../components/common/Select';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { AuthStackParamList } from '../../../App';
 
 interface Actividad {
   id_actividad_orden: number;
@@ -33,6 +36,8 @@ type RootStackParamList = {
 
 export default function RealizarOTScreen() {
   const route = useRoute<RouteProp<RootStackParamList, 'RealizarOT'>>();
+  const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
+
   const { id, folio } = route.params;
 
   const [loading, setLoading] = useState(true);
@@ -148,8 +153,17 @@ export default function RealizarOTScreen() {
 
             <Text style={styles.sectionLabel}>Actividades</Text>
             {actividades.map((act, i) => (
-              <TouchableOpacity key={act.id_actividad_orden} style={styles.actividadBtn}>
-                <Text style={styles.actividadText}>{i + 1}. {act.observaciones_actividad}</Text>
+              <TouchableOpacity
+                key={act.id_actividad_orden}
+                style={styles.actividadBtn}
+                onPress={() =>
+                  navigation.navigate('RealizarActividadOT', {
+                    idActividad: act.id_actividad_orden,
+                    folio: `${folio} AC ${i + 1}`,
+                  })
+                }
+              >
+                <Text style={styles.actividadText}>{i + 1}. {act.id_actividad_orden_pub}</Text>
               </TouchableOpacity>
             ))}
 
@@ -198,6 +212,7 @@ const styles = StyleSheet.create({
   },
   actividadText: {
     color: '#1B2A56',
+    fontWeight: '600',
   },
   btnGuardar: {
     backgroundColor: '#1B2A56',
