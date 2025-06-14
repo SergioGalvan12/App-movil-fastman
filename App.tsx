@@ -48,7 +48,7 @@ export type AuthStackParamList = {
   Calendario_OT: undefined;
   OrdenesTrabajoDia: { fecha: string };
   RealizarOT: { id: number; folio: string };
-  RealizarActividadOT: { idActividad: number; folio: string };
+  RealizarActividadOT: { idActividad: number, idOrdenTrabajo: number, folio: string };
 };
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();

@@ -13,10 +13,12 @@ type RootStackParamList = {
 };
 
 type Orden = {
+    id_orden_trabajo: number;
     id_orden_trabajo_pub: string;
     descripcion_equipo: string;
     descripcion: string;
 };
+
 
 export default function OrdenesTrabajoDiaScreen() {
     const route = useRoute<RouteProp<RootStackParamList, 'OrdenesTrabajoDia'>>();
@@ -48,6 +50,7 @@ export default function OrdenesTrabajoDiaScreen() {
                     ordenes.map((orden, index) => (
                         <TarjetaOT
                             key={index}
+                            id={orden.id_orden_trabajo}
                             orden={orden.id_orden_trabajo_pub}
                             equipo={orden.descripcion_equipo}
                             descripcion={orden.descripcion}
@@ -63,10 +66,12 @@ function TarjetaOT({
     orden,
     equipo,
     descripcion,
+    id,
 }: {
     orden: string;
     equipo: string;
     descripcion: string;
+    id: number;
 }) {
     const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
     return (
@@ -82,14 +87,17 @@ function TarjetaOT({
 
             <Text
                 style={styles.boton}
-                onPress={() => navigation.navigate('RealizarOT', { id: 33, folio: orden })} // ⚠️ cambia `33` por `id_orden_trabajo` real cuando lo tengas
+                onPress={() => navigation.navigate('RealizarOT', {
+                    id,
+                    folio: orden,
+                })}
             >
                 Realizar OT →
             </Text>
-
         </View>
     );
 }
+
 
 const styles = StyleSheet.create({
     container: { padding: 15 },

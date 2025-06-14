@@ -159,6 +159,7 @@ export default function RealizarOTScreen() {
                 onPress={() =>
                   navigation.navigate('RealizarActividadOT', {
                     idActividad: act.id_actividad_orden,
+                    idOrdenTrabajo: id,
                     folio: `${folio} AC ${i + 1}`,
                   })
                 }
