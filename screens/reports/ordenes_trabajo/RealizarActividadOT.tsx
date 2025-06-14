@@ -8,15 +8,22 @@ import {
   TextInput,
   TouchableOpacity,
   Platform,
-  ActivityIndicator
+  ActivityIndicator,
 } from 'react-native';
 import HeaderWithBack from '../../../components/common/HeaderWithBack';
 import ReportScreenLayout from '../../../components/layouts/ReportScreenLayout';
 import { RouteProp, useRoute } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { getActividadOrdenTrabajoById } from '../../../services/reports/ordenesTrabajo/realizarOTService';
 
-// Ajustar si se tienen los servicios disponibles
-// import { getActividadById } from '../../../services/reports/ordenesTrabajo/realizarOTService';
+interface Actividad {
+  id_actividad_orden: number;
+  observaciones_actividad: string;
+  comentarios_actividad_orden: string | null;
+  tiempo_actividad_orden: string | null;
+  tiempo_plan_actividad_orden: string | null;
+  fecha_inic_real_actividad_orden: string | null;
+}
 
 type RootStackParamList = {
   RealizarActividadOT: { idActividad: number; folio: string };
@@ -34,17 +41,35 @@ export default function RealizarActividadOT() {
   const [comentarios, setComentarios] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Simular carga desde API en useEffect si se desea
   useEffect(() => {
     setLoading(true);
-    // getActividadById(idActividad).then((res) => {
-    //   if (res.success && res.data) {
-    //     setDescripcion(res.data.observaciones_actividad);
-    //     // set más campos si los hay
-    //   }
-    //   setLoading(false);
-    // });
-    setTimeout(() => setLoading(false), 500); // quitar cuando se use API real
+    getActividadOrdenTrabajoById(idActividad).then((res) => {
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        const actividad = res.data[0] as Actividad;
+
+        if (actividad.observaciones_actividad)
+          setDescripcion(actividad.observaciones_actividad);
+
+        if (actividad.comentarios_actividad_orden)
+          setComentarios(actividad.comentarios_actividad_orden);
+
+        if (actividad.tiempo_actividad_orden) {
+          const [h, m] = actividad.tiempo_actividad_orden.split(':');
+          setDuracionReal({ h, m });
+        }
+
+        if (actividad.tiempo_plan_actividad_orden) {
+          const [h, m] = actividad.tiempo_plan_actividad_orden.split(':');
+          setDuracionPlan({ h, m });
+        }
+
+        if (actividad.fecha_inic_real_actividad_orden) {
+          const horaReal = new Date(actividad.fecha_inic_real_actividad_orden);
+          setHora(horaReal);
+        }
+      }
+      setLoading(false);
+    });
   }, [idActividad]);
 
   const onChangeHora = (_: any, selectedDate?: Date) => {
@@ -75,8 +100,8 @@ export default function RealizarActividadOT() {
 
             <Text style={styles.label}>Duración planeada</Text>
             <View style={styles.rowBetween}>
-              <TextInput style={styles.input} placeholder="Hrs" keyboardType="numeric" value={duracionPlan.h} onChangeText={h => setDuracionPlan(p => ({ ...p, h }))} />
-              <TextInput style={styles.input} placeholder="Mins" keyboardType="numeric" value={duracionPlan.m} onChangeText={m => setDuracionPlan(p => ({ ...p, m }))} />
+              <TextInput style={styles.input} placeholder="Hrs" keyboardType="numeric" value={duracionPlan.h} editable={false} />
+              <TextInput style={styles.input} placeholder="Mins" keyboardType="numeric" value={duracionPlan.m} editable={false} />
             </View>
 
             <Text style={styles.label}>Duración real</Text>
@@ -86,7 +111,7 @@ export default function RealizarActividadOT() {
             </View>
 
             <Text style={styles.label}>Descripción</Text>
-            <TextInput style={[styles.inputBox, { minHeight: 60 }]} multiline value={descripcion} onChangeText={setDescripcion} />
+            <TextInput style={[styles.inputBox, { minHeight: 60 }]} multiline value={descripcion} editable={false} />
 
             <Text style={styles.label}>Comentarios</Text>
             <TextInput style={[styles.inputBox, { minHeight: 60 }]} multiline value={comentarios} onChangeText={setComentarios} />

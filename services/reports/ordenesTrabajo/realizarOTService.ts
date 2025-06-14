@@ -58,4 +58,10 @@ export async function getMaterialesInventario(payload: {
     return apiClient.post('/cantidad-almacen-inventario/', payload);
 }
 
+export async function getActividadOrdenTrabajoById(id_actividad: number) {
+  return apiClient.get(`/actividad-orden-trabajo/?id_actividad_orden=${id_actividad}`);
+}
+
+
+
 
