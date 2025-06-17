@@ -80,10 +80,11 @@ export default function RealizarActividadOT() {
                     setDuracionReal({ h, m });
                 }
 
-                if (actividad.tiempo_plan_actividad_orden) {
-                    const [h, m] = actividad.tiempo_plan_actividad_orden.split(':');
+                if (actividad.tiempo_actividad_orden) {
+                    const [h, m] = actividad.tiempo_actividad_orden.split(':');
                     setDuracionPlan({ h, m });
                 }
+
 
                 if (actividad.fecha_inic_real_actividad_orden) {
                     setHora(new Date(actividad.fecha_inic_real_actividad_orden));
