@@ -56,12 +56,18 @@ export default function RealizarActividadOT() {
                 if (actividad.tiempo_actividad_orden) {
                     const [h, m] = actividad.tiempo_actividad_orden.split(':');
                     setDuracionReal({ h, m });
+
+                    // Si tiempo_plan está vacío o null, igualamos al real
+                    if (!actividad.tiempo_plan_actividad_orden) {
+                        setDuracionPlan({ h, m });
+                    }
                 }
 
                 if (actividad.tiempo_plan_actividad_orden) {
                     const [h, m] = actividad.tiempo_plan_actividad_orden.split(':');
                     setDuracionPlan({ h, m });
                 }
+
 
                 if (actividad.fecha_inic_real_actividad_orden) {
                     const horaReal = new Date(actividad.fecha_inic_real_actividad_orden);
@@ -100,8 +106,8 @@ export default function RealizarActividadOT() {
 
                         <Text style={styles.label}>Duración planeada</Text>
                         <View style={styles.rowBetween}>
-                            <TextInput style={styles.input} placeholder="Hrs" keyboardType="numeric" value={duracionPlan.h} editable={false} />
-                            <TextInput style={styles.input} placeholder="Mins" keyboardType="numeric" value={duracionPlan.m} editable={false} />
+                            <TextInput style={styles.inputDisabled} placeholder="Hrs" keyboardType="numeric" value={duracionPlan.h} editable={false} />
+                            <TextInput style={styles.inputDisabled} placeholder="Mins" keyboardType="numeric" value={duracionPlan.m} editable={false} />
                         </View>
 
                         <Text style={styles.label}>Duración real</Text>
@@ -165,4 +171,14 @@ const styles = StyleSheet.create({
         color: 'white',
         fontWeight: 'bold',
     },
+    inputDisabled: {
+        borderWidth: 1,
+        borderColor: '#DDD',
+        borderRadius: 8,
+        padding: 10,
+        flex: 0.48,
+        backgroundColor: '#F0F0F0', // gris claro
+        color: '#777' // texto más tenue
+    },
+
 });
