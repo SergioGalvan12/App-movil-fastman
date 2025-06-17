@@ -67,7 +67,3 @@ export async function getPersonalPorPuesto(idPuesto: number) {
 }
 
 
-
-
-
-

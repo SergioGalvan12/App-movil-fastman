@@ -42,6 +42,19 @@ interface Actividad {
     tiempo_plan_actividad_orden: string | null;
     fecha_inic_real_actividad_orden: string | null;
     puestos_actividad_orden: PuestoActividad[];
+    materiales_actividad_orden?: MaterialActividad[];
+}
+
+interface MaterialActividad {
+    id: number;
+    material: number;
+    nombre_material: string;
+    cantidad_prog: string;
+    cantidad_real: string | null;
+    nombre_unidad: string;
+    abreviatura_unidad: string;
+    numero_almacen_material: string;
+    disponible: boolean;
 }
 
 type RootStackParamList = {
@@ -64,6 +77,64 @@ export default function RealizarActividadOT() {
     const [trabajadoresDisponibles, setTrabajadoresDisponibles] = useState<Trabajador[]>([]);
     const [costoProg, setCostoProg] = useState('0.00');
     const [costoReal, setCostoReal] = useState('');
+    const [materiales, setMateriales] = useState<MaterialActividad[]>([]);
+
+    useEffect(() => {
+        async function fetchDatos() {
+            setLoading(true);
+            const res = await getActividadOrdenTrabajoById(idActividad);
+
+            if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+                const actividad = res.data[0] as Actividad;
+
+                setDescripcion(actividad.observaciones_actividad || '');
+                setComentarios(actividad.comentarios_actividad_orden || '');
+
+                if (actividad.tiempo_actividad_orden) {
+                    const [h, m] = actividad.tiempo_actividad_orden.split(':');
+                    setDuracionReal({ h, m });
+                }
+
+                // Si no existe duración planeada, usamos la misma que duración real
+                const duracionBase = actividad.tiempo_plan_actividad_orden ?? actividad.tiempo_actividad_orden;
+                if (duracionBase) {
+                    const [h, m] = duracionBase.split(':');
+                    setDuracionPlan({ h, m });
+                }
+
+                if (actividad.fecha_inic_real_actividad_orden) {
+                    setHora(new Date(actividad.fecha_inic_real_actividad_orden));
+                }
+
+                if (actividad.puestos_actividad_orden && actividad.puestos_actividad_orden.length > 0) {
+                    const puesto = actividad.puestos_actividad_orden[0];
+                    setCostoProg(puesto.costo_prog);
+                    setCostoReal(puesto.costo_real ?? '');
+
+                    const idPuesto = puesto.puesto;
+                    const personalRes = await getPersonalPorPuesto(idPuesto);
+                    if (personalRes.success && Array.isArray(personalRes.data)) {
+                        const data = personalRes.data.map((p: any) => ({
+                            id: p.id_equipo,
+                            nombre: `${p.nombre_personal} ${p.apaterno_personal} ${p.amaterno_personal ?? ''}`.trim(),
+                            id_puesto_personal: p.id_puesto_personal,
+                        }));
+                        setTrabajadoresDisponibles(data);
+                        setManoObra([]); // Inicial sin trabajadores seleccionados
+                    }
+                }
+
+                if (actividad.materiales_actividad_orden && Array.isArray(actividad.materiales_actividad_orden)) {
+                    setMateriales(actividad.materiales_actividad_orden);
+                }
+            }
+            setLoading(false);
+        }
+        fetchDatos();
+    }, [idActividad]);
+
+
+
 
     useEffect(() => {
         async function fetchDatos() {
@@ -266,14 +337,65 @@ export default function RealizarActividadOT() {
                         </TouchableOpacity>
 
 
+                        {materiales.length > 0 && (
+                            <>
+                                <Text style={styles.label}>Materiales</Text>
+                                {materiales.map((mat, idx) => (
+                                    <View key={idx} style={styles.materialBox}>
+                                        <Text style={styles.textMini}>Artículo: <Text style={{ fontWeight: 'bold' }}>{mat.numero_almacen_material}</Text></Text>
+                                        <Text style={styles.textMini}>Material: <Text style={{ fontWeight: 'bold' }}>{mat.nombre_material}</Text></Text>
+
+                                        <View style={styles.rowBetween}>
+                                            <View style={styles.column}>
+                                                <Text style={styles.costLabel}>Cantidad planeada</Text>
+                                                <TextInput
+                                                    style={styles.inputDisabled}
+                                                    value={mat.cantidad_prog}
+                                                    editable={false}
+                                                />
+                                            </View>
+
+                                            <View style={styles.column}>
+                                                <Text style={styles.costLabel}>Cantidad real</Text>
+                                                <TextInput
+                                                    style={styles.input}
+                                                    value={mat.cantidad_real ?? ''}
+                                                    onChangeText={(val) => {
+                                                        const nuevos = [...materiales];
+                                                        nuevos[idx].cantidad_real = val;
+                                                        setMateriales(nuevos);
+                                                    }}
+                                                    keyboardType="numeric"
+                                                />
+                                            </View>
+                                        </View>
+
+                                        <Text style={styles.textMini}>
+                                            Unidad: {mat.abreviatura_unidad}
+                                        </Text>
+
+                                        <Text style={styles.textMini}>
+                                            Disponible:{' '}
+                                            <Text style={{ fontWeight: 'bold', color: mat.disponible ? 'green' : 'red' }}>
+                                                {mat.disponible ? 'Sí' : 'No'}
+                                            </Text>
+                                        </Text>
+                                        {/* Costos totales materiales */}
+                                        <Text style={styles.costosTotales}>
+                                            Costo planeado: ${costoProg}  Costo real: ${costoReal || '0.00'}
+                                        </Text>
+                                    </View>
+                                ))}
+                            </>
+                        )}
+
+                        <Text style={styles.label}>Comentarios</Text>
+                        <TextInput style={[styles.inputBox, { minHeight: 60 }]} multiline value={comentarios} onChangeText={setComentarios} />
 
                         <Text style={styles.costosTotales}>
                             Costo planeado: ${costoProg}{'  '}
                             Costo real: ${costoReal || '0.00'}
                         </Text>
-
-                        <Text style={styles.label}>Comentarios</Text>
-                        <TextInput style={[styles.inputBox, { minHeight: 60 }]} multiline value={comentarios} onChangeText={setComentarios} />
 
                         <TouchableOpacity style={styles.btnGuardar}>
                             <Text style={styles.btnText}>Guardar cambios</Text>
@@ -377,5 +499,19 @@ const styles = StyleSheet.create({
         color: '#1B2A56',
         marginBottom: 4,
         fontWeight: '500',
+    },
+
+    materialBox: {
+        padding: 10,
+        borderWidth: 1,
+        borderColor: '#CCC',
+        borderRadius: 8,
+        marginBottom: 10,
+        backgroundColor: '#F9F9F9',
+    },
+    textMini: {
+        fontSize: 12,
+        color: '#333',
+        marginBottom: 2,
     },
 });
