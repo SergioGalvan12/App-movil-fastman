@@ -49,7 +49,8 @@ export default function Calendario_OT() {
         const today = new Date();
 
         result.data.forEach(({ fecha, ots }) => {
-            const fechaOT = new Date(fecha);
+            const [year, month, day] = fecha.split('-').map(Number);
+            const fechaOT = new Date(year, month - 1, day);  // ← ¡local, sin zona UTC!
             const diffInMs = today.getTime() - fechaOT.getTime();
             const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
 
