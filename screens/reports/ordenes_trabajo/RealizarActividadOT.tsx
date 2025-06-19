@@ -1,3 +1,4 @@
+// screens/ordens_trabajo/RealizarOTScreen.tsx
 import React, { useEffect, useState } from 'react';
 import {
     View,
@@ -11,11 +12,14 @@ import {
 } from 'react-native';
 import HeaderWithBack from '../../../components/common/HeaderWithBack';
 import ReportScreenLayout from '../../../components/layouts/ReportScreenLayout';
-import { RouteProp, useRoute } from '@react-navigation/native';
+import { RouteProp, useRoute, useFocusEffect } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { getActividadOrdenTrabajoById, getPersonalPorPuesto } from '../../../services/reports/ordenesTrabajo/realizarOTService';
+import { getActividadOrdenTrabajoById, getPersonalPorPuesto, getActividadesOrdenTrabajo } from '../../../services/reports/ordenesTrabajo/realizarOTService';
+import { patchOrdenTrabajo } from '../../../services/reports/ordenesTrabajo/ordenTrabajoService';
 import Select from '../../../components/common/Select';
 import { showToast } from '../../../services/notifications/ToastService';
+import { guardarActividadOT } from '../../../services/reports/ordenesTrabajo/actividadOTService';
+import { useNavigation } from '@react-navigation/native';
 
 interface Trabajador {
     id: number;
@@ -43,6 +47,12 @@ interface Actividad {
     fecha_inic_real_actividad_orden: string | null;
     puestos_actividad_orden: PuestoActividad[];
     materiales_actividad_orden?: MaterialActividad[];
+    id_actividad: number;
+    id_actividad_orden_pub: string;
+    tipo_actividad: string;
+    descripcion_servicio?: string;
+    id_tipo_servicio_pub?: string;
+    id_empresa: number;
 }
 
 interface MaterialActividad {
@@ -62,6 +72,7 @@ type RootStackParamList = {
 };
 
 export default function RealizarActividadOT() {
+    const navigation = useNavigation();
     const route = useRoute<RouteProp<RootStackParamList, 'RealizarActividadOT'>>();
     const { idActividad, idOrdenTrabajo, folio } = route.params;
 
@@ -78,111 +89,164 @@ export default function RealizarActividadOT() {
     const [costoProg, setCostoProg] = useState('0.00');
     const [costoReal, setCostoReal] = useState('');
     const [materiales, setMateriales] = useState<MaterialActividad[]>([]);
+    const [actividadMeta, setActividadMeta] = useState({
+        idActividad: 0,
+        idActividadPub: '',
+        tipoActividad: '',
+        descripcionServicio: '',
+        idTipoServicioPub: '',
+        idEmpresa: 0,
+    });
 
-    useEffect(() => {
-        async function fetchDatos() {
-            setLoading(true);
-            const res = await getActividadOrdenTrabajoById(idActividad);
+    async function fetchDatos() {
+        setLoading(true);
+        const res = await getActividadOrdenTrabajoById(idActividad);
 
-            if (res.success && Array.isArray(res.data) && res.data.length > 0) {
-                const actividad = res.data[0] as Actividad;
+        if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+            const actividad = res.data[0] as Actividad;
 
-                setDescripcion(actividad.observaciones_actividad || '');
-                setComentarios(actividad.comentarios_actividad_orden || '');
+            setActividadMeta({
+                idActividad: actividad.id_actividad,
+                idActividadPub: actividad.id_actividad_orden_pub,
+                tipoActividad: actividad.tipo_actividad,
+                descripcionServicio: actividad.descripcion_servicio ?? '',
+                idTipoServicioPub: actividad.id_tipo_servicio_pub ?? '',
+                idEmpresa: actividad.id_empresa,
+            });
 
-                if (actividad.tiempo_actividad_orden) {
-                    const [h, m] = actividad.tiempo_actividad_orden.split(':');
-                    setDuracionReal({ h, m });
-                }
+            setDescripcion(actividad.observaciones_actividad || '');
+            setComentarios(actividad.comentarios_actividad_orden || '');
 
-                // Si no existe duración planeada, usamos la misma que duración real
-                const duracionBase = actividad.tiempo_plan_actividad_orden ?? actividad.tiempo_actividad_orden;
-                if (duracionBase) {
-                    const [h, m] = duracionBase.split(':');
-                    setDuracionPlan({ h, m });
-                }
+            if (actividad.tiempo_actividad_orden) {
+                const [h, m] = actividad.tiempo_actividad_orden.split(':');
+                setDuracionReal({ h, m });
+            }
 
-                if (actividad.fecha_inic_real_actividad_orden) {
-                    setHora(new Date(actividad.fecha_inic_real_actividad_orden));
-                }
+            const duracionBase = actividad.tiempo_plan_actividad_orden ?? actividad.tiempo_actividad_orden;
+            if (duracionBase) {
+                const [h, m] = duracionBase.split(':');
+                setDuracionPlan({ h, m });
+            }
 
-                if (actividad.puestos_actividad_orden && actividad.puestos_actividad_orden.length > 0) {
-                    const puesto = actividad.puestos_actividad_orden[0];
-                    setCostoProg(puesto.costo_prog);
-                    setCostoReal(puesto.costo_real ?? '');
+            if (actividad.fecha_inic_real_actividad_orden) {
+                setHora(new Date(actividad.fecha_inic_real_actividad_orden));
+            }
 
-                    const idPuesto = puesto.puesto;
-                    const personalRes = await getPersonalPorPuesto(idPuesto);
-                    if (personalRes.success && Array.isArray(personalRes.data)) {
-                        const data = personalRes.data.map((p: any) => ({
-                            id: p.id_equipo,
-                            nombre: `${p.nombre_personal} ${p.apaterno_personal} ${p.amaterno_personal ?? ''}`.trim(),
-                            id_puesto_personal: p.id_puesto_personal,
-                        }));
-                        setTrabajadoresDisponibles(data);
-                        setManoObra([]); // Inicial sin trabajadores seleccionados
-                    }
-                }
+            if (actividad.puestos_actividad_orden && actividad.puestos_actividad_orden.length > 0) {
+                const puesto = actividad.puestos_actividad_orden[0];
+                setCostoProg(puesto.costo_prog);
+                setCostoReal(puesto.costo_real ?? '');
 
-                if (actividad.materiales_actividad_orden && Array.isArray(actividad.materiales_actividad_orden)) {
-                    setMateriales(actividad.materiales_actividad_orden);
+                const idPuesto = puesto.puesto;
+                const personalRes = await getPersonalPorPuesto(idPuesto);
+                if (personalRes.success && Array.isArray(personalRes.data)) {
+                    const data = personalRes.data.map((p: any) => ({
+                        id: p.id_equipo,
+                        nombre: `${p.nombre_personal} ${p.apaterno_personal} ${p.amaterno_personal ?? ''}`.trim(),
+                        id_puesto_personal: p.id_puesto_personal,
+                    }));
+                    setTrabajadoresDisponibles(data);
+                    setManoObra([]);
                 }
             }
-            setLoading(false);
+
+            if (actividad.materiales_actividad_orden && Array.isArray(actividad.materiales_actividad_orden)) {
+                setMateriales(actividad.materiales_actividad_orden);
+            }
         }
+        setLoading(false);
+    }
+
+    useEffect(() => {
         fetchDatos();
     }, [idActividad]);
 
+    useFocusEffect(
+        React.useCallback(() => {
+            fetchDatos();
+        }, [idActividad])
+    );
 
-
-
-    useEffect(() => {
-        async function fetchDatos() {
-            setLoading(true);
-            const res = await getActividadOrdenTrabajoById(idActividad);
-            if (res.success && Array.isArray(res.data) && res.data.length > 0) {
-                const actividad = res.data[0] as Actividad;
-
-                setDescripcion(actividad.observaciones_actividad || '');
-                setComentarios(actividad.comentarios_actividad_orden || '');
-
-                if (actividad.tiempo_actividad_orden) {
-                    const [h, m] = actividad.tiempo_actividad_orden.split(':');
-                    setDuracionReal({ h, m });
-                }
-
-                if (actividad.tiempo_actividad_orden) {
-                    const [h, m] = actividad.tiempo_actividad_orden.split(':');
-                    setDuracionPlan({ h, m });
-                }
-
-
-                if (actividad.fecha_inic_real_actividad_orden) {
-                    setHora(new Date(actividad.fecha_inic_real_actividad_orden));
-                }
-
-                if (actividad.puestos_actividad_orden && actividad.puestos_actividad_orden.length > 0) {
-                    const puesto = actividad.puestos_actividad_orden[0];
-                    setCostoProg(puesto.costo_prog);
-                    setCostoReal(puesto.costo_real ?? '');
-
-                    const idPuesto = puesto.puesto;
-                    const personalRes = await getPersonalPorPuesto(idPuesto);
-                    if (personalRes.success && Array.isArray(personalRes.data)) {
-                        const data = personalRes.data.map((p: any) => ({
-                            id: p.id_equipo,
-                            nombre: `${p.nombre_personal} ${p.apaterno_personal} ${p.amaterno_personal ?? ''}`.trim(),
-                            id_puesto_personal: p.id_puesto_personal,
-                        }));
-                        setTrabajadoresDisponibles(data);
-                        setManoObra([]); // inicial sin trabajadores seleccionados
-                    }
-                }
-            }
-            setLoading(false);
+    const onGuardarActividad = async () => {
+        if (!hora) {
+            showToast('error', 'Debes seleccionar una hora de inicio');
+            return;
         }
-        fetchDatos();
-    }, [idActividad]);
+
+        const h = parseInt(duracionReal.h || '0', 10);
+        const m = parseInt(duracionReal.m || '0', 10);
+        const fechaInicio = hora.toISOString();
+        const fechaFin = new Date(hora.getTime() + h * 60 * 60 * 1000 + m * 60 * 1000).toISOString();
+        const tiempoActividad = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`;
+
+        const payload = {
+            id_actividad_orden: idActividad,
+            id_actividad_orden_pub: actividadMeta.idActividadPub,
+            id_empresa: actividadMeta.idEmpresa,
+            id_orden_trabajo: idOrdenTrabajo,
+            id_actividad: actividadMeta.idActividad,
+            tipo_actividad: actividadMeta.tipoActividad,
+            descripcion: descripcion,
+            descripcion_servicio: actividadMeta.descripcionServicio,
+            id_tipo_servicio_pub: actividadMeta.idTipoServicioPub,
+            costo_total_actividad_orden: costoProg,
+            costo_total_actividad_orden_real: costoReal || '0',
+            fecha_inic_real_actividad_orden: fechaInicio,
+            fecha_fin_real_actividad_orden: fechaFin,
+            tiempo_actividad_orden: tiempoActividad,
+            tiempo_plan_actividad_orden: `${duracionPlan.h.padStart(2, '0')}:${duracionPlan.m.padStart(2, '0')}:00`,
+            comentarios_actividad_orden: comentarios,
+            puestos_actividad_orden: [
+                {
+                    id: idActividad,
+                    puesto: trabajadoresDisponibles[0]?.id_puesto_personal,
+                    personal_encargado: manoObra.filter(id => id !== 0),
+                    cantidad_prog: 1,
+                    cantidad_real: 1,
+                    costo_prog: costoProg,
+                    costo_real: costoReal || '0.00',
+                    nombre_puesto: trabajadoresDisponibles[0]?.nombre || '',
+                },
+            ],
+            materiales_actividad_orden: materiales.map((mat) => ({
+                id: mat.id,
+                material: mat.material,
+                cantidad_prog: mat.cantidad_prog,
+                cantidad_real: mat.cantidad_real ?? '0',
+                nombre_material: mat.nombre_material,
+                nombre_unidad: mat.nombre_unidad,
+                abreviatura_unidad: mat.abreviatura_unidad,
+                numero_almacen_material: mat.numero_almacen_material,
+                disponible: mat.disponible,
+            })),
+            observaciones_actividad: descripcion,
+            status_actividad_orden: true,
+            inicia_actividad_orden: true,
+        };
+
+        const res = await guardarActividadOT(payload);
+
+        if (res.success) {
+            showToast('success', 'Actividad guardada correctamente');
+
+            const otRes = await getActividadesOrdenTrabajo(idOrdenTrabajo);
+            if (otRes.success && Array.isArray(otRes.data)) {
+                const totalReal = otRes.data.reduce((acc, act) => {
+                    const val = parseFloat(act.costo_total_actividad_orden_real || '0');
+                    return acc + (isNaN(val) ? 0 : val);
+                }, 0);
+
+                await patchOrdenTrabajo(idOrdenTrabajo, {
+                    id_orden_trabajo: idOrdenTrabajo,
+                    costo_real: totalReal,
+                });
+            }
+
+            navigation.goBack();
+        } else {
+            showToast('danger', 'Error al guardar actividad');
+        }
+    };
 
     const onChangeHora = (_: any, selectedDate?: Date) => {
         setShowPicker(Platform.OS === 'ios');
@@ -194,6 +258,7 @@ export default function RealizarActividadOT() {
     const disponiblesParaAgregar = trabajadoresDisponibles.filter(
         (t) => !manoObra.includes(t.id)
     );
+
 
     return (
         <ReportScreenLayout>
@@ -235,24 +300,13 @@ export default function RealizarActividadOT() {
                         <View style={styles.rowBetween}>
                             <View style={styles.column}>
                                 <Text style={styles.costLabel}>Costo planeado</Text>
-                                <TextInput
-                                    style={styles.inputDisabled}
-                                    value={costoProg}
-                                    editable={false}
-                                />
+                                <TextInput style={styles.inputDisabled} value={costoProg} editable={false} />
                             </View>
                             <View style={styles.column}>
                                 <Text style={styles.costLabel}>Costo real</Text>
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="Costo real"
-                                    value={costoReal}
-                                    onChangeText={setCostoReal}
-                                    keyboardType="numeric"
-                                />
+                                <TextInput style={styles.input} placeholder="Costo real" value={costoReal} onChangeText={setCostoReal} keyboardType="numeric" />
                             </View>
                         </View>
-
 
                         {manoObra.map((id, i) => {
                             const opcionesFiltradas = trabajadoresDisponibles.filter(
@@ -288,8 +342,6 @@ export default function RealizarActividadOT() {
                             );
                         })}
 
-
-
                         <Select
                             options={disponiblesParaAgregar}
                             valueKey="id"
@@ -306,36 +358,19 @@ export default function RealizarActividadOT() {
                                     (t) => !manoObra.includes(t.id)
                                 );
 
-                                // Validación antes de agregar nuevo select
-                                if (
-                                    disponiblesParaAgregar.length === 0 ||
-                                    manoObra.length >= trabajadoresDisponibles.length
-                                ) {
+                                if (disponiblesParaAgregar.length === 0 || manoObra.length >= trabajadoresDisponibles.length) {
                                     showToast('info', 'Todos los trabajadores ya han sido seleccionados');
                                     return;
                                 }
-
-                                // Validar si hay algún Select sin selección aún
                                 if (manoObra.includes(0)) {
                                     showToast('info', 'Selecciona un trabajador antes de agregar uno nuevo');
                                     return;
                                 }
-
-                                // Verificar si ya se asignaron todos los trabajadores
-                                if (manoObra.length >= trabajadoresDisponibles.length) {
-                                    showToast('info', 'Todos los trabajadores ya han sido seleccionados');
-                                    return;
-                                }
-
-                                // Agrega un nuevo Select vacío (id 0) solo si aún hay trabajadores por asignar
                                 setManoObra([...manoObra, 0]);
-
-
                             }}
                         >
                             <Text style={styles.btnText}>Agregar trabajador</Text>
                         </TouchableOpacity>
-
 
                         {materiales.length > 0 && (
                             <>
@@ -348,13 +383,8 @@ export default function RealizarActividadOT() {
                                         <View style={styles.rowBetween}>
                                             <View style={styles.column}>
                                                 <Text style={styles.costLabel}>Cantidad planeada</Text>
-                                                <TextInput
-                                                    style={styles.inputDisabled}
-                                                    value={mat.cantidad_prog}
-                                                    editable={false}
-                                                />
+                                                <TextInput style={styles.inputDisabled} value={mat.cantidad_prog} editable={false} />
                                             </View>
-
                                             <View style={styles.column}>
                                                 <Text style={styles.costLabel}>Cantidad real</Text>
                                                 <TextInput
@@ -370,20 +400,10 @@ export default function RealizarActividadOT() {
                                             </View>
                                         </View>
 
-                                        <Text style={styles.textMini}>
-                                            Unidad: {mat.abreviatura_unidad}
-                                        </Text>
+                                        <Text style={styles.textMini}>Unidad: {mat.abreviatura_unidad}</Text>
+                                        <Text style={styles.textMini}>Disponible: <Text style={{ fontWeight: 'bold', color: mat.disponible ? 'green' : 'red' }}>{mat.disponible ? 'Sí' : 'No'}</Text></Text>
 
-                                        <Text style={styles.textMini}>
-                                            Disponible:{' '}
-                                            <Text style={{ fontWeight: 'bold', color: mat.disponible ? 'green' : 'red' }}>
-                                                {mat.disponible ? 'Sí' : 'No'}
-                                            </Text>
-                                        </Text>
-                                        {/* Costos totales materiales */}
-                                        <Text style={styles.costosTotales}>
-                                            Costo planeado: ${costoProg}  Costo real: ${costoReal || '0.00'}
-                                        </Text>
+                                        <Text style={styles.costosTotales}>Costo planeado: ${costoProg}  Costo real: ${costoReal || '0.00'}</Text>
                                     </View>
                                 ))}
                             </>
@@ -393,11 +413,10 @@ export default function RealizarActividadOT() {
                         <TextInput style={[styles.inputBox, { minHeight: 60 }]} multiline value={comentarios} onChangeText={setComentarios} />
 
                         <Text style={styles.costosTotales}>
-                            Costo planeado: ${costoProg}{'  '}
-                            Costo real: ${costoReal || '0.00'}
+                            Costo planeado: ${costoProg}  Costo real: ${costoReal || '0.00'}
                         </Text>
 
-                        <TouchableOpacity style={styles.btnGuardar}>
+                        <TouchableOpacity style={styles.btnGuardar} onPress={onGuardarActividad}>
                             <Text style={styles.btnText}>Guardar cambios</Text>
                         </TouchableOpacity>
                     </>

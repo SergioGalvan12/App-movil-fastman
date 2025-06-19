@@ -55,3 +55,8 @@ export async function getOrdenesTrabajoPorFecha(fecha: string) {
     }[];
   }>('/orden-trabajo/', { params });
 }
+
+export async function patchOrdenTrabajo(id: number, payload: any) {
+  return apiClient.patch(`/orden-trabajo/${id}`, payload);
+}
+

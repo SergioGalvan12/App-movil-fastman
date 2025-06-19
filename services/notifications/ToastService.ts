@@ -1,7 +1,7 @@
 // services/ToastService.ts
 import Toast from 'react-native-toast-message';
 
-export type ToastType = 'success' | 'error' | 'info';
+export type ToastType = 'success' | 'error' | 'info' | 'warning' | 'danger';
 
 interface ShowToastOptions {
   position?: 'top' | 'bottom';

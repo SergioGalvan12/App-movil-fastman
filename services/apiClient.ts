@@ -89,6 +89,17 @@ class ApiClient {
       return this.handleError(e);
     }
   }
+
+  async patch<T>(endpoint: string, body?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
+    try {
+      const url = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+      console.log(`[ApiClient] PATCH → ${this.client.defaults.baseURL}${url}`, body);
+      const res = await this.client.patch<T>(url, body, config);
+      return { success: true, data: res.data };
+    } catch (e) {
+      return this.handleError(e);
+    }
+  }
 }
 
 const _apiClient = new ApiClient();
