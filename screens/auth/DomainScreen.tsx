@@ -60,10 +60,10 @@ export default function DomainScreen({ navigation }: Props) {
       if (result.success) {
         navigation.navigate('User', { domain: raw, username: '' });
       } else {
-        showToast('error', 'Error', 'Dominio no encontrado');
+        showToast('error', 'Dominio no registrado', `El dominio "${raw}" no existe en Fastman.io`);
       }
     } catch (err) {
-      showToast('error', 'Error', 'Ocurrió un error al verificar el dominio. Inténtalo de nuevo.');
+      showToast('error', 'Error al verificar el dominio, revisa dominio.');
       console.error(err);
     } finally {
       setLoading(false);
