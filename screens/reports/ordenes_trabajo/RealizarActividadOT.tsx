@@ -20,7 +20,6 @@ import Select from '../../../components/common/Select';
 import { showToast } from '../../../services/notifications/ToastService';
 import { guardarActividadOT } from '../../../services/reports/ordenesTrabajo/actividadOTService';
 import { useNavigation } from '@react-navigation/native';
-
 interface Trabajador {
     id: number;
     nombre: string;
@@ -73,7 +72,7 @@ type RootStackParamList = {
 
 export default function RealizarActividadOT() {
     const navigation = useNavigation();
-    const route = useRoute<RouteProp<RootStackParamList, 'RealizarActividadOT'>>();
+    const route = useRoute<RouteProp<{ RealizarActividadOT: { idActividad: number; idOrdenTrabajo: number; folio: string } }, 'RealizarActividadOT'>>();
     const { idActividad, idOrdenTrabajo, folio } = route.params;
 
     const [hora, setHora] = useState<Date | null>(null);
@@ -130,12 +129,15 @@ export default function RealizarActividadOT() {
 
             if (actividad.fecha_inic_real_actividad_orden) {
                 setHora(new Date(actividad.fecha_inic_real_actividad_orden));
+            } else {
+                setHora(new Date());
             }
 
             if (actividad.puestos_actividad_orden && actividad.puestos_actividad_orden.length > 0) {
                 const puesto = actividad.puestos_actividad_orden[0];
                 setCostoProg(puesto.costo_prog);
                 setCostoReal(puesto.costo_real ?? '');
+                setManoObra(puesto.personal_encargado || []);
 
                 const idPuesto = puesto.puesto;
                 const personalRes = await getPersonalPorPuesto(idPuesto);
@@ -146,7 +148,6 @@ export default function RealizarActividadOT() {
                         id_puesto_personal: p.id_puesto_personal,
                     }));
                     setTrabajadoresDisponibles(data);
-                    setManoObra([]);
                 }
             }
 
@@ -170,6 +171,11 @@ export default function RealizarActividadOT() {
     const onGuardarActividad = async () => {
         if (!hora) {
             showToast('error', 'Debes seleccionar una hora de inicio');
+            return;
+        }
+
+        if (manoObra.length === 0 || manoObra.includes(0)) {
+            showToast('error', 'Selecciona al menos un trabajador válido');
             return;
         }
 
@@ -200,7 +206,7 @@ export default function RealizarActividadOT() {
                 {
                     id: idActividad,
                     puesto: trabajadoresDisponibles[0]?.id_puesto_personal,
-                    personal_encargado: manoObra.filter(id => id !== 0),
+                    personal_encargado: manoObra,
                     cantidad_prog: 1,
                     cantidad_real: 1,
                     costo_prog: costoProg,
@@ -259,6 +265,12 @@ export default function RealizarActividadOT() {
         (t) => !manoObra.includes(t.id)
     );
 
+    // Si no hay manoObra inicial, agregar automáticamente un slot vacío
+    useEffect(() => {
+        if (!loading && manoObra.length === 0 && trabajadoresDisponibles.length > 0) {
+            setManoObra([0]);
+        }
+    }, [trabajadoresDisponibles, loading]);
 
     return (
         <ReportScreenLayout>
@@ -266,6 +278,7 @@ export default function RealizarActividadOT() {
             <ScrollView style={styles.container}>
                 {loading ? <ActivityIndicator color="#5D74A6" /> : (
                     <>
+                        {/* Hora */}
                         <Text style={styles.label}>Hora</Text>
                         <TouchableOpacity style={styles.inputBox} onPress={() => setShowPicker(true)}>
                             <Text>{hora ? hora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}</Text>
@@ -279,6 +292,7 @@ export default function RealizarActividadOT() {
                             />
                         )}
 
+                        {/* Duración */}
                         <Text style={styles.label}>Duración planeada</Text>
                         <View style={styles.rowBetween}>
                             <TextInput style={styles.inputDisabled} placeholder="Hrs" keyboardType="numeric" value={duracionPlan.h} editable={false} />
@@ -291,23 +305,12 @@ export default function RealizarActividadOT() {
                             <TextInput style={styles.input} placeholder="Mins" keyboardType="numeric" value={duracionReal.m} onChangeText={m => setDuracionReal(p => ({ ...p, m }))} />
                         </View>
 
+                        {/* Descripción */}
                         <Text style={styles.label}>Descripción</Text>
                         <TextInput style={[styles.inputBox, styles.inputDisabled]} multiline value={descripcion} editable={false} />
 
+                        {/* Mano de obra */}
                         <Text style={styles.label}>Mano de obra</Text>
-
-                        <Text style={styles.label}>Costos</Text>
-                        <View style={styles.rowBetween}>
-                            <View style={styles.column}>
-                                <Text style={styles.costLabel}>Costo planeado</Text>
-                                <TextInput style={styles.inputDisabled} value={costoProg} editable={false} />
-                            </View>
-                            <View style={styles.column}>
-                                <Text style={styles.costLabel}>Costo real</Text>
-                                <TextInput style={styles.input} placeholder="Costo real" value={costoReal} onChangeText={setCostoReal} keyboardType="numeric" />
-                            </View>
-                        </View>
-
                         {manoObra.map((id, i) => {
                             const opcionesFiltradas = trabajadoresDisponibles.filter(
                                 (t) => !manoObra.includes(t.id) || t.id === id
@@ -327,7 +330,7 @@ export default function RealizarActividadOT() {
                                         }}
                                         placeholder="Selecciona un trabajador"
                                     />
-                                    {manoObra.length > 0 && (
+                                    {manoObra.length > 1 && (
                                         <TouchableOpacity
                                             style={styles.btnRemover}
                                             onPress={() => {
@@ -342,28 +345,16 @@ export default function RealizarActividadOT() {
                             );
                         })}
 
-                        <Select
-                            options={disponiblesParaAgregar}
-                            valueKey="id"
-                            labelKey="nombre"
-                            selectedValue={nuevoTrabajador}
-                            onValueChange={(val) => setNuevoTrabajador(val !== null ? Number(val) : null)}
-                            placeholder="Selecciona un trabajador"
-                        />
-
                         <TouchableOpacity
                             style={styles.btnAgregar}
                             onPress={() => {
-                                const disponiblesParaAgregar = trabajadoresDisponibles.filter(
-                                    (t) => !manoObra.includes(t.id)
-                                );
-
-                                if (disponiblesParaAgregar.length === 0 || manoObra.length >= trabajadoresDisponibles.length) {
+                                const disponibles = trabajadoresDisponibles.filter(t => !manoObra.includes(t.id));
+                                if (disponibles.length === 0) {
                                     showToast('info', 'Todos los trabajadores ya han sido seleccionados');
                                     return;
                                 }
                                 if (manoObra.includes(0)) {
-                                    showToast('info', 'Selecciona un trabajador antes de agregar uno nuevo');
+                                    showToast('info', 'Selecciona un trabajador antes de agregar otro');
                                     return;
                                 }
                                 setManoObra([...manoObra, 0]);
