@@ -7,6 +7,7 @@ import { getOrdenesTrabajoPorFecha } from '../../../services/reports/ordenesTrab
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../../App';
+import { useIsFocused } from '@react-navigation/native';
 
 type RootStackParamList = {
     OrdenesTrabajoDia: { fecha: string };
@@ -27,14 +28,20 @@ export default function OrdenesTrabajoDiaScreen() {
     const [ordenes, setOrdenes] = useState<Orden[]>([]);
     const [loading, setLoading] = useState(true);
 
+    const isFocused = useIsFocused();
+
     useEffect(() => {
-        getOrdenesTrabajoPorFecha(fecha).then((res) => {
-            if (res.success && res.data) {
-                setOrdenes(res.data.results);
-            }
-            setLoading(false);
-        });
-    }, [fecha]);
+        if (isFocused) {
+            setLoading(true);
+            getOrdenesTrabajoPorFecha(fecha).then((res) => {
+                if (res.success && res.data) {
+                    setOrdenes(res.data.results);
+                }
+                setLoading(false);
+            });
+        }
+    }, [fecha, isFocused]);
+
 
     return (
         <ReportScreenLayout>

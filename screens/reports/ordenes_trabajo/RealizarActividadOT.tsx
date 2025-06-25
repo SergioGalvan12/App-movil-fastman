@@ -363,6 +363,28 @@ export default function RealizarActividadOT() {
                             <Text style={styles.btnText}>Agregar trabajador</Text>
                         </TouchableOpacity>
 
+                        <Text style={styles.label}>Costos</Text>
+                        <View style={styles.rowBetween}>
+                            <View style={styles.column}>
+                                <Text style={styles.costLabel}>Costo planeado</Text>
+                                <TextInput
+                                    style={styles.inputDisabled}
+                                    value={costoProg}
+                                    editable={false}
+                                />
+                            </View>
+                            <View style={styles.column}>
+                                <Text style={styles.costLabel}>Costo real</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Costo real"
+                                    value={costoReal}
+                                    onChangeText={setCostoReal}
+                                    keyboardType="numeric"
+                                />
+                            </View>
+                        </View>
+
                         {materiales.length > 0 && (
                             <>
                                 <Text style={styles.label}>Materiales</Text>

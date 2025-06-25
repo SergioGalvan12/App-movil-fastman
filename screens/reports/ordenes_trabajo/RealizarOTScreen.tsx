@@ -7,7 +7,8 @@ import {
   ScrollView,
   ActivityIndicator,
   TouchableOpacity,
-  Platform
+  Platform,
+  TextInput
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import HeaderWithBack from '../../../components/common/HeaderWithBack';
@@ -18,11 +19,12 @@ import {
   getActividadesOrdenTrabajo,
   getAlmacenesPorUbicacion
 } from '../../../services/reports/ordenesTrabajo/realizarOTService';
-import Select from '../../../components/common/Select';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../../App';
 import { useFocusEffect } from '@react-navigation/native';
+import { patchOrdenTrabajo } from '../../../services/reports/ordenesTrabajo/ordenTrabajoService';
+import { showToast } from '../../../services/notifications/ToastService';
 
 interface Actividad {
   id_actividad_orden: number;
@@ -32,6 +34,10 @@ interface Actividad {
   status_actividad_orden: boolean;
   fecha_inic_real_actividad_orden?: string;
   tiempo_actividad_orden?: string;
+  costo_total_actividad_orden_real?: string;
+  puestos_actividad_orden?: {
+    personal_encargado: number[];
+  }[];
 }
 
 
@@ -52,6 +58,8 @@ export default function RealizarOTScreen() {
   const [fechas, setFechas] = useState({ inicio: '', fin: '' });
   const [showInicioPicker, setShowInicioPicker] = useState(false);
   const [showFinPicker, setShowFinPicker] = useState(false);
+  const [totalCostoProg, setTotalCostoProg] = useState('0.00');
+  const [totalCostoReal, setTotalCostoReal] = useState('0.00');
 
   useFocusEffect(
     React.useCallback(() => {
@@ -73,8 +81,31 @@ export default function RealizarOTScreen() {
           }
         }
         if (actividadesRes.success && actividadesRes.data) {
-          setActividades(actividadesRes.data as Actividad[]);
+          const actividadesData = actividadesRes.data as Actividad[];
+
+          // Sumar costo_total_actividad_orden_real
+          const sumaReal = actividadesData.reduce((acc, act) => {
+            const val = parseFloat(act.costo_total_actividad_orden_real || '0');
+            return acc + (isNaN(val) ? 0 : val);
+          }, 0);
+
+          // Sumar costo_prog desde puestos_actividad_orden
+          const sumaProg = actividadesData.reduce((acc, act) => {
+            if (Array.isArray(act.puestos_actividad_orden)) {
+              const subtotal = act.puestos_actividad_orden.reduce((subAcc, puesto) => {
+                const val = parseFloat((puesto as any).costo_prog || '0');
+                return subAcc + (isNaN(val) ? 0 : val);
+              }, 0);
+              return acc + subtotal;
+            }
+            return acc;
+          }, 0);
+
+          setTotalCostoReal(sumaReal.toFixed(2));
+          setTotalCostoProg(sumaProg.toFixed(2));
+          setActividades(actividadesData);
         }
+
         setLoading(false);
       }
       fetchData();
@@ -107,6 +138,16 @@ export default function RealizarOTScreen() {
     if (tieneHora && tieneCostoReal && tienePersonal) return '#4CAF50'; // verde
     if (tieneHora || tieneCostoReal || tienePersonal || tieneComentarios) return '#FFC107'; // amarillo
     return '#F44336'; // rojo
+  }
+
+  function puedeCerrarOT() {
+    return actividades.every((act) => {
+      const tieneHora = !!act.fecha_inic_real_actividad_orden;
+      const tieneCostoReal = !!act.costo_total_actividad_orden_real && act.costo_total_actividad_orden_real !== '0.00';
+      const tienePersonal = Array.isArray(act.puestos_actividad_orden) &&
+        act.puestos_actividad_orden.some((p: any) => Array.isArray(p.personal_encargado) && p.personal_encargado.length > 0);
+      return tieneHora && tieneCostoReal && tienePersonal;
+    });
   }
 
 
@@ -158,15 +199,8 @@ export default function RealizarOTScreen() {
               />
             )}
 
-            <Text style={styles.sectionLabel}>Almacén</Text>
-            <Select
-              options={almacenes}
-              valueKey="id_almacen"
-              labelKey="nombre_almacen"
-              selectedValue={almacenSeleccionado}
-              onValueChange={(value) => setAlmacenSeleccionado(value)}
-              placeholder="Selecciona un almacén"
-            />
+            <Text style={styles.inputDisabled}>{almacenSeleccionado ? almacenes.find(a => a.id_almacen === almacenSeleccionado)?.nombre_almacen : 'Sin asignar'}</Text>
+
 
             <Text style={styles.semaforoLabel}>Estados de colores</Text>
             <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginBottom: 10 }}>
@@ -191,9 +225,51 @@ export default function RealizarOTScreen() {
                 <Text style={styles.actividadText}>{i + 1}. {act.id_actividad_orden_pub}</Text>
               </TouchableOpacity>
             ))}
-            <TouchableOpacity style={styles.btnGuardar}>
+
+            <Text style={styles.label}>Totales de la actividad</Text>
+            <View style={styles.rowBetween}>
+              <View style={styles.column}>
+                <Text style={styles.costLabel}>Costo total</Text>
+                <Text style={styles.costLabel}>planeado</Text>
+                <TextInput
+                  style={styles.inputDisabled}
+                  value={`$${totalCostoProg}`}
+                  editable={false}
+                />
+              </View>
+              <View style={styles.column}>
+                <Text style={styles.costLabel}>Costo total</Text>
+                <Text style={styles.costLabel}>real</Text>
+                <TextInput
+                  style={styles.inputDisabled}
+                  value={`$${totalCostoReal}`}
+                  editable={false}
+                />
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.btnGuardar, { backgroundColor: puedeCerrarOT() ? '#1B2A56' : '#AAA' }]}
+              disabled={!puedeCerrarOT()}
+              onPress={async () => {
+                const res = await patchOrdenTrabajo(id, {
+                  id_orden_trabajo: id,
+                  ejecutada_orden_trabajo: true,
+                });
+
+                console.log('Respuesta patchOrdenTrabajo:', res); // TEMPORAL
+
+                if (res.success) {
+                  showToast('success', 'OT cerrada exitosamente');
+                  navigation.navigate('Calendario_OT');
+                } else {
+                  showToast('danger', 'Error al cerrar OT');
+                }
+              }}
+            >
               <Text style={styles.btnText}>Guardar y cerrar</Text>
             </TouchableOpacity>
+
           </>
         )}
       </ScrollView>
@@ -254,5 +330,37 @@ const styles = StyleSheet.create({
     marginTop: 20,
     fontWeight: 'bold',
     color: '#1B2A56',
-  }
+  },
+  inputDisabled: {
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 8,
+    padding: 10,
+    backgroundColor: '#F2F2F2',
+    color: '#666',
+  },
+  column: {
+    flex: 0.48,
+    flexDirection: 'column',
+  },
+  costLabel: {
+    fontSize: 13,
+    color: '#1B2A56',
+    marginBottom: 4,
+    fontWeight: '500',
+  },
+  costoBox: {
+    flex: 0.48,
+    backgroundColor: '#F2F2F2',
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+  },
+  inputCosto: {
+    fontSize: 16,
+    color: '#1B2A56',
+    fontWeight: '600',
+  },
 });

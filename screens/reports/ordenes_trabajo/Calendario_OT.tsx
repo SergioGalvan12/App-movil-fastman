@@ -9,7 +9,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../../App';
 import { Calendar } from 'react-native-calendars';
 import '../../../src/config/calendarLocale';
-
+import { useIsFocused } from '@react-navigation/native';
 import HeaderWithBack from '../../../components/common/HeaderWithBack';
 import ReportScreenLayout from '../../../components/layouts/ReportScreenLayout';
 import { getResumenOrdenesTrabajoPorMes } from '../../../services/reports/ordenesTrabajo/ordenTrabajoService'
@@ -23,10 +23,15 @@ export default function Calendario_OT() {
     const [resumenOTs, setResumenOTs] = useState<Map<string, number>>(new Map());
 
     // Inicializar el calendario con el mes actual
+    const isFocused = useIsFocused();
+
     useEffect(() => {
-        const today = new Date();
-        handleMonthChange(today.getFullYear(), today.getMonth() + 1);
-    }, []);
+        if (isFocused) {
+            const today = new Date();
+            handleMonthChange(today.getFullYear(), today.getMonth() + 1);
+        }
+    }, [isFocused]);
+
 
     const handleMonthChange = async (year: number, month: number) => {
         const desde = `${year}-${String(month).padStart(2, '0')}-01`;
