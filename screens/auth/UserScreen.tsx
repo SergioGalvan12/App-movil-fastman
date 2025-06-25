@@ -83,7 +83,7 @@ export default function UserScreen({ navigation, route }: Props) {
     <View style={styles.container}>
       <Image source={require('../../assets/fastman.png')} style={styles.logo} />
       <Text style={styles.title}>Iniciar sesión</Text>
-      <Text style={styles.subtitle}>Dominio: {domain}.fastman.io</Text>
+      <Text style={styles.subtitle}>{domain}.fastman.io</Text>
       {empresaInfo && (
         <Text style={styles.empresaText}>Empresa: {empresaInfo.nombre}</Text>
       )}

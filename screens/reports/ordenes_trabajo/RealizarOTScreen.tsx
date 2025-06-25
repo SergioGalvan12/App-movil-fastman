@@ -22,13 +22,18 @@ import Select from '../../../components/common/Select';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../../App';
+import { useFocusEffect } from '@react-navigation/native';
 
 interface Actividad {
   id_actividad_orden: number;
   id_actividad_orden_pub: string;
   observaciones_actividad: string;
   comentarios_actividad_orden: string;
+  status_actividad_orden: boolean;
+  fecha_inic_real_actividad_orden?: string;
+  tiempo_actividad_orden?: string;
 }
+
 
 type RootStackParamList = {
   RealizarOT: { id: number; folio: string };
@@ -48,34 +53,33 @@ export default function RealizarOTScreen() {
   const [showInicioPicker, setShowInicioPicker] = useState(false);
   const [showFinPicker, setShowFinPicker] = useState(false);
 
-  useEffect(() => {
-    async function fetchData() {
-      const ordenRes = await getOrdenTrabajo(id);
-      const actividadesRes = await getActividadesOrdenTrabajo(id);
+  useFocusEffect(
+    React.useCallback(() => {
+      async function fetchData() {
+        const ordenRes = await getOrdenTrabajo(id);
+        const actividadesRes = await getActividadesOrdenTrabajo(id);
 
-      if (ordenRes.success && ordenRes.data) {
-        const data = ordenRes.data as any;
-        setFechas({
-          inicio: data.fecha_inic_ejec_plan_orden_trabajo,
-          fin: data.fecha_fin_ejec_plan_orden_trabajo,
-        });
-        if (data.id_ubicacion) {
-          const almacenesRes = await getAlmacenesPorUbicacion(Number(data.id_ubicacion));
-          if (almacenesRes.success && almacenesRes.data) {
-            setAlmacenes(almacenesRes.data);
+        if (ordenRes.success && ordenRes.data) {
+          const data = ordenRes.data as any;
+          setFechas({
+            inicio: data.fecha_inic_ejec_plan_orden_trabajo,
+            fin: data.fecha_fin_ejec_plan_orden_trabajo,
+          });
+          if (data.id_ubicacion) {
+            const almacenesRes = await getAlmacenesPorUbicacion(Number(data.id_ubicacion));
+            if (almacenesRes.success && almacenesRes.data) {
+              setAlmacenes(almacenesRes.data);
+            }
           }
         }
+        if (actividadesRes.success && actividadesRes.data) {
+          setActividades(actividadesRes.data as Actividad[]);
+        }
+        setLoading(false);
       }
-
-      if (actividadesRes.success && actividadesRes.data) {
-        setActividades(actividadesRes.data as Actividad[]);
-      }
-
-      setLoading(false);
-    }
-
-    fetchData();
-  }, [id]);
+      fetchData();
+    }, [id])
+  );
 
   const onChangeInicio = (_: any, selectedDate?: Date) => {
     setShowInicioPicker(Platform.OS === 'ios');
@@ -92,6 +96,19 @@ export default function RealizarOTScreen() {
       setFechas((prev) => ({ ...prev, fin: iso }));
     }
   };
+
+  function getColorEstadoActividad(act: any) {
+    const tieneHora = !!act.fecha_inic_real_actividad_orden;
+    const tieneCostoReal = !!act.costo_total_actividad_orden_real && act.costo_total_actividad_orden_real !== '0.00';
+    const tieneComentarios = !!act.comentarios_actividad_orden && act.comentarios_actividad_orden.trim() !== '';
+    const tienePersonal = Array.isArray(act.puestos_actividad_orden) &&
+      act.puestos_actividad_orden.some((p: any) => Array.isArray(p.personal_encargado) && p.personal_encargado.length > 0);
+
+    if (tieneHora && tieneCostoReal && tienePersonal) return '#4CAF50'; // verde
+    if (tieneHora || tieneCostoReal || tienePersonal || tieneComentarios) return '#FFC107'; // amarillo
+    return '#F44336'; // rojo
+  }
+
 
   return (
     <ReportScreenLayout>
@@ -151,11 +168,18 @@ export default function RealizarOTScreen() {
               placeholder="Selecciona un almacén"
             />
 
+            <Text style={styles.semaforoLabel}>Estados de colores</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginBottom: 10 }}>
+              <Text style={{ color: '#F44336' }}>🔴 Pendiente</Text>
+              <Text style={{ color: '#FFC107' }}>🟡 Proceso</Text>
+              <Text style={{ color: '#4CAF50' }}>🟢 Completada</Text>
+            </View>
+
             <Text style={styles.sectionLabel}>Actividades</Text>
             {actividades.map((act, i) => (
               <TouchableOpacity
                 key={act.id_actividad_orden}
-                style={styles.actividadBtn}
+                style={[styles.actividadBtn, { borderColor: getColorEstadoActividad(act) }]}
                 onPress={() =>
                   navigation.navigate('RealizarActividadOT', {
                     idActividad: act.id_actividad_orden,
@@ -167,7 +191,6 @@ export default function RealizarOTScreen() {
                 <Text style={styles.actividadText}>{i + 1}. {act.id_actividad_orden_pub}</Text>
               </TouchableOpacity>
             ))}
-
             <TouchableOpacity style={styles.btnGuardar}>
               <Text style={styles.btnText}>Guardar y cerrar</Text>
             </TouchableOpacity>
@@ -205,7 +228,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   actividadBtn: {
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: '#5D74A6',
     padding: 12,
     borderRadius: 8,
@@ -226,4 +249,10 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
   },
+  semaforoLabel: {
+    marginBottom: 10,
+    marginTop: 20,
+    fontWeight: 'bold',
+    color: '#1B2A56',
+  }
 });

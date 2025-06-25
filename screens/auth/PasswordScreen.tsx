@@ -118,9 +118,8 @@ export default function PasswordScreen({ navigation, route }: Props) {
 
       <Text style={styles.title}>Iniciar sesión</Text>
       <Text style={styles.subtitle}>
-        Usuario: {username}@{domain}.fastman.io
+        Usuario: {username}
       </Text>
-      {empresaId && <Text style={styles.subtitle}>Empresa ID: {empresaId}</Text>}
 
       <Text style={styles.label}>Contraseña</Text>
       <View style={styles.inputContainer}>
