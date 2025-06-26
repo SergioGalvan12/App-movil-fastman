@@ -47,7 +47,9 @@ export default function OrdenesTrabajoDiaScreen() {
         <ReportScreenLayout>
             <HeaderWithBack title="Órdenes de trabajo" />
             <ScrollView style={styles.container}>
-                <Text style={styles.fecha}>{fecha}</Text>
+                <Text style={styles.fecha}>
+                    Fecha {fecha.split('-').reverse().join('-')}
+                </Text>
 
                 {loading ? (
                     <ActivityIndicator color="#5D74A6" />

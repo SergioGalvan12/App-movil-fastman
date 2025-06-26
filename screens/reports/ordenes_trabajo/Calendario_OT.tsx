@@ -19,6 +19,8 @@ import { getResumenOrdenesTrabajoPorMes } from '../../../services/reports/ordene
 export default function Calendario_OT() {
     const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
     const [selectedDate, setSelectedDate] = useState('');
+
+    const [baseMarkedDates, setBaseMarkedDates] = useState<{ [key: string]: any }>({});
     const [markedDates, setMarkedDates] = useState<{ [key: string]: any }>({});
     const [resumenOTs, setResumenOTs] = useState<Map<string, number>>(new Map());
 
@@ -48,9 +50,7 @@ export default function Calendario_OT() {
         }
 
         const newMarkedDates: { [key: string]: any } = {};
-
         const resumenMap = new Map<string, number>();
-
         const today = new Date();
 
         result.data.forEach(({ fecha, ots }) => {
@@ -60,7 +60,6 @@ export default function Calendario_OT() {
             const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
 
             let backgroundColor = '#1976d2'; // azul por defecto (futuras o actuales)
-
             if (diffInDays > 0 && diffInDays <= 4) {
                 backgroundColor = '#f9a825'; // amarillo
             } else if (diffInDays > 4) {
@@ -82,14 +81,36 @@ export default function Calendario_OT() {
 
             resumenMap.set(fecha, ots);
         });
-
-
+        setBaseMarkedDates(newMarkedDates);
         setMarkedDates(newMarkedDates);
         setResumenOTs(resumenMap);
     };
 
-
-
+    function getCombinedMarkedDates(baseMarks: { [key: string]: any }, selected: string) {
+        const updated: { [key: string]: any } = {};
+        // Copiar todas las marcas base
+        Object.keys(baseMarks).forEach((fecha) => {
+            updated[fecha] = { ...baseMarks[fecha] };
+        });
+        // Aplicar el estilo de selección solo a la fecha seleccionada
+        if (selected) {
+            updated[selected] = {
+                ...(baseMarks[selected] || {}),
+                customStyles: {
+                    container: {
+                        ...(baseMarks[selected]?.customStyles?.container || {}),
+                        borderWidth: 2,
+                        borderColor: '#000',
+                    },
+                    text: {
+                        ...(baseMarks[selected]?.customStyles?.text || {}),
+                        fontWeight: 'bold',
+                    },
+                },
+            };
+        }
+        return updated;
+    }
 
     return (
         <ReportScreenLayout>
@@ -100,11 +121,13 @@ export default function Calendario_OT() {
                     <Text style={styles.subtitle}>Selecciona un día para ver las órdenes</Text>
 
                     <Calendar
-                        markingType="custom"  // <-- necesario para estilos avanzados
-                        markedDates={markedDates}  // <-- lo generaremos dinámicamente
+                        markingType="custom"
+                        markedDates={markedDates}
                         onDayPress={(day) => {
                             setSelectedDate(day.dateString);
+                            setMarkedDates(getCombinedMarkedDates(baseMarkedDates, day.dateString));
                         }}
+
                         onMonthChange={(month) => {
                             handleMonthChange(month.year, month.month);
                         }}
@@ -116,12 +139,14 @@ export default function Calendario_OT() {
                     />
                     {selectedDate !== '' && (
                         <View style={styles.infoContainer}>
-                            <Text style={styles.infoTitle}>Órdenes de trabajo {selectedDate}</Text>
+                            <Text style={styles.infoTitle}>
+                                Órdenes de trabajo {selectedDate.split('-').reverse().join('-')}
+                            </Text>
 
                             {resumenOTs.has(selectedDate) ? (
                                 <>
                                     <Text style={styles.infoText}>
-                                        Tienes {resumenOTs.get(selectedDate)} OT disponible{resumenOTs.get(selectedDate)! > 1 ? 's' : ''}
+                                        Tienes {resumenOTs.get(selectedDate)} OT pendientes {resumenOTs.get(selectedDate)! > 1 ? 's' : ''}
                                     </Text>
                                     <Text
                                         style={styles.linkText}
@@ -129,7 +154,7 @@ export default function Calendario_OT() {
                                             navigation.navigate('OrdenesTrabajoDia', { fecha: selectedDate });
                                         }}
                                     >
-                                        Ver OT disponibles
+                                        Ver OT por ejecución
                                     </Text>
                                 </>
                             ) : (
@@ -163,7 +188,7 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     infoContainer: {
-        marginTop: 30,
+        marginTop: 40,
         alignItems: 'center',
     },
     infoTitle: {
