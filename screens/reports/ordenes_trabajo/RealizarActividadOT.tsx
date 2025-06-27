@@ -298,7 +298,7 @@ export default function RealizarActividadOT() {
         if (materiales.length) {
             getMaterialesInventario(
                 materiales.map(m => ({
-                    id_almacen: m.id_almacen!,          // ahora usamos el id real del almacén
+                    id_almacen: m.id_almacen!,
                     id_ubicacion: actividad.id_empresa,
                     id_material: m.material,
                 }))
@@ -308,22 +308,30 @@ export default function RealizarActividadOT() {
                 (res.data as any[]).forEach(d => {
                     inv[d.id_material] = {
                         costo: d.costo,
-                        disponible:
-                            parseFloat(d.cantidad) >=
-                            parseFloat(materiales.find(x => x.material === d.id_material)!.cantidad_real || '0'),
+                        disponible: parseFloat(d.cantidad) >=
+                            parseFloat(
+                                materiales.find(x => x.material === d.id_material)!
+                                    .cantidad_real || '0'
+                            ),
                     };
                 });
                 setInvMateriales(inv);
-                // actualiza costo_prog y costo_real con los datos recién traídos
                 setMateriales(prev =>
-                    prev.map(m => ({
-                        ...m,
-                        costo_prog: inv[m.material]?.costo ?? m.costo_prog,
-                        costo_real: m.cantidad_real
-                            ? (parseFloat(m.cantidad_real) * parseFloat(inv[m.material]?.costo || '0')).toFixed(2)
-                            : m.costo_real ?? '0.00',
-                        disponible: inv[m.material]?.disponible ?? m.disponible,
-                    }))
+                    prev.map(m => {
+                        const qtyPlan = parseFloat(m.cantidad_prog);
+                        const qtyReal = parseFloat(m.cantidad_real || '0');
+                        const invEntry = inv[m.material];
+                        // disponible = true si qtyReal <= qtyPlan (o si el stock real lo permite)
+                        const disponible = qtyReal <= qtyPlan || invEntry?.disponible;
+                        return {
+                            ...m,
+                            costo_prog: invEntry?.costo ?? m.costo_prog,
+                            costo_real: m.cantidad_real
+                                ? (qtyReal * parseFloat(invEntry?.costo || '0')).toFixed(2)
+                                : m.costo_real,
+                            disponible,
+                        };
+                    })
                 );
             });
         }
@@ -332,7 +340,7 @@ export default function RealizarActividadOT() {
         if (refacciones.length) {
             getRefaccionesInventario(
                 refacciones.map(r => ({
-                    id_almacen: r.id_almacen!,          // idem para refacciones
+                    id_almacen: r.id_almacen!,
                     id_ubicacion: actividad.id_empresa,
                     id_refaccion: r.refaccion,
                 }))
@@ -342,21 +350,29 @@ export default function RealizarActividadOT() {
                 (res.data as any[]).forEach(d => {
                     inv[d.id_refaccion] = {
                         costo: d.costo,
-                        disponible:
-                            parseFloat(d.cantidad) >=
-                            parseFloat(refacciones.find(x => x.refaccion === d.id_refaccion)!.cantidad_real || '0'),
+                        disponible: parseFloat(d.cantidad) >=
+                            parseFloat(
+                                refacciones.find(x => x.refaccion === d.id_refaccion)!
+                                    .cantidad_real || '0'
+                            ),
                     };
                 });
                 setInvRefacciones(inv);
                 setRefacciones(prev =>
-                    prev.map(r => ({
-                        ...r,
-                        costo_prog: inv[r.refaccion]?.costo ?? r.costo_prog,
-                        costo_real: r.cantidad_real
-                            ? (parseFloat(r.cantidad_real) * parseFloat(inv[r.refaccion]?.costo || '0')).toFixed(2)
-                            : r.costo_real ?? '0.00',
-                        disponible: inv[r.refaccion]?.disponible ?? r.disponible,
-                    }))
+                    prev.map(r => {
+                        const qtyPlan = parseFloat(r.cantidad_prog);
+                        const qtyReal = parseFloat(r.cantidad_real || '0');
+                        const invEntry = inv[r.refaccion];
+                        const disponible = qtyReal <= qtyPlan || invEntry?.disponible;
+                        return {
+                            ...r,
+                            costo_prog: invEntry?.costo ?? r.costo_prog,
+                            costo_real: r.cantidad_real
+                                ? (qtyReal * parseFloat(invEntry?.costo || '0')).toFixed(2)
+                                : r.costo_real,
+                            disponible,
+                        };
+                    })
                 );
             });
         }
@@ -366,24 +382,31 @@ export default function RealizarActividadOT() {
     function handleChangeMaterialQty(val: string, idx: number) {
         const nuevos = [...materiales];
         nuevos[idx].cantidad_real = val;
+        const plan = parseFloat(nuevos[idx].cantidad_prog);
+        const real = parseFloat(val || '0');
         const inv = invMateriales[nuevos[idx].material];
-        if (inv) {
-            nuevos[idx].costo_real = (parseFloat(val || '0') * parseFloat(inv.costo)).toFixed(2);
-            nuevos[idx].disponible = inv.disponible;
-        }
+        nuevos[idx].costo_real = inv
+            ? (real * parseFloat(inv.costo)).toFixed(2)
+            : nuevos[idx].costo_real;
+        // disponible = true si real <= plan
+        nuevos[idx].disponible = real <= plan || inv?.disponible || false;
         setMateriales(nuevos);
     }
+
 
     function handleChangeRefaccionQty(val: string, idx: number) {
         const nuevos = [...refacciones];
         nuevos[idx].cantidad_real = val;
+        const plan = parseFloat(nuevos[idx].cantidad_prog);
+        const real = parseFloat(val || '0');
         const inv = invRefacciones[nuevos[idx].refaccion];
-        if (inv) {
-            nuevos[idx].costo_real = (parseFloat(val || '0') * parseFloat(inv.costo)).toFixed(2);
-            nuevos[idx].disponible = inv.disponible;
-        }
+        nuevos[idx].costo_real = inv
+            ? (real * parseFloat(inv.costo)).toFixed(2)
+            : nuevos[idx].costo_real;
+        nuevos[idx].disponible = real <= plan || inv?.disponible || false;
         setRefacciones(nuevos);
     }
+
 
     // ——— Efecto: recalcular costo real total (mano + materiales + refacciones) ———
     useEffect(() => {
@@ -603,7 +626,10 @@ export default function RealizarActividadOT() {
                                             </Text>
                                         </Text>
                                         <Text style={styles.costosTotales}>
-                                            Costo planeado: ${r.costo_prog}  Costo real: ${r.costo_real}
+                                            Costo planeado: ${r.costo_prog || '0.00'}
+                                        </Text>
+                                        <Text style={styles.costosTotales}>
+                                            Costo real: ${r.costo_real || '0.00'}
                                         </Text>
                                     </View>
                                 ))}
