@@ -24,67 +24,67 @@ export default function UserScreen({ navigation, route }: Props) {
   const [error, setError] = useState('');
   const [empresaInfo, setEmpresaInfo] = useState<{ id: number, nombre: string } | null>(null);
 
-  // useEffect(() => {
-  //   const fetch = async () => {
-  //     const response = await axios.get('http://192.168.100.32/api/')
-  //     console.log(response.data);
-  //     console.log('Dominio local verificado');
-  //   }
-  //   fetch();
-  // }, []);
-
   const handleNext = async () => {
-    console.log('[UserScreen] Iniciando verificación de usuario:', username);
-  
-    if (!username.trim()) {
-      showToast('error', 'Usuario es requerido', 'Por favor ingresa tu nombre de usuario');
+    const trimmedUsername = username.trim();
+    console.log('[UserScreen] Iniciando verificación de usuario:', trimmedUsername);
+
+    if (!trimmedUsername) {
+      showToast('error', 'Usuario requerido', 'Por favor ingresa tu nombre de usuario');
       return;
     }
-  
+
     setLoading(true);
-    
+
     try {
-      const result = await checkUser(username.trim());
-  
+      const result = await checkUser(trimmedUsername);
       console.log('[UserScreen] Resultado de checkUser:', result);
-  
+
       if (result.success && result.data && result.data.length > 0 && result.empresaId) {
         setEmpresaInfo({
           id: result.empresaId,
           nombre: result.empresaNombre || 'Empresa'
         });
-  
-        console.log('[UserScreen] Navegando a PasswordScreen con:', {
-          domain,
-          username,
-          empresaId: result.empresaId
-        });
-  
+
+        showToast('success', 'Usuario correcto', `Bienvenido ${trimmedUsername}`);
+
         navigation.navigate('Password', {
           domain,
-          username: username.trim(),
+          username: trimmedUsername,
           empresaId: result.empresaId
         });
       } else {
-        console.warn('[UserScreen] Usuario no válido o no encontrado');
-        const mensaje = result.error || 'Usuario no encontrado. Verifica que sea correcto.';
-        showToast('error', 'Error de usuario', mensaje);
+        const mensaje = result.error?.toLowerCase() || '';
+        let mensajeFinal = 'Usuario no encontrado. Verifica que sea correcto.';
+
+        if (mensaje.includes('404') || mensaje.includes('no encontrado')) {
+          mensajeFinal = `Usuario "${trimmedUsername}" no está registrado en Fastman.io`;
+        } else if (mensaje.includes('400')) {
+          mensajeFinal = 'La solicitud no es válida. Verifica el nombre de usuario.';
+        }
+
+        showToast('error', 'Usuario no registrado', mensajeFinal);
       }
     } catch (err: any) {
       console.error('[UserScreen] Error de red o inesperado:', err);
-      const mensajeError = err?.message || 'Ocurrió un error al verificar el usuario. Inténtalo de nuevo.';
-      showToast('error', 'Error de verificación', mensajeError);
+
+      const mensajeError =
+        typeof err?.message === 'string'
+          ? err.message
+          : 'No se pudo verificar el usuario. Intenta de nuevo más tarde.';
+
+      showToast('error', 'Error de red', mensajeError);
     } finally {
       setLoading(false);
     }
   };
-  
+
+
 
   return (
     <View style={styles.container}>
       <Image source={require('../../assets/fastman.png')} style={styles.logo} />
       <Text style={styles.title}>Iniciar sesión</Text>
-      <Text style={styles.subtitle}>Dominio: {domain}.fastman.io</Text>
+      <Text style={styles.subtitle}>{domain}.fastman.io</Text>
       {empresaInfo && (
         <Text style={styles.empresaText}>Empresa: {empresaInfo.nombre}</Text>
       )}

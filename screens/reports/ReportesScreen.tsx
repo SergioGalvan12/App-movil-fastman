@@ -35,6 +35,11 @@ export default function ReportesScreen() {
           title="Reporte de Variables"
           onPress={() => handlePress('ReporteVariables')}
         />
+        {/* Nuevo: Calendario de Órdenes de Trabajo */}
+        <MenuItem
+          title="Calendario de Órdenes de Trabajo"
+          onPress={() => handlePress('Calendario_OT')}
+        />
       </ScrollView>
     </View>
   );

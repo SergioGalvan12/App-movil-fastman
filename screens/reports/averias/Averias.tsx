@@ -8,7 +8,6 @@ import {
   Alert,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import HeaderTitle from '../../../components/common/HeaderTitle';
 import SelectPersonal from '../../../components/common/SelectPersonal';
 import Select from '../../../components/common/Select';
 import { fetchTurnos, TurnoInterface } from '../../../services/reports/turnos/turnoService';

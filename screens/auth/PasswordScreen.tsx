@@ -55,33 +55,48 @@ export default function PasswordScreen({ navigation, route }: Props) {
     try {
       const empresaIdNum = typeof empresaId === 'number' ? empresaId : 1;
       console.log('Datos de login:', { domain, empresaId: empresaIdNum, username, password: '***' });
-      showToast('info', 'Datos de login', `Domain: ${domain}\nEmpresaID: ${empresaIdNum}\nUsername: ${username}`);
 
       const result = await login(domain, empresaIdNum, username, password);
+
       console.warn('Resultado login:', result);
 
       if (result.success) {
-        // Guarda el flag "Recuérdame" según el checkbox
-        await setRememberMe(rememberMe);
+        await setRememberMe(rememberMe); // guarda el checkbox
         const session = await getCurrentSession();
         if (session) {
           signIn(session);
         }
+
+        showToast('success', 'Login exitoso', `Bienvenido ${username}`);
         navigation.navigate('Main');
-        showToast('success', 'Login exitoso', 'Has iniciado sesión correctamente');
       } else {
-        const errorMessage = typeof result.error === 'string' ? result.error : 'Error desconocido al iniciar sesión';
-        showToast('error', 'Error de inicio de sesión', errorMessage);
+        // Analizamos mensaje de error recibido
+        const rawMessage = typeof result.error === 'string' ? result.error.toLowerCase() : '';
+        let mensaje = 'Error desconocido al iniciar sesión';
+
+        if (rawMessage.includes('401') || rawMessage.includes('credenciales')) {
+          mensaje = 'Contraseña incorrecta. Verifica e inténtalo de nuevo.';
+        } else if (rawMessage.includes('bloqueado')) {
+          mensaje = 'Tu cuenta está bloqueada. Contacta al administrador.';
+        } else if (rawMessage.includes('403')) {
+          mensaje = 'Acceso no autorizado.';
+        } else if (result.error) {
+          mensaje = result.error;
+        }
+
+        showToast('error', 'Error de autenticación', mensaje);
       }
     } catch (err: any) {
       console.error('Error al hacer login:', err);
-      const errorMessage = typeof err?.message === 'string' ? err.message : 'Ocurrió un error al iniciar sesión';
-      setError(errorMessage);
-      Alert.alert('Error inesperado', errorMessage, [{ text: 'OK' }]);
+      const mensaje = typeof err?.message === 'string'
+        ? err.message
+        : 'No se pudo establecer conexión. Intenta más tarde.';
+      showToast('error', 'Error de red', mensaje);
     } finally {
       setLoading(false);
     }
   };
+
 
   const handleGoBack = async () => {
     // Si el usuario tenía marcado "Recuérdame", lo desmarcamos:
@@ -103,9 +118,8 @@ export default function PasswordScreen({ navigation, route }: Props) {
 
       <Text style={styles.title}>Iniciar sesión</Text>
       <Text style={styles.subtitle}>
-        Usuario: {username}@{domain}.fastman.io
+        Usuario: {username}
       </Text>
-      {empresaId && <Text style={styles.subtitle}>Empresa ID: {empresaId}</Text>}
 
       <Text style={styles.label}>Contraseña</Text>
       <View style={styles.inputContainer}>
