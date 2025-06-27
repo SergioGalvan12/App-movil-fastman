@@ -21,6 +21,8 @@ import {
     getActividadOrdenTrabajoById,
     getPersonalPorPuesto,
     getActividadesOrdenTrabajo,
+    getMaterialesInventario,
+    getRefaccionesInventario,
 } from '../../../services/reports/ordenesTrabajo/realizarOTService';
 import { guardarActividadOT } from '../../../services/reports/ordenesTrabajo/actividadOTService';
 import { patchOrdenTrabajo } from '../../../services/reports/ordenesTrabajo/ordenTrabajoService';
@@ -44,6 +46,7 @@ interface PuestoActividad {
 
 interface MaterialActividad {
     id: number;
+    id_almacen: number | null;
     material: number;
     nombre_material: string;
     cantidad_prog: string;
@@ -52,6 +55,8 @@ interface MaterialActividad {
     abreviatura_unidad: string;
     numero_almacen_material: string;
     disponible: boolean;
+    costo_prog?: string;
+    costo_real?: string;
 }
 
 interface RefaccionActividad {
@@ -91,6 +96,7 @@ interface Actividad {
     status_actividad_orden: boolean;
     tiempo_excedente: boolean;
     disposicion_actividad_orden: any;
+    costo_total_actividad_orden: any;
 }
 
 type RootStackParamList = {
@@ -115,9 +121,24 @@ export default function RealizarActividadOT() {
     const [trabajadoresDisponibles, setTrabajadoresDisponibles] = useState<Trabajador[]>([]);
     const [materiales, setMateriales] = useState<MaterialActividad[]>([]);
     const [refacciones, setRefacciones] = useState<RefaccionActividad[]>([]);
-    const [costoProg, setCostoProg] = useState('0.00');
-    const [costoReal, setCostoReal] = useState('');
+
+    // Mano de obra
+    const [costoProgMano, setCostoProgMano] = useState('0.00');
+    const [costoRealMano, setCostoRealMano] = useState('0.00');
+
     const [loading, setLoading] = useState(false);
+
+    const [invMateriales, setInvMateriales] = useState<
+        Record<number, { costo: string; disponible: boolean }>
+    >({});
+    const [invRefacciones, setInvRefacciones] = useState<
+        Record<number, { costo: string; disponible: boolean }>
+    >({});
+
+    // Totales de actividad
+    const [totalProgActividad, setTotalProgActividad] = useState('0.00'); // viene del back
+    // Total real dinámico de la actividad (mano + mat + ref)
+    const [totalRealActividad, setTotalRealActividad] = useState('0.00');
 
     // Fetch y mapeo de datos
     async function fetchDatos() {
@@ -140,8 +161,9 @@ export default function RealizarActividadOT() {
             // Mano de obra
             if (act.puestos_actividad_orden.length) {
                 const puesto = act.puestos_actividad_orden[0];
-                setCostoProg(puesto.costo_prog);
-                setCostoReal(puesto.costo_real ?? '');
+                setCostoProgMano(puesto.costo_prog);
+                setCostoRealMano(puesto.costo_real ?? '0');
+                setTotalProgActividad(act.costo_total_actividad_orden);
                 setManoObra(puesto.personal_encargado);
                 const perRes = await getPersonalPorPuesto(puesto.puesto);
                 if (perRes.success) {
@@ -154,7 +176,13 @@ export default function RealizarActividadOT() {
             }
 
             // Materiales y Refacciones
-            setMateriales(act.materiales_actividad_orden ?? []);
+            setMateriales(
+                (act.materiales_actividad_orden ?? []).map(m => ({
+                    ...m,
+                    costo_prog: m.costo_prog ?? '0.00',
+                    costo_real: m.costo_real ?? '0.00',
+                }))
+            );
             setRefacciones(
                 (act.refacciones_actividad_orden ?? []).map((r: any) => ({
                     id: r.id,
@@ -206,8 +234,8 @@ export default function RealizarActividadOT() {
             descripcion: descripcion,
             descripcion_servicio: actividad!.descripcion_servicio,
             id_tipo_servicio_pub: actividad!.id_tipo_servicio_pub,
-            costo_total_actividad_orden: costoProg,
-            costo_total_actividad_orden_real: costoReal || '0',
+            costo_total_actividad_orden: totalProgActividad,          // planeado
+            costo_total_actividad_orden_real: totalRealActividad,     // recalc real
             fecha_inic_real_actividad_orden: fechaInicio,
             fecha_fin_real_actividad_orden: fechaFin,
             tiempo_actividad_orden: tiempoAct,
@@ -219,8 +247,8 @@ export default function RealizarActividadOT() {
                 personal_encargado: manoObra,
                 cantidad_prog: 1,
                 cantidad_real: 1,
-                costo_prog: costoProg,
-                costo_real: costoReal || '0.00',
+                costo_prog: costoProgMano,
+                costo_real: costoRealMano || '0.00',
                 nombre_puesto: trabajadoresDisponibles[0]?.nombre || '',
             }],
             materiales_actividad_orden: materiales.map(mat => ({
@@ -262,6 +290,117 @@ export default function RealizarActividadOT() {
         }
     };
 
+    // ——— Efecto: cargar inventario cuando cambian materiales o refacciones ———
+    useEffect(() => {
+        if (!actividad) return;
+
+        // materiales
+        if (materiales.length) {
+            getMaterialesInventario(
+                materiales.map(m => ({
+                    id_almacen: m.id_almacen!,          // ahora usamos el id real del almacén
+                    id_ubicacion: actividad.id_empresa,
+                    id_material: m.material,
+                }))
+            ).then(res => {
+                if (!res.success) return;
+                const inv: Record<number, { costo: string; disponible: boolean }> = {};
+                (res.data as any[]).forEach(d => {
+                    inv[d.id_material] = {
+                        costo: d.costo,
+                        disponible:
+                            parseFloat(d.cantidad) >=
+                            parseFloat(materiales.find(x => x.material === d.id_material)!.cantidad_real || '0'),
+                    };
+                });
+                setInvMateriales(inv);
+                // actualiza costo_prog y costo_real con los datos recién traídos
+                setMateriales(prev =>
+                    prev.map(m => ({
+                        ...m,
+                        costo_prog: inv[m.material]?.costo ?? m.costo_prog,
+                        costo_real: m.cantidad_real
+                            ? (parseFloat(m.cantidad_real) * parseFloat(inv[m.material]?.costo || '0')).toFixed(2)
+                            : m.costo_real ?? '0.00',
+                        disponible: inv[m.material]?.disponible ?? m.disponible,
+                    }))
+                );
+            });
+        }
+
+        // refacciones
+        if (refacciones.length) {
+            getRefaccionesInventario(
+                refacciones.map(r => ({
+                    id_almacen: r.id_almacen!,          // idem para refacciones
+                    id_ubicacion: actividad.id_empresa,
+                    id_refaccion: r.refaccion,
+                }))
+            ).then(res => {
+                if (!res.success) return;
+                const inv: Record<number, { costo: string; disponible: boolean }> = {};
+                (res.data as any[]).forEach(d => {
+                    inv[d.id_refaccion] = {
+                        costo: d.costo,
+                        disponible:
+                            parseFloat(d.cantidad) >=
+                            parseFloat(refacciones.find(x => x.refaccion === d.id_refaccion)!.cantidad_real || '0'),
+                    };
+                });
+                setInvRefacciones(inv);
+                setRefacciones(prev =>
+                    prev.map(r => ({
+                        ...r,
+                        costo_prog: inv[r.refaccion]?.costo ?? r.costo_prog,
+                        costo_real: r.cantidad_real
+                            ? (parseFloat(r.cantidad_real) * parseFloat(inv[r.refaccion]?.costo || '0')).toFixed(2)
+                            : r.costo_real ?? '0.00',
+                        disponible: inv[r.refaccion]?.disponible ?? r.disponible,
+                    }))
+                );
+            });
+        }
+    }, [actividad, materiales, refacciones]);
+
+    // ——— Handlers: recalcular fila al cambiar cantidad real ———
+    function handleChangeMaterialQty(val: string, idx: number) {
+        const nuevos = [...materiales];
+        nuevos[idx].cantidad_real = val;
+        const inv = invMateriales[nuevos[idx].material];
+        if (inv) {
+            nuevos[idx].costo_real = (parseFloat(val || '0') * parseFloat(inv.costo)).toFixed(2);
+            nuevos[idx].disponible = inv.disponible;
+        }
+        setMateriales(nuevos);
+    }
+
+    function handleChangeRefaccionQty(val: string, idx: number) {
+        const nuevos = [...refacciones];
+        nuevos[idx].cantidad_real = val;
+        const inv = invRefacciones[nuevos[idx].refaccion];
+        if (inv) {
+            nuevos[idx].costo_real = (parseFloat(val || '0') * parseFloat(inv.costo)).toFixed(2);
+            nuevos[idx].disponible = inv.disponible;
+        }
+        setRefacciones(nuevos);
+    }
+
+    // ——— Efecto: recalcular costo real total (mano + materiales + refacciones) ———
+    useEffect(() => {
+        const subMat = materiales.reduce(
+            (sum, m) => sum + parseFloat(m.costo_real ?? '0'),
+            0
+        );
+        const subRef = refacciones.reduce(
+            (sum, r) => sum + parseFloat(r.costo_real ?? '0'),
+            0
+        );
+        const mano = parseFloat(costoRealMano);
+        setTotalRealActividad((mano + subMat + subRef).toFixed(2));
+    }, [materiales, refacciones, costoRealMano]);
+
+
+
     return (
         <ReportScreenLayout>
             <HeaderWithBack title={`OT ${folio}`} />
@@ -290,9 +429,6 @@ export default function RealizarActividadOT() {
                                 )}
                             </>
                         )}
-
-
-
 
                         {/* Duración */}
                         <Text style={styles.label}>Duración planeada</Text>
@@ -365,13 +501,14 @@ export default function RealizarActividadOT() {
                             <Text style={styles.btnText}>Agregar trabajador</Text>
                         </TouchableOpacity>
 
+                        {/* Costos de mano de obra */}
                         <Text style={styles.label}>Costos</Text>
                         <View style={styles.rowBetween}>
                             <View style={styles.column}>
                                 <Text style={styles.costLabel}>Costo planeado</Text>
                                 <TextInput
                                     style={styles.inputDisabled}
-                                    value={costoProg}
+                                    value={costoProgMano}
                                     editable={false}
                                 />
                             </View>
@@ -380,8 +517,8 @@ export default function RealizarActividadOT() {
                                 <TextInput
                                     style={styles.input}
                                     placeholder="Costo real"
-                                    value={costoReal}
-                                    onChangeText={setCostoReal}
+                                    value={costoRealMano}
+                                    onChangeText={setCostoRealMano}
                                     keyboardType="numeric"
                                 />
                             </View>
@@ -399,19 +536,20 @@ export default function RealizarActividadOT() {
                                         <View style={styles.rowBetween}>
                                             <View style={styles.column}>
                                                 <Text style={styles.costLabel}>Cantidad planeada</Text>
-                                                <TextInput style={styles.inputDisabled} value={mat.cantidad_prog} editable={false} />
+                                                <TextInput
+                                                    style={styles.inputDisabled}
+                                                    value={mat.cantidad_prog}
+                                                    editable={false}
+                                                />
                                             </View>
                                             <View style={styles.column}>
                                                 <Text style={styles.costLabel}>Cantidad real</Text>
                                                 <TextInput
                                                     style={styles.input}
                                                     value={mat.cantidad_real ?? ''}
-                                                    onChangeText={(val) => {
-                                                        const nuevos = [...materiales];
-                                                        nuevos[idx].cantidad_real = val;
-                                                        setMateriales(nuevos);
-                                                    }}
                                                     keyboardType="numeric"
+                                                    // **LLAMAMOS** al handler que sí calcula el costo_real
+                                                    onChangeText={val => handleChangeMaterialQty(val, idx)}
                                                 />
                                             </View>
                                         </View>
@@ -419,7 +557,10 @@ export default function RealizarActividadOT() {
                                         <Text style={styles.textMini}>Unidad: {mat.abreviatura_unidad}</Text>
                                         <Text style={styles.textMini}>Disponible: <Text style={{ fontWeight: 'bold', color: mat.disponible ? 'green' : 'red' }}>{mat.disponible ? 'Sí' : 'No'}</Text></Text>
 
-                                        <Text style={styles.costosTotales}>Costo planeado: ${costoProg}  Costo real: ${costoReal || '0.00'}</Text>
+                                        <Text style={styles.costosTotales}>
+                                            Costo planeado: ${totalProgActividad}   Costo real: ${mat.costo_real}
+                                        </Text>
+
                                     </View>
                                 ))}
                             </>
@@ -449,11 +590,7 @@ export default function RealizarActividadOT() {
                                                 <TextInput
                                                     style={styles.input}
                                                     value={r.cantidad_real}
-                                                    onChangeText={val => {
-                                                        const copia = [...refacciones];
-                                                        copia[idx].cantidad_real = val;
-                                                        setRefacciones(copia);
-                                                    }}
+                                                    onChangeText={val => handleChangeRefaccionQty(val, idx)}
                                                     keyboardType="numeric"
                                                 />
                                             </View>
@@ -481,6 +618,19 @@ export default function RealizarActividadOT() {
                             onChangeText={setComentarios}
                         />
 
+                        <Text style={styles.sectionLabel}>Totales de la actividad</Text>
+                        <View style={styles.rowBetween}>
+                            <View style={styles.column}>
+                                <Text style={styles.costLabel}>Planeado</Text>
+                                <Text style={styles.costosTotales}>${totalProgActividad}</Text>
+                            </View>
+                            <View style={styles.column}>
+                                <Text style={styles.costLabel}>Real</Text>
+                                <Text style={styles.costosTotales}>${totalRealActividad}</Text>
+                            </View>
+                        </View>
+
+
                         <TouchableOpacity style={styles.btnGuardar} onPress={onGuardarActividad}>
                             <Text style={styles.btnText}>Guardar cambios</Text>
                         </TouchableOpacity>
@@ -492,6 +642,12 @@ export default function RealizarActividadOT() {
 
 const styles = StyleSheet.create({
     container: { padding: 20 },
+    sectionLabel: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#1B2A56',
+        marginBottom: 10,
+    },
     label: {
         fontSize: 14,
         color: '#5D74A6',
