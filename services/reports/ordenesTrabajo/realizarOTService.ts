@@ -49,12 +49,17 @@ export async function getRevisionesPlantilla() {
     return apiClient.get('/revision-plantilla/?status_revision=true');
 }
 
-// Obtener materiales en inventario por lote
-export async function getMaterialesInventario(payload: {
-    id_almacen: number;
-    id_ubicacion: number;
-    id_material: number;
-}[]) {
+/** Post genérico para inventario de materiales */
+export async function getMaterialesInventario(
+    payload: { id_almacen: number; id_ubicacion: number; id_material: number }[]
+) {
+    return apiClient.post('/cantidad-almacen-inventario/', payload);
+}
+
+/** Post para inventario de refacciones (mismo endpoint, distinto campo) */
+export async function getRefaccionesInventario(
+    payload: { id_almacen: number; id_ubicacion: number; id_refaccion: number }[]
+) {
     return apiClient.post('/cantidad-almacen-inventario/', payload);
 }
 

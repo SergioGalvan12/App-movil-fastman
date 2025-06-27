@@ -8,23 +8,26 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Platform,
-  TextInput
+  TextInput,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import HeaderWithBack from '../../../components/common/HeaderWithBack';
 import ReportScreenLayout from '../../../components/layouts/ReportScreenLayout';
-import { RouteProp, useRoute } from '@react-navigation/native';
-import {
-  getOrdenTrabajo,
-  getActividadesOrdenTrabajo,
-  getAlmacenesPorUbicacion
-} from '../../../services/reports/ordenesTrabajo/realizarOTService';
+import { RouteProp, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../../App';
-import { useFocusEffect } from '@react-navigation/native';
+
+import {
+  getOrdenTrabajo,
+  getActividadesOrdenTrabajo,
+} from '../../../services/reports/ordenesTrabajo/realizarOTService';
 import { patchOrdenTrabajo } from '../../../services/reports/ordenesTrabajo/ordenTrabajoService';
 import { showToast } from '../../../services/notifications/ToastService';
+
+type RootStackParamList = {
+  RealizarOT: { id: number; folio: string };
+};
 
 interface Actividad {
   id_actividad_orden: number;
@@ -37,119 +40,112 @@ interface Actividad {
   costo_total_actividad_orden_real?: string;
   puestos_actividad_orden?: {
     personal_encargado: number[];
+    costo_prog?: string;
   }[];
 }
-
-
-type RootStackParamList = {
-  RealizarOT: { id: number; folio: string };
-};
 
 export default function RealizarOTScreen() {
   const route = useRoute<RouteProp<RootStackParamList, 'RealizarOT'>>();
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
-
   const { id, folio } = route.params;
 
   const [loading, setLoading] = useState(true);
   const [actividades, setActividades] = useState<Actividad[]>([]);
-  const [almacenes, setAlmacenes] = useState<any[]>([]);
-  const [almacenSeleccionado, setAlmacenSeleccionado] = useState<number | null>(null);
   const [fechas, setFechas] = useState({ inicio: '', fin: '' });
   const [showInicioPicker, setShowInicioPicker] = useState(false);
   const [showFinPicker, setShowFinPicker] = useState(false);
+  const [nombreAlmacen, setNombreAlmacen] = useState<string>('');
   const [totalCostoProg, setTotalCostoProg] = useState('0.00');
   const [totalCostoReal, setTotalCostoReal] = useState('0.00');
 
+  // Carga inicial de OT y actividades
   useFocusEffect(
     React.useCallback(() => {
       async function fetchData() {
-        const ordenRes = await getOrdenTrabajo(id);
-        const actividadesRes = await getActividadesOrdenTrabajo(id);
+        setLoading(true);
 
+        // 1) Traer datos de la OT
+        const ordenRes = await getOrdenTrabajo(id);
         if (ordenRes.success && ordenRes.data) {
-          const data = ordenRes.data as any;
+          const data: any = ordenRes.data;
           setFechas({
             inicio: data.fecha_inic_ejec_plan_orden_trabajo,
             fin: data.fecha_fin_ejec_plan_orden_trabajo,
           });
-          if (data.id_ubicacion) {
-            const almacenesRes = await getAlmacenesPorUbicacion(Number(data.id_ubicacion));
-            if (almacenesRes.success && almacenesRes.data) {
-              setAlmacenes(almacenesRes.data);
-            }
-          }
+          setNombreAlmacen(data.nombre_almacen || 'Sin asignar');
         }
-        if (actividadesRes.success && actividadesRes.data) {
-          const actividadesData = actividadesRes.data as Actividad[];
 
-          // Sumar costo_total_actividad_orden_real
-          const sumaReal = actividadesData.reduce((acc, act) => {
+        // 2) Traer actividades
+        const actividadesRes = await getActividadesOrdenTrabajo(id);
+        if (actividadesRes.success && actividadesRes.data) {
+          const acts = actividadesRes.data as Actividad[];
+
+          // Calcular totales
+          const sumaReal = acts.reduce((acc, act) => {
             const val = parseFloat(act.costo_total_actividad_orden_real || '0');
             return acc + (isNaN(val) ? 0 : val);
           }, 0);
 
-          // Sumar costo_prog desde puestos_actividad_orden
-          const sumaProg = actividadesData.reduce((acc, act) => {
+          const sumaProg = acts.reduce((acc, act) => {
             if (Array.isArray(act.puestos_actividad_orden)) {
-              const subtotal = act.puestos_actividad_orden.reduce((subAcc, puesto) => {
-                const val = parseFloat((puesto as any).costo_prog || '0');
-                return subAcc + (isNaN(val) ? 0 : val);
+              const sub = act.puestos_actividad_orden.reduce((s, p) => {
+                const v = parseFloat(p.costo_prog || '0');
+                return s + (isNaN(v) ? 0 : v);
               }, 0);
-              return acc + subtotal;
+              return acc + sub;
             }
             return acc;
           }, 0);
 
           setTotalCostoReal(sumaReal.toFixed(2));
           setTotalCostoProg(sumaProg.toFixed(2));
-          setActividades(actividadesData);
+          setActividades(acts);
         }
 
         setLoading(false);
       }
+
       fetchData();
     }, [id])
   );
 
-  const onChangeInicio = (_: any, selectedDate?: Date) => {
+  const onChangeInicio = (_: any, selected?: Date) => {
     setShowInicioPicker(Platform.OS === 'ios');
-    if (selectedDate) {
-      const iso = selectedDate.toISOString().split('T')[0];
-      setFechas((prev) => ({ ...prev, inicio: iso }));
+    if (selected) {
+      setFechas(f => ({ ...f, inicio: selected.toISOString().split('T')[0] }));
     }
   };
 
-  const onChangeFin = (_: any, selectedDate?: Date) => {
+  const onChangeFin = (_: any, selected?: Date) => {
     setShowFinPicker(Platform.OS === 'ios');
-    if (selectedDate) {
-      const iso = selectedDate.toISOString().split('T')[0];
-      setFechas((prev) => ({ ...prev, fin: iso }));
+    if (selected) {
+      setFechas(f => ({ ...f, fin: selected.toISOString().split('T')[0] }));
     }
   };
 
-  function getColorEstadoActividad(act: any) {
+  // Semáforo por actividad
+  function getColorEstado(act: Actividad) {
     const tieneHora = !!act.fecha_inic_real_actividad_orden;
-    const tieneCostoReal = !!act.costo_total_actividad_orden_real && act.costo_total_actividad_orden_real !== '0.00';
-    const tieneComentarios = !!act.comentarios_actividad_orden && act.comentarios_actividad_orden.trim() !== '';
-    const tienePersonal = Array.isArray(act.puestos_actividad_orden) &&
-      act.puestos_actividad_orden.some((p: any) => Array.isArray(p.personal_encargado) && p.personal_encargado.length > 0);
-
-    if (tieneHora && tieneCostoReal && tienePersonal) return '#4CAF50'; // verde
-    if (tieneHora || tieneCostoReal || tienePersonal || tieneComentarios) return '#FFC107'; // amarillo
-    return '#F44336'; // rojo
+    const tieneCosto = !!act.costo_total_actividad_orden_real && act.costo_total_actividad_orden_real !== '0.00';
+    const tienePersonal = act.puestos_actividad_orden
+      ? act.puestos_actividad_orden.some(p => Array.isArray(p.personal_encargado) && p.personal_encargado.length > 0)
+      : false;
+    if (tieneHora && tieneCosto && tienePersonal) return '#4CAF50';
+    if (tieneHora || tieneCosto || tienePersonal) return '#FFC107';
+    return '#F44336';
   }
 
+  // ¿Se puede cerrar?
   function puedeCerrarOT() {
-    return actividades.every((act) => {
+    return actividades.every(act => {
       const tieneHora = !!act.fecha_inic_real_actividad_orden;
-      const tieneCostoReal = !!act.costo_total_actividad_orden_real && act.costo_total_actividad_orden_real !== '0.00';
-      const tienePersonal = Array.isArray(act.puestos_actividad_orden) &&
-        act.puestos_actividad_orden.some((p: any) => Array.isArray(p.personal_encargado) && p.personal_encargado.length > 0);
-      return tieneHora && tieneCostoReal && tienePersonal;
+      const tieneCosto = !!act.costo_total_actividad_orden_real && act.costo_total_actividad_orden_real !== '0.00';
+      const tienePersonal = act.puestos_actividad_orden
+        ? act.puestos_actividad_orden.some(p => Array.isArray(p.personal_encargado) && p.personal_encargado.length > 0)
+        : false;
+      return tieneHora && tieneCosto && tienePersonal;
     });
   }
-
 
   return (
     <ReportScreenLayout>
@@ -159,29 +155,22 @@ export default function RealizarOTScreen() {
           <ActivityIndicator color="#5D74A6" />
         ) : (
           <>
+            {/* Ejecución */}
             <Text style={styles.sectionLabel}>Ejecución</Text>
             <View style={styles.rowBetween}>
-              <View style={{ flex: 0.48 }}>
+              <View style={styles.column}>
                 <Text style={styles.label}>Inicio</Text>
-                <TouchableOpacity
-                  style={styles.dateBox}
-                  onPress={() => setShowInicioPicker(true)}
-                >
+                <TouchableOpacity style={styles.dateBox} onPress={() => setShowInicioPicker(true)}>
                   <Text>{fechas.inicio}</Text>
                 </TouchableOpacity>
               </View>
-
-              <View style={{ flex: 0.48 }}>
+              <View style={styles.column}>
                 <Text style={styles.label}>Fin</Text>
-                <TouchableOpacity
-                  style={styles.dateBox}
-                  onPress={() => setShowFinPicker(true)}
-                >
+                <TouchableOpacity style={styles.dateBox} onPress={() => setShowFinPicker(true)}>
                   <Text>{fechas.fin}</Text>
                 </TouchableOpacity>
               </View>
             </View>
-
             {showInicioPicker && (
               <DateTimePicker
                 value={fechas.inicio ? new Date(fechas.inicio) : new Date()}
@@ -199,21 +188,28 @@ export default function RealizarOTScreen() {
               />
             )}
 
-            <Text style={styles.inputDisabled}>{almacenSeleccionado ? almacenes.find(a => a.id_almacen === almacenSeleccionado)?.nombre_almacen : 'Sin asignar'}</Text>
+            {/* Almacén (sólo lectura) */}
+            <Text style={styles.label}>Almacén</Text>
+            <TextInput
+              style={styles.inputDisabled}
+              value={nombreAlmacen}
+              editable={false}
+            />
 
-
+            {/* Semáforo */}
             <Text style={styles.semaforoLabel}>Estados de colores</Text>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginBottom: 10 }}>
+            <View style={styles.rowBetween}>
               <Text style={{ color: '#F44336' }}>🔴 Pendiente</Text>
-              <Text style={{ color: '#FFC107' }}>🟡 Proceso</Text>
+              <Text style={{ color: '#FFC107' }}>🟡 En proceso</Text>
               <Text style={{ color: '#4CAF50' }}>🟢 Completada</Text>
             </View>
 
+            {/* Lista de actividades */}
             <Text style={styles.sectionLabel}>Actividades</Text>
             {actividades.map((act, i) => (
               <TouchableOpacity
                 key={act.id_actividad_orden}
-                style={[styles.actividadBtn, { borderColor: getColorEstadoActividad(act) }]}
+                style={[styles.actividadBtn, { borderColor: getColorEstado(act) }]}
                 onPress={() =>
                   navigation.navigate('RealizarActividadOT', {
                     idActividad: act.id_actividad_orden,
@@ -222,15 +218,17 @@ export default function RealizarOTScreen() {
                   })
                 }
               >
-                <Text style={styles.actividadText}>{i + 1}. {act.id_actividad_orden_pub}</Text>
+                <Text style={styles.actividadText}>
+                  {i + 1}. {act.id_actividad_orden_pub}
+                </Text>
               </TouchableOpacity>
             ))}
 
-            <Text style={styles.label}>Totales de la actividad</Text>
+            {/* Totales */}
+            <Text style={styles.sectionLabel}>Totales de la OT</Text>
             <View style={styles.rowBetween}>
               <View style={styles.column}>
-                <Text style={styles.costLabel}>Costo total</Text>
-                <Text style={styles.costLabel}>planeado</Text>
+                <Text style={styles.costLabel}>Planeado</Text>
                 <TextInput
                   style={styles.inputDisabled}
                   value={`$${totalCostoProg}`}
@@ -238,8 +236,7 @@ export default function RealizarOTScreen() {
                 />
               </View>
               <View style={styles.column}>
-                <Text style={styles.costLabel}>Costo total</Text>
-                <Text style={styles.costLabel}>real</Text>
+                <Text style={styles.costLabel}>Real</Text>
                 <TextInput
                   style={styles.inputDisabled}
                   value={`$${totalCostoReal}`}
@@ -248,17 +245,18 @@ export default function RealizarOTScreen() {
               </View>
             </View>
 
+            {/* Botón Cerrar OT */}
             <TouchableOpacity
-              style={[styles.btnGuardar, { backgroundColor: puedeCerrarOT() ? '#1B2A56' : '#AAA' }]}
+              style={[
+                styles.btnGuardar,
+                { backgroundColor: puedeCerrarOT() ? '#1B2A56' : '#AAA' },
+              ]}
               disabled={!puedeCerrarOT()}
               onPress={async () => {
                 const res = await patchOrdenTrabajo(id, {
                   id_orden_trabajo: id,
                   ejecutada_orden_trabajo: true,
                 });
-
-                console.log('Respuesta patchOrdenTrabajo:', res); // TEMPORAL
-
                 if (res.success) {
                   showToast('success', 'OT cerrada exitosamente');
                   navigation.navigate('Calendario_OT');
@@ -269,7 +267,6 @@ export default function RealizarOTScreen() {
             >
               <Text style={styles.btnText}>Guardar y cerrar</Text>
             </TouchableOpacity>
-
           </>
         )}
       </ScrollView>

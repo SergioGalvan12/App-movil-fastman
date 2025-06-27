@@ -10,16 +10,21 @@ import {
     Platform,
     ActivityIndicator,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { useRoute, useFocusEffect, useNavigation, RouteProp } from '@react-navigation/native';
+
 import HeaderWithBack from '../../../components/common/HeaderWithBack';
 import ReportScreenLayout from '../../../components/layouts/ReportScreenLayout';
-import { RouteProp, useRoute, useFocusEffect } from '@react-navigation/native';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { getActividadOrdenTrabajoById, getPersonalPorPuesto, getActividadesOrdenTrabajo } from '../../../services/reports/ordenesTrabajo/realizarOTService';
-import { patchOrdenTrabajo } from '../../../services/reports/ordenesTrabajo/ordenTrabajoService';
 import Select from '../../../components/common/Select';
 import { showToast } from '../../../services/notifications/ToastService';
+import {
+    getActividadOrdenTrabajoById,
+    getPersonalPorPuesto,
+    getActividadesOrdenTrabajo,
+} from '../../../services/reports/ordenesTrabajo/realizarOTService';
 import { guardarActividadOT } from '../../../services/reports/ordenesTrabajo/actividadOTService';
-import { useNavigation } from '@react-navigation/native';
+import { patchOrdenTrabajo } from '../../../services/reports/ordenesTrabajo/ordenTrabajoService';
+
 interface Trabajador {
     id: number;
     nombre: string;
@@ -37,23 +42,6 @@ interface PuestoActividad {
     costo_real?: string | null;
 }
 
-interface Actividad {
-    id_actividad_orden: number;
-    observaciones_actividad: string;
-    comentarios_actividad_orden: string | null;
-    tiempo_actividad_orden: string | null;
-    tiempo_plan_actividad_orden: string | null;
-    fecha_inic_real_actividad_orden: string | null;
-    puestos_actividad_orden: PuestoActividad[];
-    materiales_actividad_orden?: MaterialActividad[];
-    id_actividad: number;
-    id_actividad_orden_pub: string;
-    tipo_actividad: string;
-    descripcion_servicio?: string;
-    id_tipo_servicio_pub?: string;
-    id_empresa: number;
-}
-
 interface MaterialActividad {
     id: number;
     material: number;
@@ -66,15 +54,57 @@ interface MaterialActividad {
     disponible: boolean;
 }
 
+interface RefaccionActividad {
+    id: number;
+    refaccion: number;                    // el FK
+    id_almacen: number | null;
+    no_parte_refaccion: string | null;    // el “código” de la refacción
+    descripcion_refaccion: string | null;
+    cantidad_prog: string;
+    cantidad_real: string | null;
+    abreviatura_unidad: string;
+    nombre_unidad: string;
+    disponible: boolean;
+    costo_prog: string | null;
+    costo_real: string | null;
+}
+
+
+interface Actividad {
+    id_actividad_orden: number;
+    id_actividad_orden_pub: string;
+    id_empresa: number;
+    id_orden_trabajo: number;
+    id_actividad: number;
+    tipo_actividad: string;
+    descripcion_servicio?: string;
+    id_tipo_servicio_pub?: string;
+    observaciones_actividad: string;
+    comentarios_actividad_orden: string | null;
+    tiempo_actividad_orden: string | null;
+    tiempo_plan_actividad_orden: string | null;
+    fecha_inic_real_actividad_orden: string | null;
+    inicia_actividad_orden: boolean;
+    puestos_actividad_orden: PuestoActividad[];
+    materiales_actividad_orden?: MaterialActividad[];
+    refacciones_actividad_orden?: RefaccionActividad[];
+    status_actividad_orden: boolean;
+    tiempo_excedente: boolean;
+    disposicion_actividad_orden: any;
+}
+
 type RootStackParamList = {
     RealizarActividadOT: { idActividad: number; idOrdenTrabajo: number; folio: string };
 };
 
 export default function RealizarActividadOT() {
     const navigation = useNavigation();
-    const route = useRoute<RouteProp<{ RealizarActividadOT: { idActividad: number; idOrdenTrabajo: number; folio: string } }, 'RealizarActividadOT'>>();
-    const { idActividad, idOrdenTrabajo, folio } = route.params;
+    const { idActividad, idOrdenTrabajo, folio } = useRoute<RouteProp<RootStackParamList, 'RealizarActividadOT'>>().params;
 
+    // Estado completo de la actividad según la API:
+    const [actividad, setActividad] = useState<Actividad | null>(null);
+
+    // Estados controlados para inputs:
     const [hora, setHora] = useState<Date | null>(null);
     const [showPicker, setShowPicker] = useState(false);
     const [duracionPlan, setDuracionPlan] = useState({ h: '', m: '' });
@@ -82,139 +112,118 @@ export default function RealizarActividadOT() {
     const [descripcion, setDescripcion] = useState('');
     const [comentarios, setComentarios] = useState('');
     const [manoObra, setManoObra] = useState<number[]>([]);
-    const [nuevoTrabajador, setNuevoTrabajador] = useState<number | null>(null);
-    const [loading, setLoading] = useState(false);
     const [trabajadoresDisponibles, setTrabajadoresDisponibles] = useState<Trabajador[]>([]);
+    const [materiales, setMateriales] = useState<MaterialActividad[]>([]);
+    const [refacciones, setRefacciones] = useState<RefaccionActividad[]>([]);
     const [costoProg, setCostoProg] = useState('0.00');
     const [costoReal, setCostoReal] = useState('');
-    const [materiales, setMateriales] = useState<MaterialActividad[]>([]);
-    const [actividadMeta, setActividadMeta] = useState({
-        idActividad: 0,
-        idActividadPub: '',
-        tipoActividad: '',
-        descripcionServicio: '',
-        idTipoServicioPub: '',
-        idEmpresa: 0,
-    });
+    const [loading, setLoading] = useState(false);
 
+    // Fetch y mapeo de datos
     async function fetchDatos() {
         setLoading(true);
         const res = await getActividadOrdenTrabajoById(idActividad);
-
         if (res.success && Array.isArray(res.data) && res.data.length > 0) {
-            const actividad = res.data[0] as Actividad;
+            const act = res.data[0] as Actividad;
+            setActividad(act);
 
-            setActividadMeta({
-                idActividad: actividad.id_actividad,
-                idActividadPub: actividad.id_actividad_orden_pub,
-                tipoActividad: actividad.tipo_actividad,
-                descripcionServicio: actividad.descripcion_servicio ?? '',
-                idTipoServicioPub: actividad.id_tipo_servicio_pub ?? '',
-                idEmpresa: actividad.id_empresa,
-            });
+            // Inicializamos los campos controlados:
+            setDescripcion(act.observaciones_actividad);
+            setComentarios(act.comentarios_actividad_orden || '');
+            setDuracionReal(act.tiempo_actividad_orden
+                ? { h: act.tiempo_actividad_orden.split(':')[0], m: act.tiempo_actividad_orden.split(':')[1] }
+                : { h: '', m: '' });
+            const base = act.tiempo_plan_actividad_orden ?? act.tiempo_actividad_orden;
+            if (base) setDuracionPlan({ h: base.split(':')[0], m: base.split(':')[1] });
+            setHora(act.fecha_inic_real_actividad_orden ? new Date(act.fecha_inic_real_actividad_orden) : new Date());
 
-            setDescripcion(actividad.observaciones_actividad || '');
-            setComentarios(actividad.comentarios_actividad_orden || '');
-
-            if (actividad.tiempo_actividad_orden) {
-                const [h, m] = actividad.tiempo_actividad_orden.split(':');
-                setDuracionReal({ h, m });
-            }
-
-            const duracionBase = actividad.tiempo_plan_actividad_orden ?? actividad.tiempo_actividad_orden;
-            if (duracionBase) {
-                const [h, m] = duracionBase.split(':');
-                setDuracionPlan({ h, m });
-            }
-
-            if (actividad.fecha_inic_real_actividad_orden) {
-                setHora(new Date(actividad.fecha_inic_real_actividad_orden));
-            } else {
-                setHora(new Date());
-            }
-
-            if (actividad.puestos_actividad_orden && actividad.puestos_actividad_orden.length > 0) {
-                const puesto = actividad.puestos_actividad_orden[0];
+            // Mano de obra
+            if (act.puestos_actividad_orden.length) {
+                const puesto = act.puestos_actividad_orden[0];
                 setCostoProg(puesto.costo_prog);
                 setCostoReal(puesto.costo_real ?? '');
-                setManoObra(puesto.personal_encargado || []);
-
-                const idPuesto = puesto.puesto;
-                const personalRes = await getPersonalPorPuesto(idPuesto);
-                if (personalRes.success && Array.isArray(personalRes.data)) {
-                    const data = personalRes.data.map((p: any) => ({
+                setManoObra(puesto.personal_encargado);
+                const perRes = await getPersonalPorPuesto(puesto.puesto);
+                if (perRes.success) {
+                    setTrabajadoresDisponibles((perRes.data as any[]).map((p: any) => ({
                         id: p.id_equipo,
-                        nombre: `${p.nombre_personal} ${p.apaterno_personal} ${p.amaterno_personal ?? ''}`.trim(),
+                        nombre: `${p.nombre_personal} ${p.apaterno_personal}`.trim(),
                         id_puesto_personal: p.id_puesto_personal,
-                    }));
-                    setTrabajadoresDisponibles(data);
+                    })));
                 }
             }
 
-            if (actividad.materiales_actividad_orden && Array.isArray(actividad.materiales_actividad_orden)) {
-                setMateriales(actividad.materiales_actividad_orden);
-            }
+            // Materiales y Refacciones
+            setMateriales(act.materiales_actividad_orden ?? []);
+            setRefacciones(
+                (act.refacciones_actividad_orden ?? []).map((r: any) => ({
+                    id: r.id,
+                    refaccion: r.refaccion,
+                    id_almacen: r.id_almacen,                     // <-- aquí
+                    no_parte_refaccion: r.no_parte_refaccion,     // <-- aquí
+                    descripcion_refaccion: r.descripcion_refaccion,
+                    cantidad_prog: String(r.cantidad_prog),
+                    cantidad_real: r.cantidad_real != null ? String(r.cantidad_real) : null,
+                    abreviatura_unidad: r.abreviatura_unidad,
+                    nombre_unidad: r.nombre_unidad,
+                    disponible: r.disponible,
+                    costo_prog: r.costo_prog,
+                    costo_real: r.costo_real,
+                }))
+            );
         }
         setLoading(false);
     }
 
-    useEffect(() => {
-        fetchDatos();
-    }, [idActividad]);
+    useEffect(() => { fetchDatos(); }, [idActividad]);
+    useFocusEffect(React.useCallback(() => { fetchDatos(); }, [idActividad]));
 
-    useFocusEffect(
-        React.useCallback(() => {
-            fetchDatos();
-        }, [idActividad])
-    );
-
+    // Guardar cambios
     const onGuardarActividad = async () => {
-        if (!hora) {
+        if (actividad?.inicia_actividad_orden && !hora) {
             showToast('error', 'Debes seleccionar una hora de inicio');
             return;
         }
-
         if (manoObra.length === 0 || manoObra.includes(0)) {
             showToast('error', 'Selecciona al menos un trabajador válido');
             return;
         }
 
+        // Calculamos tiempos y payload
         const h = parseInt(duracionReal.h || '0', 10);
         const m = parseInt(duracionReal.m || '0', 10);
-        const fechaInicio = hora.toISOString();
-        const fechaFin = new Date(hora.getTime() + h * 60 * 60 * 1000 + m * 60 * 1000).toISOString();
-        const tiempoActividad = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`;
+        const fechaInicio = hora!.toISOString();
+        const fechaFin = new Date(hora!.getTime() + h * 3600000 + m * 60000).toISOString();
+        const tiempoAct = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`;
 
-        const payload = {
-            id_actividad_orden: idActividad,
-            id_actividad_orden_pub: actividadMeta.idActividadPub,
-            id_empresa: actividadMeta.idEmpresa,
-            id_orden_trabajo: idOrdenTrabajo,
-            id_actividad: actividadMeta.idActividad,
-            tipo_actividad: actividadMeta.tipoActividad,
+        const payload: any = {
+            id_actividad_orden: actividad!.id_actividad_orden,
+            id_actividad_orden_pub: actividad!.id_actividad_orden_pub,
+            id_empresa: actividad!.id_empresa,
+            id_orden_trabajo: actividad!.id_orden_trabajo,
+            id_actividad: actividad!.id_actividad,
+            tipo_actividad: actividad!.tipo_actividad,
             descripcion: descripcion,
-            descripcion_servicio: actividadMeta.descripcionServicio,
-            id_tipo_servicio_pub: actividadMeta.idTipoServicioPub,
+            descripcion_servicio: actividad!.descripcion_servicio,
+            id_tipo_servicio_pub: actividad!.id_tipo_servicio_pub,
             costo_total_actividad_orden: costoProg,
             costo_total_actividad_orden_real: costoReal || '0',
             fecha_inic_real_actividad_orden: fechaInicio,
             fecha_fin_real_actividad_orden: fechaFin,
-            tiempo_actividad_orden: tiempoActividad,
+            tiempo_actividad_orden: tiempoAct,
             tiempo_plan_actividad_orden: `${duracionPlan.h.padStart(2, '0')}:${duracionPlan.m.padStart(2, '0')}:00`,
             comentarios_actividad_orden: comentarios,
-            puestos_actividad_orden: [
-                {
-                    id: idActividad,
-                    puesto: trabajadoresDisponibles[0]?.id_puesto_personal,
-                    personal_encargado: manoObra,
-                    cantidad_prog: 1,
-                    cantidad_real: 1,
-                    costo_prog: costoProg,
-                    costo_real: costoReal || '0.00',
-                    nombre_puesto: trabajadoresDisponibles[0]?.nombre || '',
-                },
-            ],
-            materiales_actividad_orden: materiales.map((mat) => ({
+            puestos_actividad_orden: [{
+                id: actividad!.id_actividad_orden,
+                puesto: trabajadoresDisponibles[0]?.id_puesto_personal,
+                personal_encargado: manoObra,
+                cantidad_prog: 1,
+                cantidad_real: 1,
+                costo_prog: costoProg,
+                costo_real: costoReal || '0.00',
+                nombre_puesto: trabajadoresDisponibles[0]?.nombre || '',
+            }],
+            materiales_actividad_orden: materiales.map(mat => ({
                 id: mat.id,
                 material: mat.material,
                 cantidad_prog: mat.cantidad_prog,
@@ -225,72 +234,65 @@ export default function RealizarActividadOT() {
                 numero_almacen_material: mat.numero_almacen_material,
                 disponible: mat.disponible,
             })),
+            refacciones_actividad_orden: refacciones.map(r => ({
+                id: r.id,
+                refaccion: r.refaccion,
+                id_almacen: r.id_almacen,
+                cantidad_prog: r.cantidad_prog,
+                cantidad_real: r.cantidad_real ?? '0',
+            })),
+
             observaciones_actividad: descripcion,
             status_actividad_orden: true,
             inicia_actividad_orden: true,
         };
 
         const res = await guardarActividadOT(payload);
-
         if (res.success) {
             showToast('success', 'Actividad guardada correctamente');
-
-            const otRes = await getActividadesOrdenTrabajo(idOrdenTrabajo);
-            if (otRes.success && Array.isArray(otRes.data)) {
-                const totalReal = otRes.data.reduce((acc, act) => {
-                    const val = parseFloat(act.costo_total_actividad_orden_real || '0');
-                    return acc + (isNaN(val) ? 0 : val);
-                }, 0);
-
-                await patchOrdenTrabajo(idOrdenTrabajo, {
-                    id_orden_trabajo: idOrdenTrabajo,
-                    costo_real: totalReal,
-                });
+            const otRes = await getActividadesOrdenTrabajo(actividad!.id_orden_trabajo);
+            if (otRes.success) {
+                const totalReal = (otRes.data as any[]).reduce((sum: any, a: any) =>
+                    sum + parseFloat(a.costo_total_actividad_orden_real || '0'), 0);
+                await patchOrdenTrabajo(actividad!.id_orden_trabajo, { id_orden_trabajo: actividad!.id_orden_trabajo, costo_real: totalReal });
             }
-
             navigation.goBack();
         } else {
             showToast('danger', 'Error al guardar actividad');
         }
     };
 
-    const onChangeHora = (_: any, selectedDate?: Date) => {
-        setShowPicker(Platform.OS === 'ios');
-        if (selectedDate) {
-            setHora(selectedDate);
-        }
-    };
-
-    const disponiblesParaAgregar = trabajadoresDisponibles.filter(
-        (t) => !manoObra.includes(t.id)
-    );
-
-    // Si no hay manoObra inicial, agregar automáticamente un slot vacío
-    useEffect(() => {
-        if (!loading && manoObra.length === 0 && trabajadoresDisponibles.length > 0) {
-            setManoObra([0]);
-        }
-    }, [trabajadoresDisponibles, loading]);
-
     return (
         <ReportScreenLayout>
             <HeaderWithBack title={`OT ${folio}`} />
             <ScrollView style={styles.container}>
-                {loading ? <ActivityIndicator color="#5D74A6" /> : (
-                    <>
+                {loading || !actividad
+                    ? <ActivityIndicator color="#5D74A6" />
+                    : <>
                         {/* Hora */}
-                        <Text style={styles.label}>Hora</Text>
-                        <TouchableOpacity style={styles.inputBox} onPress={() => setShowPicker(true)}>
-                            <Text>{hora ? hora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}</Text>
-                        </TouchableOpacity>
-                        {showPicker && (
-                            <DateTimePicker
-                                value={hora || new Date()}
-                                mode="time"
-                                display="default"
-                                onChange={onChangeHora}
-                            />
+                        {actividad.inicia_actividad_orden && (
+                            <>
+                                <Text style={styles.label}>Hora</Text>
+                                <TouchableOpacity style={styles.inputBox} onPress={() => setShowPicker(true)}>
+                                    <Text>
+                                        {hora
+                                            ? hora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                            : '--:--'}
+                                    </Text>
+                                </TouchableOpacity>
+                                {showPicker && (
+                                    <DateTimePicker
+                                        value={hora!}
+                                        mode="time"
+                                        display="default"
+                                        onChange={(_, d) => { setShowPicker(Platform.OS === 'ios'); d && setHora(d); }}
+                                    />
+                                )}
+                            </>
                         )}
+
+
+
 
                         {/* Duración */}
                         <Text style={styles.label}>Duración planeada</Text>
@@ -385,6 +387,7 @@ export default function RealizarActividadOT() {
                             </View>
                         </View>
 
+
                         {materiales.length > 0 && (
                             <>
                                 <Text style={styles.label}>Materiales</Text>
@@ -421,19 +424,67 @@ export default function RealizarActividadOT() {
                                 ))}
                             </>
                         )}
+                        {refacciones.length > 0 && (
+                            <>
+                                <Text style={styles.label}>Refacciones</Text>
+                                {refacciones.map((r, idx) => (
+                                    <View key={idx} style={styles.materialBox}>
+                                        <Text style={styles.textMini}>
+                                            Artículo: <Text style={{ fontWeight: 'bold' }}>{r.no_parte_refaccion}</Text>
+                                        </Text>
+                                        <Text style={styles.textMini}>
+                                            Refacción: <Text style={{ fontWeight: 'bold' }}>{r.descripcion_refaccion}</Text>
+                                        </Text>
+                                        <View style={styles.rowBetween}>
+                                            <View style={styles.column}>
+                                                <Text style={styles.costLabel}>Cantidad planeada</Text>
+                                                <TextInput
+                                                    style={styles.inputDisabled}
+                                                    value={r.cantidad_prog}
+                                                    editable={false}
+                                                />
+                                            </View>
+                                            <View style={styles.column}>
+                                                <Text style={styles.costLabel}>Cantidad real</Text>
+                                                <TextInput
+                                                    style={styles.input}
+                                                    value={r.cantidad_real}
+                                                    onChangeText={val => {
+                                                        const copia = [...refacciones];
+                                                        copia[idx].cantidad_real = val;
+                                                        setRefacciones(copia);
+                                                    }}
+                                                    keyboardType="numeric"
+                                                />
+                                            </View>
+                                        </View>
+                                        <Text style={styles.textMini}>Unidad: {r.abreviatura_unidad}</Text>
+                                        <Text style={styles.textMini}>
+                                            Disponible:{' '}
+                                            <Text style={{ fontWeight: 'bold', color: r.disponible ? 'green' : 'red' }}>
+                                                {r.disponible ? 'Sí' : 'No'}
+                                            </Text>
+                                        </Text>
+                                        <Text style={styles.costosTotales}>
+                                            Costo planeado: ${r.costo_prog}  Costo real: ${r.costo_real}
+                                        </Text>
+                                    </View>
+                                ))}
+                            </>
+                        )}
 
+                        {/* Comentarios y Guardar */}
                         <Text style={styles.label}>Comentarios</Text>
-                        <TextInput style={[styles.inputBox, { minHeight: 60 }]} multiline value={comentarios} onChangeText={setComentarios} />
-
-                        <Text style={styles.costosTotales}>
-                            Costo planeado: ${costoProg}  Costo real: ${costoReal || '0.00'}
-                        </Text>
+                        <TextInput
+                            style={[styles.inputBox, { minHeight: 60 }]}
+                            multiline value={comentarios}
+                            onChangeText={setComentarios}
+                        />
 
                         <TouchableOpacity style={styles.btnGuardar} onPress={onGuardarActividad}>
                             <Text style={styles.btnText}>Guardar cambios</Text>
                         </TouchableOpacity>
-                    </>
-                )}
+                    </>}
             </ScrollView>
         </ReportScreenLayout>
     );
