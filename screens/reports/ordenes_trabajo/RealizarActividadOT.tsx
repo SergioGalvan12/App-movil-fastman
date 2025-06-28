@@ -208,6 +208,7 @@ export default function RealizarActividadOT() {
 
     // Guardar cambios
     const onGuardarActividad = async () => {
+        const totalMinutos = (parseInt(duracionReal.h, 10) || 0) * 60 + (parseInt(duracionReal.m, 10) || 0);
         if (actividad?.inicia_actividad_orden && !hora) {
             showToast('error', 'Debes seleccionar una hora de inicio');
             return;
@@ -216,6 +217,12 @@ export default function RealizarActividadOT() {
             showToast('error', 'Selecciona al menos un trabajador válido');
             return;
         }
+        // en onGuardarActividad antes de construir payload
+        if (totalMinutos === 0) {
+            showToast('error', 'La duración real debe ser mayor a 0');
+            return;
+        }
+
 
         // Calculamos tiempos y payload
         const h = parseInt(duracionReal.h || '0', 10);
@@ -454,24 +461,60 @@ export default function RealizarActividadOT() {
                         )}
 
                         {/* Duración */}
-                        <Text style={styles.label}>Duración planeada</Text>
+                        <Text style={styles.sectionLabel}>Duración real (HH : MM)</Text>
                         <View style={styles.rowBetween}>
-                            <TextInput style={styles.inputDisabled} placeholder="Hrs" keyboardType="numeric" value={duracionPlan.h} editable={false} />
-                            <TextInput style={styles.inputDisabled} placeholder="Mins" keyboardType="numeric" value={duracionPlan.m} editable={false} />
+                            {/* Horas */}
+                            <View style={styles.column}>
+                                <Text style={styles.subLabel2}>Horas</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Hrs"
+                                    keyboardType="numeric"
+                                    maxLength={2}
+                                    value={duracionReal.h}
+                                    onChangeText={text => {
+                                        const nums = text.replace(/[^0-9]/g, '');
+                                        const h = Math.min(parseInt(nums || '0', 10), 99);
+                                        setDuracionReal(prev => ({ ...prev, h: String(h) }));
+                                    }}
+                                />
+                            </View>
+                            {/* Minutos */}
+                            <View style={styles.column}>
+                                <Text style={styles.subLabel2}>Minutos</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Mins"
+                                    keyboardType="numeric"
+                                    maxLength={2}
+                                    value={duracionReal.m}
+                                    onChangeText={text => {
+                                        // sólo dígitos
+                                        let nums = text.replace(/[^0-9]/g, '');
+                                        // clamp entre 0 y 59
+                                        if (nums !== '') {
+                                            const n = parseInt(nums, 10);
+                                            nums = String(Math.min(n, 59));
+                                        }
+                                        setDuracionReal(prev => ({ ...prev, m: nums }));
+                                    }}
+                                    onBlur={() => {
+                                        // si quedó vacío, rellenar con '00'
+                                        if (!duracionReal.m) {
+                                            setDuracionReal(prev => ({ ...prev, m: '00' }));
+                                        }
+                                    }}
+                                />
+                            </View>
                         </View>
 
-                        <Text style={styles.label}>Duración real</Text>
-                        <View style={styles.rowBetween}>
-                            <TextInput style={styles.input} placeholder="Hrs" keyboardType="numeric" value={duracionReal.h} onChangeText={h => setDuracionReal(p => ({ ...p, h }))} />
-                            <TextInput style={styles.input} placeholder="Mins" keyboardType="numeric" value={duracionReal.m} onChangeText={m => setDuracionReal(p => ({ ...p, m }))} />
-                        </View>
 
                         {/* Descripción */}
-                        <Text style={styles.label}>Descripción</Text>
+                        <Text style={styles.sectionLabel}>Descripción</Text>
                         <TextInput style={[styles.inputBox, styles.inputDisabled]} multiline value={descripcion} editable={false} />
 
                         {/* Mano de obra */}
-                        <Text style={styles.label}>Mano de obra</Text>
+                        <Text style={styles.sectionLabel}>Mano de obra</Text>
                         {manoObra.map((id, i) => {
                             const opcionesFiltradas = trabajadoresDisponibles.filter(
                                 (t) => !manoObra.includes(t.id) || t.id === id
@@ -540,9 +583,18 @@ export default function RealizarActividadOT() {
                                 <TextInput
                                     style={styles.input}
                                     placeholder="Costo real"
+                                    keyboardType="decimal-pad"
                                     value={costoRealMano}
-                                    onChangeText={setCostoRealMano}
-                                    keyboardType="numeric"
+                                    onChangeText={text => {
+                                        // solo dígitos y un punto, hasta dos decimales
+                                        const clean = text
+                                            .replace(/[^0-9.]/g, '')
+                                            .replace(/^(\d+)\.(\d{0,2}).*$/, '$1.$2');
+                                        setCostoRealMano(clean);
+                                    }}
+                                    onBlur={() => {
+                                        if (!costoRealMano) setCostoRealMano('0.00');
+                                    }}
                                 />
                             </View>
                         </View>
@@ -550,7 +602,7 @@ export default function RealizarActividadOT() {
 
                         {materiales.length > 0 && (
                             <>
-                                <Text style={styles.label}>Materiales</Text>
+                                <Text style={styles.sectionLabel}>Materiales</Text>
                                 {materiales.map((mat, idx) => (
                                     <View key={idx} style={styles.materialBox}>
                                         <Text style={styles.textMini}>Artículo: <Text style={{ fontWeight: 'bold' }}>{mat.numero_almacen_material}</Text></Text>
@@ -590,7 +642,7 @@ export default function RealizarActividadOT() {
                         )}
                         {refacciones.length > 0 && (
                             <>
-                                <Text style={styles.label}>Refacciones</Text>
+                                <Text style={styles.sectionLabel}>Refacciones</Text>
                                 {refacciones.map((r, idx) => (
                                     <View key={idx} style={styles.materialBox}>
                                         <Text style={styles.textMini}>
@@ -637,7 +689,7 @@ export default function RealizarActividadOT() {
                         )}
 
                         {/* Comentarios y Guardar */}
-                        <Text style={styles.label}>Comentarios</Text>
+                        <Text style={styles.sectionLabel}>Comentarios</Text>
                         <TextInput
                             style={[styles.inputBox, { minHeight: 60 }]}
                             multiline value={comentarios}
@@ -672,7 +724,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
         color: '#1B2A56',
-        marginBottom: 10,
+        marginTop: 15,
     },
     label: {
         fontSize: 14,
@@ -684,6 +736,12 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#1B2A56',
         marginBottom: 5,
+    },
+    subLabel2: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#333',
+        marginBottom: 4,
     },
     input: {
         borderWidth: 1,

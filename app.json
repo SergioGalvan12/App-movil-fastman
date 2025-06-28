@@ -4,7 +4,7 @@
     "slug": "fastman-app",
     "version": "1.0.1",
     "orientation": "portrait",
-    "icon": "./assets/adaptive-icon.png",
+    "icon": "./assets/fastmanLogo.png",
     "userInterfaceStyle": "light",
     "plugins": [
       "expo-system-ui",
@@ -38,7 +38,7 @@
       ],
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/fastmanLogo.png",
         "backgroundColor": "#ffffff"
       }
     },
