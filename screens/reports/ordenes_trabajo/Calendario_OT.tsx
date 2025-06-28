@@ -146,7 +146,7 @@ export default function Calendario_OT() {
                             {resumenOTs.has(selectedDate) ? (
                                 <>
                                     <Text style={styles.infoText}>
-                                        Tienes {resumenOTs.get(selectedDate)} OT pendientes {resumenOTs.get(selectedDate)! > 1 ? 's' : ''}
+                                        Tienes {resumenOTs.get(selectedDate)} OT pendiente{resumenOTs.get(selectedDate)! > 1 ? 's' : ''}
                                     </Text>
                                     <Text
                                         style={styles.linkText}
