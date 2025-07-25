@@ -6,6 +6,8 @@ export default function NotificacionesScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>Notificaciones</Text>
       <Text style={styles.subtitle}>¡Estás en la pantalla de Notificaciones!</Text>
+      <Text style={styles.subtitle}>(Esta sección sera implementada</Text>
+      <Text style={styles.subtitle}>en futuras actualizaciones)</Text>
     </View>
   );
 }
