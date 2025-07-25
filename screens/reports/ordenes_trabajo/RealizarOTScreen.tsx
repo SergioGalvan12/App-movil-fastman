@@ -72,7 +72,14 @@ export default function RealizarOTScreen() {
             inicio: data.fecha_inic_ejec_plan_orden_trabajo,
             fin: data.fecha_fin_ejec_plan_orden_trabajo,
           });
-          setNombreAlmacen(data.nombre_almacen || 'Sin asignar');
+
+          // ahora sítomos el objeto `almacen` completo
+          const almacenObj = data.almacen;
+          setNombreAlmacen(
+            almacenObj && almacenObj.nombre
+              ? String(almacenObj.nombre)
+              : 'Sin asignar'
+          );
         }
 
         // 2) Traer actividades
