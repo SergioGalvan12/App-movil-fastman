@@ -205,11 +205,12 @@ export default function RealizarOTScreen() {
 
             {/* Semáforo */}
             <Text style={styles.semaforoLabel}>Estados de colores</Text>
-            <View style={styles.rowBetween}>
-              <Text style={{ color: '#F44336' }}>🔴 Pendiente</Text>
-              <Text style={{ color: '#FFC107' }}>🟡 En proceso</Text>
-              <Text style={{ color: '#4CAF50' }}>🟢 Completada</Text>
+            <View style={styles.semaforoContainer}>
+              <Text style={styles.estadoTexto}><Text style={styles.rojo}>🔴</Text> Pendiente</Text>
+              <Text style={styles.estadoTexto}><Text style={styles.amarillo}>🟡</Text> En proceso</Text>
+              <Text style={styles.estadoTexto}><Text style={styles.verde}>🟢</Text> Completada</Text>
             </View>
+
 
             {/* Lista de actividades */}
             <Text style={styles.sectionLabel}>Actividades</Text>
@@ -231,8 +232,8 @@ export default function RealizarOTScreen() {
               </TouchableOpacity>
             ))}
 
-            {/* Totales */}
-            <Text style={styles.sectionLabel}>Totales de la OT</Text>
+            {/* Totales (comentado por ahora) */}
+            {/* <Text style={styles.sectionLabel}>Totales de la OT</Text>
             <View style={styles.rowBetween}>
               <View style={styles.column}>
                 <Text style={styles.costLabel}>Planeado</Text>
@@ -250,7 +251,7 @@ export default function RealizarOTScreen() {
                   editable={false}
                 />
               </View>
-            </View>
+            </View> */}
 
             {/* Botón Cerrar OT */}
             <TouchableOpacity
@@ -366,5 +367,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#1B2A56',
     fontWeight: '600',
+  },
+
+  semaforoContainer: {
+    marginBottom: 20,
+    paddingLeft: 10,
+  },
+  estadoTexto: {
+    fontSize: 14,
+    color: '#1B2A56',
+    marginBottom: 5,
+  },
+  rojo: {
+    color: '#F44336',
+  },
+  amarillo: {
+    color: '#FFC107',
+  },
+  verde: {
+    color: '#4CAF50',
   },
 });
