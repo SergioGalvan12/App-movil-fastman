@@ -567,7 +567,7 @@ export default function RealizarActividadOT() {
                             <Text style={styles.btnText}>Agregar trabajador</Text>
                         </TouchableOpacity>
 
-                        {/* Costos de mano de obra */}
+                        {/* Costos de mano de obra
                         <Text style={styles.label}>Costos</Text>
                         <View style={styles.rowBetween}>
                             <View style={styles.column}>
@@ -597,7 +597,7 @@ export default function RealizarActividadOT() {
                                     }}
                                 />
                             </View>
-                        </View>
+                        </View> */}
 
 
                         {materiales.length > 0 && (
@@ -632,9 +632,9 @@ export default function RealizarActividadOT() {
                                         <Text style={styles.textMini}>Unidad: {mat.abreviatura_unidad}</Text>
                                         <Text style={styles.textMini}>Disponible: <Text style={{ fontWeight: 'bold', color: mat.disponible ? 'green' : 'red' }}>{mat.disponible ? 'Sí' : 'No'}</Text></Text>
 
-                                        <Text style={styles.costosTotales}>
+                                        {/* <Text style={styles.costosTotales}>
                                             Costo planeado: ${totalProgActividad}   Costo real: ${mat.costo_real}
-                                        </Text>
+                                        </Text> */}
 
                                     </View>
                                 ))}
@@ -677,12 +677,12 @@ export default function RealizarActividadOT() {
                                                 {r.disponible ? 'Sí' : 'No'}
                                             </Text>
                                         </Text>
-                                        <Text style={styles.costosTotales}>
+                                        {/* <Text style={styles.costosTotales}>
                                             Costo planeado: ${r.costo_prog || '0.00'}
                                         </Text>
                                         <Text style={styles.costosTotales}>
                                             Costo real: ${r.costo_real || '0.00'}
-                                        </Text>
+                                        </Text> */}
                                     </View>
                                 ))}
                             </>
@@ -696,7 +696,7 @@ export default function RealizarActividadOT() {
                             onChangeText={setComentarios}
                         />
 
-                        <Text style={styles.sectionLabel}>Totales de la actividad</Text>
+                        {/* <Text style={styles.sectionLabel}>Totales de la actividad</Text>
                         <View style={styles.rowBetween}>
                             <View style={styles.column}>
                                 <Text style={styles.costLabel}>Planeado</Text>
@@ -706,7 +706,7 @@ export default function RealizarActividadOT() {
                                 <Text style={styles.costLabel}>Real</Text>
                                 <Text style={styles.costosTotales}>${totalRealActividad}</Text>
                             </View>
-                        </View>
+                        </View> */}
 
 
                         <TouchableOpacity style={styles.btnGuardar} onPress={onGuardarActividad}>

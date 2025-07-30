@@ -232,8 +232,8 @@ export default function RealizarOTScreen() {
               </TouchableOpacity>
             ))}
 
-            {/* Totales */}
-            <Text style={styles.sectionLabel}>Totales de la OT</Text>
+            {/* Totales (comentado por ahora) */}
+            {/* <Text style={styles.sectionLabel}>Totales de la OT</Text>
             <View style={styles.rowBetween}>
               <View style={styles.column}>
                 <Text style={styles.costLabel}>Planeado</Text>
@@ -251,7 +251,7 @@ export default function RealizarOTScreen() {
                   editable={false}
                 />
               </View>
-            </View>
+            </View> */}
 
             {/* Botón Cerrar OT */}
             <TouchableOpacity
