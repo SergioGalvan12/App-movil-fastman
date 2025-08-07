@@ -38,7 +38,10 @@ import timezone from 'dayjs/plugin/timezone';
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-type PersonalOption = Personal & { fullName: string };
+type PersonalOption = Omit<Personal, 'id_personal'> & {
+  id_personal: number;   // <- ahora es number
+  fullName: string;
+};
 
 export default function ReporteVariablesScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
@@ -53,7 +56,7 @@ export default function ReporteVariablesScreen() {
   const [turno, setTurno] = useState<number | null>(null);
 
   const [personalsOptions, setPersonalsOptions] = useState<PersonalOption[]>([]);
-  const [selectedPersonal, setSelectedPersonal] = useState<string | null>(null);
+  const [selectedPersonal, setSelectedPersonal] = useState<number | null>(null);
   const [loadingPersonals, setLoadingPersonals] = useState(true);
   const [errorPersonals, setErrorPersonals] = useState('');
 
@@ -75,25 +78,30 @@ export default function ReporteVariablesScreen() {
     fetchGrupoEquipos().then(r => r.success && r.data && setGrupos(r.data));
   }, []);
 
+  type PersonalOption = Personal & {
+    fullName: string;
+  };
+
   useEffect(() => {
     (async () => {
-      try {
-        setLoadingPersonals(true);
-        const resp = await fetchPersonals();
-        if (resp.success && resp.data) {
-          const mapped = resp.data.map<PersonalOption>(p => ({
+      setLoadingPersonals(true);
+      const resp = await fetchPersonals();
+
+      if (resp.success && resp.data) {
+        const mapped: PersonalOption[] = resp.data
+          .map(p => ({
             ...p,
             fullName: `${p.nombre_personal} ${p.apaterno_personal}`
-          }));
-          setPersonalsOptions(mapped.sort((a, b) => a.fullName.localeCompare(b.fullName, 'es', { sensitivity: 'base' })));
-        } else {
-          setErrorPersonals(resp.error ?? 'Error al cargar personal');
-        }
-      } catch {
-        setErrorPersonals('Error inesperado al cargar personal');
-      } finally {
-        setLoadingPersonals(false);
+          }))
+          .sort((a, b) =>
+            a.fullName.localeCompare(b.fullName, 'es', { sensitivity: 'base' })
+          );
+
+        setPersonalsOptions(mapped);
+      } else {
+        setErrorPersonals(resp.error ?? 'Error al cargar personal');
       }
+      setLoadingPersonals(false);
     })();
   }, []);
 
@@ -163,8 +171,7 @@ export default function ReporteVariablesScreen() {
 
     const equipoObj = equipos.find(e => e.id_equipo === equipoSelected)!;
     const numero_economico = equipoObj.matricula_equipo.replace(/\D/g, '');
-    const parsedPersonal = parseInt(selectedPersonal, 10);
-    const idPersonalToSend = Number.isNaN(parsedPersonal) ? personalId : parsedPersonal;
+    const idPersonalToSend = selectedPersonal ?? personalId;
 
     const fechaUTC = dayjs(fecha).tz(dayjs.tz.guess()).utc().format('YYYY-MM-DDTHH:mm:ss');
     const horaUTC = dayjs(hora).tz(dayjs.tz.guess()).utc().format('HH:mm:ss');
@@ -183,11 +190,16 @@ export default function ReporteVariablesScreen() {
       id_empresa: empresaId
     };
 
+    console.log('[ReporteVariables] selectedPersonal →', selectedPersonal);
+    console.log('[ReporteVariables] payload →', JSON.stringify(payload))
+
     try {
       const resp = await createReporteManttoPredictivo(payload);
       if (resp.success && resp.data) {
         showToast('success', 'Reporte creado con éxito', `Código: ${resp.data.codigo_reporte}`);
-        navigation.navigate('Main');
+        setSelectedVariable(null);
+        setCodigo('');
+        setValor('');
       } else {
         throw new Error(resp.error);
       }
@@ -204,12 +216,14 @@ export default function ReporteVariablesScreen() {
       <View style={styles.row}>
         <View style={styles.col}>
           <Text style={styles.label}>Fecha</Text>
-          <TextInput
-            style={styles.input}
-            value={fecha.toLocaleDateString()}
-            onFocus={() => setShowDate(true)}
-            editable={false}
-          />
+          <TouchableOpacity onPress={() => setShowDate(true)}>
+            <TextInput
+              style={styles.input}
+              value={fecha.toLocaleDateString()}
+              editable={false}           // sigue sin permitir escribir a mano
+              pointerEvents="none"       // delega el touch al TouchableOpacity
+            />
+          </TouchableOpacity>
           {showDate && (
             <DateTimePicker
               value={fecha}
@@ -221,16 +235,18 @@ export default function ReporteVariablesScreen() {
         </View>
         <View style={styles.col}>
           <Text style={styles.label}>Hora</Text>
-          <TextInput
-            style={styles.input}
-            value={hora.toLocaleTimeString('es-MX', {
-              hour: '2-digit',
-              minute: '2-digit',
-              hour12: true
-            })}
-            onFocus={() => setShowTime(true)}
-            editable={false}
-          />
+          <TouchableOpacity onPress={() => setShowTime(true)}>
+            <TextInput
+              style={styles.input}
+              value={hora.toLocaleTimeString('es-MX', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+              })}
+              editable={false}
+              pointerEvents="none"
+            />
+          </TouchableOpacity>
           {showTime && (
             <DateTimePicker
               value={hora}
@@ -258,10 +274,10 @@ export default function ReporteVariablesScreen() {
       <Text style={styles.label}>Personal</Text>
       <Select<PersonalOption>
         options={personalsOptions}
-        valueKey="id_personal"
+        valueKey="id_equipo"
         labelKey="fullName"
         selectedValue={selectedPersonal}
-        onValueChange={v => setSelectedPersonal(v as string | null)}
+        onValueChange={v => setSelectedPersonal(v as number | null)}
         placeholder="— Selecciona un personal —"
         loading={loadingPersonals}
         error={errorPersonals}
