@@ -133,24 +133,23 @@ export default function RealizarOTScreen() {
   // Semáforo por actividad
   function getColorEstado(act: Actividad) {
     const tieneHora = !!act.fecha_inic_real_actividad_orden;
-    const tieneCosto = !!act.costo_total_actividad_orden_real && act.costo_total_actividad_orden_real !== '0.00';
     const tienePersonal = act.puestos_actividad_orden
       ? act.puestos_actividad_orden.some(p => Array.isArray(p.personal_encargado) && p.personal_encargado.length > 0)
       : false;
-    if (tieneHora && tieneCosto && tienePersonal) return '#4CAF50';
-    if (tieneHora || tieneCosto || tienePersonal) return '#FFC107';
-    return '#F44336';
+    // Eliminamos dependencia del costo si ya no se usa
+    if (tieneHora && tienePersonal) return '#4CAF50'; // verde
+    if (tieneHora || tienePersonal) return '#FFC107'; // amarillo
+    return '#F44336'; // rojo
   }
 
   // ¿Se puede cerrar?
   function puedeCerrarOT() {
     return actividades.every(act => {
       const tieneHora = !!act.fecha_inic_real_actividad_orden;
-      const tieneCosto = !!act.costo_total_actividad_orden_real && act.costo_total_actividad_orden_real !== '0.00';
       const tienePersonal = act.puestos_actividad_orden
         ? act.puestos_actividad_orden.some(p => Array.isArray(p.personal_encargado) && p.personal_encargado.length > 0)
         : false;
-      return tieneHora && tieneCosto && tienePersonal;
+      return tieneHora && tienePersonal;
     });
   }
 
