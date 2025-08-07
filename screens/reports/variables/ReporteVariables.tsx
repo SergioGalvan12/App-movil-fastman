@@ -144,16 +144,32 @@ export default function ReporteVariablesScreen() {
     const turnoDesc = turnosList.find(t => t.id_turno === turno)?.descripcion_turno || '–';
     const equipoMat = equipos.find(e => e.id_equipo === equipoSelected)?.matricula_equipo || '–';
     const variable = variables.find(v => v.id_mantto_pred === selectedVariable)?.descripcion_mantto_pred || '–';
+    const nombrePersonal = personalsOptions.find(p => p.id_equipo === selectedPersonal)?.fullName || '–';
+
+    const fechaTexto = fecha.toLocaleDateString('es-MX', { year: 'numeric', month: '2-digit', day: '2-digit' });
+    const horaTexto = hora.toLocaleTimeString('es-MX', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
 
     Alert.alert(
       'Confirmación',
-      `¿Crear reporte con los siguientes datos?\n\nTurno: ${turnoDesc}\nEquipo: ${equipoMat}\nVariable: ${variable}\nValor: ${valor}`,
+      `¿Crear reporte con los siguientes datos?\n\n` +
+      `📅 Fecha: ${fechaTexto}\n` +
+      `⏰ Hora: ${horaTexto}\n` +
+      `👷 Personal: ${nombrePersonal}\n` +
+      `🕒 Turno: ${turnoDesc}\n` +
+      `🛠️ Equipo: ${equipoMat}\n` +
+      `📊 Variable: ${variable}\n` +
+      `🔢 Valor: ${valor}`,
       [
         { text: 'Cancelar', style: 'cancel' },
-        { text: 'Sí, crear', onPress: createReporte }
+        { text: 'Confirmar', onPress: createReporte }
       ]
     );
   };
+
 
   const createReporte = async () => {
     if (
