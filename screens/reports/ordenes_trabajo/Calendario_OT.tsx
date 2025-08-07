@@ -24,13 +24,18 @@ export default function Calendario_OT() {
     const [markedDates, setMarkedDates] = useState<{ [key: string]: any }>({});
     const [resumenOTs, setResumenOTs] = useState<Map<string, number>>(new Map());
 
+    const [currentMonth, setCurrentMonth] = useState<{ year: number, month: number }>(() => {
+        const today = new Date();
+        return { year: today.getFullYear(), month: today.getMonth() + 1 };
+    });
+
+
     // Inicializar el calendario con el mes actual
     const isFocused = useIsFocused();
 
     useEffect(() => {
         if (isFocused) {
-            const today = new Date();
-            handleMonthChange(today.getFullYear(), today.getMonth() + 1);
+            handleMonthChange(currentMonth.year, currentMonth.month);
         }
     }, [isFocused]);
 
@@ -127,8 +132,8 @@ export default function Calendario_OT() {
                             setSelectedDate(day.dateString);
                             setMarkedDates(getCombinedMarkedDates(baseMarkedDates, day.dateString));
                         }}
-
                         onMonthChange={(month) => {
+                            setCurrentMonth({ year: month.year, month: month.month });
                             handleMonthChange(month.year, month.month);
                         }}
                         theme={{
