@@ -40,6 +40,10 @@ export default function ReportesScreen() {
           title="Calendario de Órdenes de Trabajo"
           onPress={() => handlePress('Calendario_OT')}
         />
+        <MenuItem
+          title="Revisiones (Check-Log)"
+          onPress={() => handlePress('Revisiones')}
+        />
       </ScrollView>
     </View>
   );

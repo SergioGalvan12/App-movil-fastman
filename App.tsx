@@ -17,8 +17,7 @@ import OrdenesTrabajoDiaScreen from './screens/reports/ordenes_trabajo/OrdenesTr
 import RealizarOTScreen from './screens/reports/ordenes_trabajo/RealizarOTScreen';
 import RealizarActividadOT from './screens/reports/ordenes_trabajo/RealizarActividadOT';
 import './src/config/calendarLocale';
-// import ReporteOperativoSecuencial from './screens/reports/operativo/ReporteOperativoSecuencial';
-// import TipoReporteOperacionScreen from './screens/reports/operativo/TipoReporteOperacionScreen';
+import RevisionesScreen from './screens/reports/revisiones/RevisionesScreen';
 
 const LightTheme = {
   ...DefaultTheme,
@@ -49,6 +48,8 @@ export type AuthStackParamList = {
   OrdenesTrabajoDia: { fecha: string };
   RealizarOT: { id: number; folio: string };
   RealizarActividadOT: { idActividad: number, idOrdenTrabajo: number, folio: string };
+  // Reporte revisiones
+  Revisiones: undefined;
 };
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
@@ -79,6 +80,7 @@ export default function App() {
           <Stack.Screen name="OrdenesTrabajoDia" component={OrdenesTrabajoDiaScreen} />
           <Stack.Screen name="RealizarOT" component={RealizarOTScreen} />
           <Stack.Screen name="RealizarActividadOT" component={RealizarActividadOT} />
+          <Stack.Screen name="Revisiones" component={RevisionesScreen} />
         </Stack.Navigator>
       </NavigationContainer>
       <Toast />
