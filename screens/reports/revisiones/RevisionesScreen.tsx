@@ -1,75 +1,57 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-    View,
-    Text,
-    StyleSheet,
-    TouchableOpacity,
-    TextInput,
-    Platform,
+    View, Text, StyleSheet, TouchableOpacity, TextInput, Platform,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
-// Componentes comunes del proyecto
 import HeaderWithBack from '../../../components/common/HeaderWithBack';
 import ReportScreenLayout from '../../../components/layouts/ReportScreenLayout';
 import Select from '../../../components/common/Select';
 import { showToast } from '../../../services/notifications/ToastService';
 
-// Services ya existentes en tu app
 import { fetchTurnos, TurnoInterface } from '../../../services/reports/turnos/turnoService';
 import { fetchPersonals, Personal } from '../../../services/reports/personal/personalService';
 import { fetchGrupoEquipos, GrupoEquipo } from '../../../services/reports/equipos/grupoEquipoService';
 import { fetchEquipos, Equipo } from '../../../services/reports/equipos/equipoService';
 
-// Services nuevos (creados en el paso anterior)
 import { fetchMarcas, Marca } from '../../../services/reports/catalogos/marcaService';
 import { fetchModelos, Modelo } from '../../../services/reports/catalogos/modeloService';
+
 import { createCheckLog, CreateCheckLogPayload } from '../../../services/reports/revisiones/checkLogService';
-import { fetchRevisionesEquipo, RevisionEquipo } from
-  '../../../services/reports/revisiones/revisionEquipoService';
 
-// Contexto de auth para empresaId / username si lo necesitas
+import {
+    fetchRevisionesPorGrupo,
+    RevisionPlantilla,
+} from '../../../services/reports/revisiones/revisionPlantillaService';
+
 import { useAuth } from '../../../contexts/AuthContext';
-
-/**
- * Lista de “elementos de revisión” (lo que en la web pones en “Revisión”).
- * Si luego hay endpoint para esto, basta reemplazarlo por un fetch.
- */
-const ELEMENTOS_REVISION = [
-    'Temperatura',
-    'Presión',
-    'Nivel',
-    'Vibración',
-    'Ruido',
-    'Fugas',
-    'Limpieza',
-];
 
 type EstadoCheck = 'MAL' | 'REGULAR' | 'BIEN';
 
 const formatUTCDate = (d: Date) => {
-    // normalizamos a YYYY-MM-DD en UTC (acorde a tu convención)
     const year = d.getUTCFullYear();
     const month = String(d.getUTCMonth() + 1).padStart(2, '0');
     const day = String(d.getUTCDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
 };
-type SimpleOption = { label: string; value: string };
-const ELEMENTOS_REVISION_OPTS: SimpleOption[] = ELEMENTOS_REVISION.map(x => ({ label: x, value: x }));
 
 export default function RevisionesScreen() {
     const { empresaId } = useAuth();
 
-    // ----- estado de catálogos -----
+    // ----- catálogos -----
     const [turnos, setTurnos] = useState<TurnoInterface[]>([]);
     const [personales, setPersonales] = useState<Personal[]>([]);
     const [grupos, setGrupos] = useState<GrupoEquipo[]>([]);
     const [equiposAll, setEquiposAll] = useState<Equipo[]>([]);
     const [marcas, setMarcas] = useState<Marca[]>([]);
     const [modelos, setModelos] = useState<Modelo[]>([]);
-    const [revisiones, setRevisiones] = useState<RevisionEquipo[]>([]);
 
-    // ----- estado de selección -----
+    // revisiones (dependen del grupo)
+    const [revisiones, setRevisiones] = useState<RevisionPlantilla[]>([]);
+    const [loadingRevisiones, setLoadingRevisiones] = useState(false);
+    const [errorRevisiones, setErrorRevisiones] = useState('');
+
+    // ----- selección -----
     const [fecha, setFecha] = useState<Date>(new Date());
     const [showDate, setShowDate] = useState(false);
 
@@ -78,10 +60,14 @@ export default function RevisionesScreen() {
     const [idGrupo, setIdGrupo] = useState<number | null>(null);
     const [idEquipo, setIdEquipo] = useState<number | null>(null);
 
+    // opcional
     const [idMarca, setIdMarca] = useState<number | null>(null);
     const [idModelo, setIdModelo] = useState<number | null>(null);
 
+    // revisión elegida
+    const [idRevisionSel, setIdRevisionSel] = useState<number | null>(null);
     const [elemento, setElemento] = useState<string | null>(null);
+
     const [estado, setEstado] = useState<EstadoCheck | null>(null);
     const [observaciones, setObservaciones] = useState('');
 
@@ -97,11 +83,10 @@ export default function RevisionesScreen() {
         return modelos.filter(m => m.id_marca === idMarca);
     }, [modelos, idMarca]);
 
-    // ----- carga inicial de catálogos -----
+    // carga inicial catálogos
     useEffect(() => {
         let mounted = true;
-
-        const load = async () => {
+        (async () => {
             const [t, p, g, e, mk, ml] = await Promise.all([
                 fetchTurnos(),
                 fetchPersonals(),
@@ -119,38 +104,73 @@ export default function RevisionesScreen() {
             if (e.success && e.data) setEquiposAll(e.data);
             if (mk.success && mk.data) setMarcas(mk.data);
             if (ml.success && ml.data) setModelos(ml.data);
-        };
-
-        load();
+        })();
         return () => { mounted = false; };
     }, []);
 
-    // Si cambian grupo o marca, limpiamos dependientes para evitar selecciones inválidas
+    // cuando cambia grupo → limpiar equipo y revisión, y cargar revisiones del grupo
     useEffect(() => {
         setIdEquipo(null);
+        setIdRevisionSel(null);
+        setElemento(null);
+        setObservaciones('');
+        if (!idGrupo) {
+            setRevisiones([]);
+            return;
+        }
+        (async () => {
+            try {
+                setLoadingRevisiones(true);
+                setErrorRevisiones('');
+                const r = await fetchRevisionesPorGrupo(idGrupo);
+                if (r.success && r.data) {
+                    console.log('[revisiones del grupo]', idGrupo, r.data.length);
+                    setRevisiones(r.data);
+                } else {
+                    setErrorRevisiones(r.error || 'No se pudieron cargar revisiones');
+                    setRevisiones([]);
+                }
+            } catch (e: any) {
+                setErrorRevisiones(e?.message || 'Error inesperado');
+                setRevisiones([]);
+            } finally {
+                setLoadingRevisiones(false);
+            }
+        })();
     }, [idGrupo]);
 
+
+    // al cambiar la revisión seleccionada → set elemento + observaciones base
     useEffect(() => {
-        setIdModelo(null);
-    }, [idMarca]);
+        if (!idRevisionSel) {
+            setElemento(null);
+            setObservaciones('');
+            return;
+        }
+        const sel = revisiones.find(r => r.id_revision === idRevisionSel);
+        setElemento(sel ? sel.nombre_revision : null);
+        setObservaciones(sel?.descripcion_revision || '');
+    }, [idRevisionSel, revisiones]);
 
     const onChangeDate = (_: any, selected?: Date) => {
         setShowDate(false);
         if (selected) setFecha(selected);
     };
 
-    // ----- validaciones mínimas previas al POST -----
+    // validaciones mínimas
     const canSubmit = useMemo(() => {
         return Boolean(
             fecha &&
             idTurno &&
             idPersonal &&
             idEquipo &&
+            idGrupo &&
+            idRevisionSel &&
             elemento &&
             estado &&
             empresaId
         );
-    }, [fecha, idTurno, idPersonal, idEquipo, elemento, estado, empresaId]);
+    }, [fecha, idTurno, idPersonal, idEquipo, idGrupo, idRevisionSel, elemento, estado, empresaId]);
 
     const handleSubmit = async () => {
         if (!canSubmit) {
@@ -159,23 +179,20 @@ export default function RevisionesScreen() {
         }
 
         const payload: CreateCheckLogPayload = {
-            id_equipo: idEquipo!,                    // requerido
-            id_personal: idPersonal!,                // en backend se acepta string/number
+            id_equipo: idEquipo!,
+            id_personal: idPersonal!,
             id_turno: idTurno!,
-            elemento_check: elemento!,               // p.ej. “Temperatura”
+            elemento_check: elemento!,
             observaciones_check: observaciones || undefined,
-            estado_check: estado!,                   // 'MAL' | 'REGULAR' | 'BIEN'
-            fecha_check: formatUTCDate(fecha),       // AAAA-MM-DD (UTC)
-            id_empresa: Number(empresaId),           // del contexto
+            estado_check: estado!,
+            fecha_check: formatUTCDate(fecha),
+            id_empresa: Number(empresaId),
         };
 
         const resp = await createCheckLog(payload);
         if (resp.success) {
             showToast('success', 'Revisión creada', 'Se registró correctamente.');
-            // limpieza parcial para una nueva captura
-            setObservaciones('');
             setEstado(null);
-            // (opcional) mantener selecciones de catálogos
         } else {
             showToast('error', 'No se pudo guardar', resp.error || 'Error desconocido');
         }
@@ -190,13 +207,8 @@ export default function RevisionesScreen() {
 
                 {/* Fecha */}
                 <Text style={styles.label}>Fecha de revisión</Text>
-                <TouchableOpacity
-                    style={styles.dateBox}
-                    onPress={() => setShowDate(true)}
-                >
-                    <Text style={styles.dateText}>
-                        {new Date(fecha).toLocaleDateString()}
-                    </Text>
+                <TouchableOpacity style={styles.dateBox} onPress={() => setShowDate(true)}>
+                    <Text style={styles.dateText}>{new Date(fecha).toLocaleDateString()}</Text>
                 </TouchableOpacity>
                 {showDate && (
                     <DateTimePicker
@@ -206,7 +218,6 @@ export default function RevisionesScreen() {
                         onChange={onChangeDate}
                     />
                 )}
-
 
                 {/* Turno */}
                 <Text style={styles.label}>Turno</Text>
@@ -219,13 +230,13 @@ export default function RevisionesScreen() {
                     placeholder="Selecciona un turno"
                 />
 
-
-                {/* Personal */}
+                {/* Personal (nombre completo) */}
                 <Text style={styles.label}>Personal</Text>
                 <Select<Personal & { nombre_completo: string }>
                     options={personales.map(p => ({
                         ...p,
-                        nombre_completo: `${p.nombre_personal} ${p.apaterno_personal ?? ''} ${p.amaterno_personal ?? ''}`.replace(/\s+/g, ' ').trim(),
+                        nombre_completo: `${p.nombre_personal} ${p.apaterno_personal ?? ''} ${p.amaterno_personal ?? ''}`
+                            .replace(/\s+/g, ' ').trim(),
                     }))}
                     valueKey="id_personal"
                     labelKey="nombre_completo"
@@ -234,9 +245,7 @@ export default function RevisionesScreen() {
                     placeholder="Selecciona un personal"
                 />
 
-
-
-                {/* Grupo de equipo */}
+                {/* Grupo */}
                 <Text style={styles.label}>Grupo de equipo</Text>
                 <Select<GrupoEquipo>
                     options={grupos}
@@ -247,8 +256,7 @@ export default function RevisionesScreen() {
                     placeholder="Todos los grupos"
                 />
 
-
-                {/* Equipo */}
+                {/* Equipo (dependiente de grupo) */}
                 <Text style={styles.label}>Equipo</Text>
                 <Select<Equipo>
                     options={equipos}
@@ -259,43 +267,26 @@ export default function RevisionesScreen() {
                     placeholder={idGrupo && !equipos.length ? 'No hay equipos' : 'Selecciona un equipo'}
                 />
 
-
-                {/* Marca / Modelo (opcionales, solo catálogos de apoyo como en la web)
-                <Text style={styles.label}>Marca</Text>
-                <Select<Marca>
-                    options={marcas}
-                    valueKey="id_marca"
-                    labelKey="nombre_marca"
-                    selectedValue={idMarca}
-                    onValueChange={(val) => setIdMarca(val ? Number(val) : null)}
-                    placeholder="Todas las marcas"
-                />
-
-
-                <Text style={styles.label}>Modelo</Text>
-                <Select<Modelo>
-                    options={modelosFiltrados}
-                    valueKey="id_modelo"
-                    labelKey="nombre_modelo"
-                    selectedValue={idModelo}
-                    onValueChange={(val) => setIdModelo(val ? Number(val) : null)}
-                    placeholder="Todos los modelos"
-                />
-                 */}
-
-                {/* Revisión (elemento) */}
+                {/* Revisión (desde revision-plantilla del grupo) */}
                 <Text style={styles.label}>Revisión</Text>
-                <Select<SimpleOption>
-                    options={ELEMENTOS_REVISION_OPTS}
-                    valueKey="value"
-                    labelKey="label"
-                    selectedValue={elemento}
-                    onValueChange={(val) => setElemento((val as string) ?? null)}
-                    placeholder="Selecciona una revisión"
+                <Select<RevisionPlantilla>
+                    options={revisiones}
+                    valueKey="id_revision"
+                    labelKey="nombre_revision"
+                    selectedValue={idRevisionSel}
+                    onValueChange={(val) => setIdRevisionSel(val ? Number(val) : null)}
+                    placeholder={
+                        idGrupo
+                            ? (loadingRevisiones ? 'Cargando revisiones...' :
+                                (revisiones.length ? 'Selecciona una revisión' : 'Sin revisiones para el grupo'))
+                            : 'Seleccione primero un grupo'
+                    }
+                    loading={loadingRevisiones}
+                    error={errorRevisiones}
+                    disabled={!idGrupo}
                 />
 
-
-                {/* Estado (Mal / Regular / Bien) */}
+                {/* Estado */}
                 <Text style={styles.label}>Estatus de revisión</Text>
                 <View style={styles.estadoRow}>
                     {(['MAL', 'REGULAR', 'BIEN'] as EstadoCheck[]).map((e) => {
@@ -320,7 +311,7 @@ export default function RevisionesScreen() {
                     })}
                 </View>
 
-                {/* Observaciones */}
+                {/* Observaciones (autorrelleno según revisión) */}
                 <Text style={styles.label}>Observaciones</Text>
                 <TextInput
                     style={styles.obs}
