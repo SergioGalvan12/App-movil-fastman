@@ -3,12 +3,17 @@ import apiClient, { ApiResponse } from '../../apiClient';
 
 export interface Equipo {
   id_equipo: number;
-  matricula_equipo: string;
-  id_grupo_equipo: number;
 
-  // Lecturas
-  uso_equipo: string;          // p.ej. "2193.000"
-  contador_control_ot: number; // p.ej. 0
+  // Identificadores visibles en UI (pueden venir vacíos en algunos equipos)
+  matricula_equipo: string | null;            // ej. "TER-532075"
+  numero_economico_equipo?: string | null;    // ej. "532075"
+  descripcion_equipo?: string | null;         // ej. "Tractocamion 126"
+
+  id_grupo_equipo: number | null;
+
+  // Lecturas (suelen venir como string/number o null)
+  uso_equipo: string | null;          // p.ej. "2193.000"
+  contador_control_ot: number;        // p.ej. 0
 
   // Relacionales que necesita el payload
   id_empresa: number;

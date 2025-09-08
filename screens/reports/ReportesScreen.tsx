@@ -24,18 +24,23 @@ export default function ReportesScreen() {
           onPress={() => handlePress('Averias')}
         />
 
-        {/* Nuevo: Reporte Operativo */}
+        {/* Reporte Operativo */}
         <MenuItem
           title="Reporte Operativo"
           onPress={() => handlePress('ReporteOperacion')}
         />
 
-        {/* Nuevo: Reporte de Variables */}
+        {/* Reporte de Variables */}
         <MenuItem
           title="Reporte de Variables"
           onPress={() => handlePress('ReporteVariables')}
         />
-        {/* Nuevo: Calendario de Órdenes de Trabajo */}
+        {/* Reporte de Revisiones */}
+        <MenuItem
+          title="Reporte de Revisiones"
+          onPress={() => handlePress('Revisiones')}
+        />
+        {/* Calendario de Órdenes de Trabajo */}
         <MenuItem
           title="Calendario de Órdenes de Trabajo"
           onPress={() => handlePress('Calendario_OT')}
