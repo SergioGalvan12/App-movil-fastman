@@ -1,10 +1,10 @@
 // services/personalService.ts
 import apiClient, { ApiResponse } from '../../apiClient';
 
-// Modelo mínimo del personal que necesitamos
+// Modelo mínimo del personal
 export interface Personal {
-  id_equipo: number;        // ← ésta es la PK
-  id_personal: string;      // código visible
+  id_equipo: number;
+  id_personal: number;
   nombre_personal: string;
   apaterno_personal: string;
   amaterno_personal: string;
