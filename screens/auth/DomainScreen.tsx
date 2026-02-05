@@ -20,7 +20,8 @@ export default function DomainScreen({ navigation }: Props) {
 
   useEffect(() => {
     (async () => {
-      const requireDomain = String(REQUIRE_DOMAIN_INPUT).toLowerCase() === 'true';
+      const requireDomain =
+        String(REQUIRE_DOMAIN_INPUT ?? 'true').trim().toLowerCase() === 'true';
       if (!requireDomain) {
         const auto = (LOCKED_DOMAIN || DEFAULT_DOMAIN || '').trim().toLowerCase();
 
@@ -29,7 +30,7 @@ export default function DomainScreen({ navigation }: Props) {
         }
 
         clearAuthToken();
-        navigation.replace('User', { domain: auto || 'local', username: '' });
+        navigation.replace('User', { domain: auto || '', username: '' });
         return;
       }
 

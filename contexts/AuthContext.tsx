@@ -83,13 +83,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         return null; // o un SplashScreen, según prefieras
     }
 
+    const emptySession: AuthSession = {
+        domain: '',
+        username: '',
+        empresaId: 0,
+        accessToken: '',
+        personalId: 0,
+        personalName: '',
+    };
 
-    // Proveemos session + helpers al resto de la app
     return (
         <AuthContext.Provider
             value={{
-                // spread de AuthSession
-                ...(session as AuthSession),
+                ...(session ?? emptySession),
                 isLoading,
                 signIn,
                 signOut,
@@ -98,6 +104,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
             {children}
         </AuthContext.Provider>
     );
+
 };
 
 

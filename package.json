@@ -18,7 +18,8 @@
     "web": "cross-env APP_ENV=staging expo start --web",
     "web:dev": "cross-env APP_ENV=development expo start --web",
     "web:staging": "cross-env APP_ENV=staging expo start --web",
-    "web:prod": "cross-env APP_ENV=production expo start --web"
+    "web:prod": "cross-env APP_ENV=production expo start --web",
+    "start:prod:debug": "cross-env APP_ENV=production expo start --clear"
   },
   "dependencies": {
     "@expo/metro-runtime": "~5.0.4",
