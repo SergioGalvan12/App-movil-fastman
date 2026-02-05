@@ -1,5 +1,3 @@
-// screens/Inicio/DomainScreen.tsx
-// Este archivo contiene la pantalla de inicio de sesión donde el usuario ingresa el dominio de su empresa.
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, StyleSheet, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -8,7 +6,9 @@ import { checkDomain } from '../../services/auth/authService';
 import { showToast } from '../../services/notifications/ToastService';
 import apiClient from '../../services/apiClient';
 import { clearAuthToken } from '../../services/apiClient';
-import { getCurrentSession, getRememberMe } from '../../services/auth/authStorage'; // ← importamos
+import { getCurrentSession, getRememberMe } from '../../services/auth/authStorage';
+import { REQUIRE_DOMAIN_INPUT, DEFAULT_DOMAIN, LOCKED_DOMAIN } from '@env';
+
 
 type DomainScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Domain'>;
 type Props = { navigation: DomainScreenNavigationProp; };
@@ -18,23 +18,35 @@ export default function DomainScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // ← Al montar la pantalla, comprobamos si el usuario había marcado "Recuérdame"
   useEffect(() => {
     (async () => {
+      const requireDomain = String(REQUIRE_DOMAIN_INPUT).toLowerCase() === 'true';
+      if (!requireDomain) {
+        const auto = (LOCKED_DOMAIN || DEFAULT_DOMAIN || '').trim().toLowerCase();
+
+        if (auto) {
+          apiClient.setDomain(auto);
+        }
+
+        clearAuthToken();
+        navigation.replace('User', { domain: auto || 'local', username: '' });
+        return;
+      }
+
       const remember = await getRememberMe();
       if (remember) {
         const session = await getCurrentSession();
         if (session) {
-          // Si existe sesión y el flag está activo, saltamos DIRECTO a PasswordScreen
           navigation.replace('Password', {
             domain: session.domain,
             username: session.username,
-            empresaId: session.empresaId
+            empresaId: session.empresaId,
           });
         }
       }
     })();
   }, [navigation]);
+
 
   const handleNext = async () => {
     const raw = domain.trim().toLowerCase();
@@ -43,18 +55,16 @@ export default function DomainScreen({ navigation }: Props) {
       return;
     }
 
-    //  Si es "local", configuro API en modo DEV y salto directamente:
     if (raw === 'local') {
-      apiClient.setDomain('local');    // <-- fuerza DEV en configService
-      clearAuthToken(); // limpiamos cualquier token anterior
+      apiClient.setDomain('local');
+      clearAuthToken();
       navigation.navigate('User', { domain: raw, username: '' });
       return;
     }
 
-    // En otro caso, produccion: chequeo existencia del dominio
     setLoading(true);
     try {
-      apiClient.setDomain(raw);        // <-- fuerza PROD en configService
+      apiClient.setDomain(raw);
       clearAuthToken();
       const result = await checkDomain(raw);
       if (result.success) {
