@@ -3,12 +3,22 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "expo start",
-    "start:dev": "cross-env APP_ENV=development expo start",
+    "start": "cross-env APP_ENV=staging expo start",
+    "start:dev": "cross-env APP_ENV=development expo start --clear",
+    "start:staging": "cross-env APP_ENV=staging expo start --clear",
     "start:prod": "cross-env APP_ENV=production expo start --no-dev --minify",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web"
+    "android": "cross-env APP_ENV=staging expo start --android",
+    "android:dev": "cross-env APP_ENV=development expo start --android",
+    "android:staging": "cross-env APP_ENV=staging expo start --android",
+    "android:prod": "cross-env APP_ENV=production expo start --android",
+    "ios": "cross-env APP_ENV=staging expo start --ios",
+    "ios:dev": "cross-env APP_ENV=development expo start --ios",
+    "ios:staging": "cross-env APP_ENV=staging expo start --ios",
+    "ios:prod": "cross-env APP_ENV=production expo start --ios",
+    "web": "cross-env APP_ENV=staging expo start --web",
+    "web:dev": "cross-env APP_ENV=development expo start --web",
+    "web:staging": "cross-env APP_ENV=staging expo start --web",
+    "web:prod": "cross-env APP_ENV=production expo start --web"
   },
   "dependencies": {
     "@expo/metro-runtime": "~5.0.4",

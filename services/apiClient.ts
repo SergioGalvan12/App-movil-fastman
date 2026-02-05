@@ -1,13 +1,20 @@
-// services/apiClient.ts
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
-import { API_BASE_URL, API_TIMEOUT } from '@env';  // vendrán de .env.production
+import {
+  API_BASE_URL,
+  API_TIMEOUT,
+  LOCKED_DOMAIN,
+  DEFAULT_DOMAIN,
+  APP_ENV,
+} from '@env';
 
-/**
- * ApiResponse<T> estructura estándar de respuesta:
- *  - success: éxito o no
- *  - data: datos en caso de éxito
- *  - error: mensaje en caso de fallo
- */
+console.log('[ApiClient] Variables de entorno →', {
+  API_BASE_URL,
+  API_TIMEOUT,
+  APP_ENV,
+  LOCKED_DOMAIN,
+  DEFAULT_DOMAIN,
+});
+
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;
@@ -16,35 +23,46 @@ export interface ApiResponse<T> {
 
 class ApiClient {
   private client: AxiosInstance;
-  private domain?: string; // guardaremos aquí el subdominio en runtime
+  private domain?: string;
 
   constructor() {
-    // Creamos cliente axios con timeout de .env.production
     this.client = axios.create({
-      baseURL: API_BASE_URL,          // URL base con placeholder `{DOMAIN}` aún
+      baseURL: API_BASE_URL,
       timeout: Number(API_TIMEOUT),
       headers: { 'Content-Type': 'application/json' }
     });
-    // Interceptor global de errores
+    const bootDomain = (LOCKED_DOMAIN || DEFAULT_DOMAIN || '').trim();
+    if (bootDomain) {
+      this.setDomain(bootDomain);
+    }
     this.client.interceptors.response.use(
       (res) => res,
       (err) => Promise.reject(err)
     );
   }
 
-  /**
-   * Configura en runtime el subdominio (por ejemplo 'gpp' o 'otro').
-   * Lo usaremos para reemplazar {DOMAIN} en la URL base.
-   */
+
   setDomain(domain: string) {
-    this.domain = domain.trim();
-    // reemplazamos baseURL en el cliente:
-    const resolved = API_BASE_URL.replace('{DOMAIN}', this.domain);
+    const locked = (LOCKED_DOMAIN || '').trim();
+    const nextDomain = (locked || domain || '').trim().toLowerCase();
+
+    this.domain = nextDomain;
+
+    const resolved = API_BASE_URL.includes('{DOMAIN}')
+      ? API_BASE_URL.replace('{DOMAIN}', this.domain)
+      : API_BASE_URL;
+
     this.client.defaults.baseURL = resolved;
-    // Al cambiar de dominio, borramos cualquier token antiguo
     this.clearAuthToken();
-    console.log(`[ApiClient] Base URL resuelta: ${resolved}`);
+
+    console.log('[ApiClient] setDomain()', {
+      lockedDomain: locked || null,
+      requestedDomain: domain,
+      effectiveDomain: this.domain,
+      resolvedBaseURL: resolved,
+    });
   }
+
 
   setAuthToken(token: string) {
     this.client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
@@ -105,7 +123,5 @@ class ApiClient {
 const _apiClient = new ApiClient();
 export const apiClient = _apiClient;
 export default apiClient;
-
-// Exportamos funciones de control de token para importarlas directamente
 export const setAuthToken = (token: string) => _apiClient.setAuthToken(token);
 export const clearAuthToken = () => _apiClient.clearAuthToken();
