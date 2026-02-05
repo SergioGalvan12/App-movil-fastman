@@ -1,17 +1,21 @@
-// babel.config.js
-module.exports = function(api) {
+module.exports = function (api) {
   api.cache(true);
-  // Aquí forzamos a producción SIEMPRE:
+
+  const appEnv = process.env.APP_ENV || 'development';
+  const envPath = `.env.${appEnv}`;
+
   return {
     presets: ['babel-preset-expo'],
     plugins: [
-      ['module:react-native-dotenv', {
-        moduleName: '@env',
-        path: `.env.production`,    // ← cargamos sólo .env.production
-        safe: false,
-        allowUndefined: true,
-      }]
-    ]
+      [
+        'module:react-native-dotenv',
+        {
+          moduleName: '@env',
+          path: envPath,
+          safe: false,
+          allowUndefined: true,
+        },
+      ],
+    ],
   };
 };
-
