@@ -17,6 +17,9 @@ import OrdenesTrabajoDiaScreen from './screens/reports/ordenes_trabajo/OrdenesTr
 import RealizarOTScreen from './screens/reports/ordenes_trabajo/RealizarOTScreen';
 import RealizarActividadOT from './screens/reports/ordenes_trabajo/RealizarActividadOT';
 import './src/config/calendarLocale';
+if (__DEV__) {
+  require('./src/devtools/reactotron');
+}
 import RevisionesScreen from './screens/reports/revisiones/RevisionesScreen';
 
 const LightTheme = {
