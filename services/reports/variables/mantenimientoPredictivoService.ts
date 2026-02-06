@@ -18,10 +18,8 @@ export interface VariableControl {
 export const fetchVariablesControl = async (): Promise<ApiResponse<VariableControl[]>> => {
   const endpoint = 'mantenimiento-predictivo/';
   const params = { status_mantto_pred: true };
-  console.log(
-    `[mantenimientoPredictivoService] GET → ${apiClient['client'].defaults.baseURL}${endpoint}`,
-    params
-  );
+  const base = (apiClient as any)['client']?.defaults?.baseURL ?? '';
+  console.log(`[mantenimientoPredictivoService] GET → ${base}/${endpoint}`, params);
   const response = await apiClient.get<VariableControl[]>(endpoint, { params });
   console.log('[mantenimientoPredictivoService] respuesta →', response);
   return response;
@@ -30,28 +28,28 @@ export const fetchVariablesControl = async (): Promise<ApiResponse<VariableContr
 
 export interface CreateReporteManttoPredictivoPayload {
   id_mantto_pred: number | string;
-  id_personal:    number | string;
-  id_turno:       number | string;
-  id_equipo:      number;
+  id_personal: number | string;
+  id_turno: number | string;
+  id_equipo: number;
   numero_economico_equipo: string;
   id_grupo_equipo: number;
-  valor_reporte:  string;
+  valor_reporte: string;
   codigo_reporte: string;
-  fecha_reporte:  string; // “YYYY-MM-DDTHH:mm:ss”
-  hora_reporte:   string; // “HH:mm:ss”
-  id_empresa:     number;
+  fecha_reporte: string; // “YYYY-MM-DDTHH:mm:ss”
+  hora_reporte: string; // “HH:mm:ss”
+  id_empresa: number;
 }
 
 export interface CreateReporteManttoPredictivoResponse {
-  id_reporte:     number;
-  id_empresa:     number;
+  id_reporte: number;
+  id_empresa: number;
   id_mantto_pred: number;
-  id_equipo:      number;
+  id_equipo: number;
   codigo_reporte: string;
-  valor_reporte:  string;
-  fecha_reporte:  string;
-  id_personal:    number;
-  id_turno:       number;
+  valor_reporte: string;
+  fecha_reporte: string;
+  id_personal: number;
+  id_turno: number;
   status_reporte: boolean;
 }
 

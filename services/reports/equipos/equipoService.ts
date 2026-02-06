@@ -1,21 +1,13 @@
-// services/reports/equipos/equipoService.ts
 import apiClient, { ApiResponse } from '../../apiClient';
 
 export interface Equipo {
   id_equipo: number;
-
-  // Identificadores visibles en UI (pueden venir vacíos en algunos equipos)
-  matricula_equipo: string | null;            // ej. "TER-532075"
-  numero_economico_equipo?: string | null;    // ej. "532075"
-  descripcion_equipo?: string | null;         // ej. "Tractocamion 126"
-
+  matricula_equipo: string | null;
+  numero_economico_equipo?: string | null;
+  descripcion_equipo?: string | null;
   id_grupo_equipo: number | null;
-
-  // Lecturas (suelen venir como string/number o null)
-  uso_equipo: string | null;          // p.ej. "2193.000"
-  contador_control_ot: number;        // p.ej. 0
-
-  // Relacionales que necesita el payload
+  uso_equipo: string | null;
+  contador_control_ot: number;
   id_empresa: number;
   id_ubicacion: number | null;
   id_area: number | null;
@@ -28,17 +20,23 @@ interface ListResponse {
   next: string | null;
 }
 
-/** Trae todas las páginas de /equipo/?status_equipo=true */
-export const fetchEquipos = async (): Promise<ApiResponse<Equipo[]>> => {
+/**
+ * Trae todas las páginas de /equipo/ con filtros.
+ */
+const fetchEquiposPaged = async (params: Record<string, any>): Promise<ApiResponse<Equipo[]>> => {
   let all: Equipo[] = [];
   let page = 1;
   let keepGoing = true;
 
   while (keepGoing) {
     const resp = await apiClient.get<ListResponse>('equipo/', {
-      params: { page, status_equipo: true },
+      params: { ...params, page },
     });
-    if (!resp.success || !resp.data) break;
+
+    if (!resp.success || !resp.data) {
+      return { success: false, error: resp.error ?? 'Error al cargar equipos' };
+    }
+
     all = all.concat(resp.data.results);
     keepGoing = !!resp.data.next;
     page += 1;
@@ -47,7 +45,19 @@ export const fetchEquipos = async (): Promise<ApiResponse<Equipo[]>> => {
   return { success: true, data: all };
 };
 
-/** Trae el detalle completo de un equipo por ID */
+export const fetchEquipos = async (): Promise<ApiResponse<Equipo[]>> => {
+  return fetchEquiposPaged({ status_equipo: true });
+};
+
+export const fetchEquiposByGrupo = async (
+  id_grupo_equipo: number
+): Promise<ApiResponse<Equipo[]>> => {
+  return fetchEquiposPaged({
+    status_equipo: true,
+    id_grupo_equipo,
+  });
+};
+
 export const fetchEquipoById = async (
   id: number
 ): Promise<ApiResponse<Equipo>> => {
