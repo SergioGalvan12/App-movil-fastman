@@ -529,7 +529,7 @@ export default function RealizarActividadOT() {
                                         selectedValue={id || null}
                                         onValueChange={(val) => {
                                             const nuevos = [...manoObra];
-                                            nuevos[i] = val ? Number(val) : 0;
+                                            nuevos[i] = val == null ? 0 : Number(val);
                                             setManoObra(nuevos);
                                         }}
                                         placeholder="Selecciona un trabajador"

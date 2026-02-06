@@ -17,6 +17,21 @@ interface SelectProps<T> {
   errorStyle?: TextStyle;
 }
 
+const NULL_SENTINEL = '__NULL__';
+
+const normalizePickerValue = (value: unknown) => {
+  if (value === null || value === undefined) return null;
+  if (value === NULL_SENTINEL) return null;
+  if (value === 'null') return null;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (/^-?\d+(\.\d+)?$/.test(trimmed)) return Number(trimmed);
+    return value;
+  }
+  return value;
+};
+
+
 export default function Select<T extends Record<string, any>>({
   options,
   valueKey,
@@ -32,20 +47,27 @@ export default function Select<T extends Record<string, any>>({
 }: SelectProps<T>) {
   if (loading) return <ActivityIndicator style={styles.loader} />;
 
+  const pickerSelectedValue = (selectedValue ?? NULL_SENTINEL) as any;
   return (
     <View style={[styles.wrapper, style]}>
       {error ? <Text style={[styles.error, errorStyle]}>{error}</Text> : null}
 
       <Picker
-        selectedValue={selectedValue as any}
-        onValueChange={(value) => onValueChange(value ?? null)}
+        selectedValue={pickerSelectedValue}
+        onValueChange={(raw) => {
+          const normalized = normalizePickerValue(raw);
+          onValueChange(normalized as any);
+        }}
         style={styles.picker}
         enabled={!disabled}
       >
-        {/* placeholder con value = null */}
-        <Picker.Item label={placeholder} value={null as any} />
+        <Picker.Item label={placeholder} value={NULL_SENTINEL as any} />
         {options.map((opt, i) => (
-          <Picker.Item key={i} label={String(opt[labelKey])} value={opt[valueKey] as any} />
+          <Picker.Item
+            key={i}
+            label={String(opt[labelKey] ?? '')}
+            value={opt[valueKey] as any}
+          />
         ))}
       </Picker>
     </View>
@@ -61,15 +83,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: '#FFF',
   },
-  picker: {
-    height: 60,
-  },
-  loader: {
-    marginVertical: 10,
-  },
-  error: {
-    color: '#E53935',
-    fontSize: 12,
-    padding: 4,
-  },
+  picker: { height: 60 },
+  loader: { marginVertical: 10 },
+  error: { color: '#E53935', fontSize: 12, padding: 4 },
 });

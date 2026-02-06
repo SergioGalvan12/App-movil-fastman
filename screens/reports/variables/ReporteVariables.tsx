@@ -22,7 +22,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { fetchTurnos, TurnoInterface } from '../../../services/reports/turnos/turnoService';
 import { fetchPersonals, Personal } from '../../../services/reports/personal/personalService';
 import { fetchGrupoEquipos, GrupoEquipo } from '../../../services/reports/equipos/grupoEquipoService';
-import { Equipo, fetchEquipos } from '../../../services/reports/equipos/equipoService';
+import { Equipo, fetchEquiposByGrupo } from '../../../services/reports/equipos/equipoService';
 
 import {
   fetchVariablesControl,
@@ -38,8 +38,7 @@ import timezone from 'dayjs/plugin/timezone';
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-type PersonalOption = Omit<Personal, 'id_personal'> & {
-  id_personal: number;   // <- ahora es number
+type PersonalOption = Personal & {
   fullName: string;
 };
 
@@ -65,6 +64,9 @@ export default function ReporteVariablesScreen() {
   const [equipos, setEquipos] = useState<Equipo[]>([]);
   const [equipoSelected, setEquipoSelected] = useState<number | null>(null);
 
+  const [loadingEquipos, setLoadingEquipos] = useState(false);
+  const [errorEquipos, setErrorEquipos] = useState('');
+
   const [variables, setVariables] = useState<VariableControl[]>([]);
   const [selectedVariable, setSelectedVariable] = useState<number | null>(null);
   const [loadingVariables, setLoadingVariables] = useState(true);
@@ -78,32 +80,31 @@ export default function ReporteVariablesScreen() {
     fetchGrupoEquipos().then(r => r.success && r.data && setGrupos(r.data));
   }, []);
 
-  type PersonalOption = Personal & {
-    fullName: string;
-  };
-
   useEffect(() => {
     (async () => {
       setLoadingPersonals(true);
+      setErrorPersonals('');
+
       const resp = await fetchPersonals();
 
       if (resp.success && resp.data) {
         const mapped: PersonalOption[] = resp.data
           .map(p => ({
             ...p,
-            fullName: `${p.nombre_personal} ${p.apaterno_personal}`
+            fullName: `${p.nombre_personal} ${p.apaterno_personal}`,
           }))
           .sort((a, b) =>
             a.fullName.localeCompare(b.fullName, 'es', { sensitivity: 'base' })
           );
-
         setPersonalsOptions(mapped);
       } else {
         setErrorPersonals(resp.error ?? 'Error al cargar personal');
       }
+
       setLoadingPersonals(false);
     })();
   }, []);
+
 
   useEffect(() => {
     (async () => {
@@ -124,15 +125,28 @@ export default function ReporteVariablesScreen() {
   }, []);
 
   useEffect(() => {
-    if (!grupoSelected) {
+    (async () => {
+      setEquipoSelected(null);
       setEquipos([]);
-      return;
-    }
-    fetchEquipos().then(r => {
-      if (r.success && r.data) {
-        setEquipos(r.data.filter(e => e.id_grupo_equipo === grupoSelected));
+      setErrorEquipos('');
+      if (!grupoSelected) return;
+      try {
+        setLoadingEquipos(true);
+
+        const resp = await fetchEquiposByGrupo(grupoSelected);
+
+        if (resp.success && resp.data) {
+          const sorted = resp.data.slice().sort((a, b) =>
+            (a.matricula_equipo ?? '').localeCompare(b.matricula_equipo ?? '', 'es', { sensitivity: 'base' })
+          );
+          setEquipos(sorted);
+        } else {
+          setErrorEquipos(resp.error ?? 'Error al cargar equipos del grupo');
+        }
+      } finally {
+        setLoadingEquipos(false);
       }
-    });
+    })();
   }, [grupoSelected]);
 
   useEffect(() => {
@@ -144,7 +158,8 @@ export default function ReporteVariablesScreen() {
     const turnoDesc = turnosList.find(t => t.id_turno === turno)?.descripcion_turno || '–';
     const equipoMat = equipos.find(e => e.id_equipo === equipoSelected)?.matricula_equipo || '–';
     const variable = variables.find(v => v.id_mantto_pred === selectedVariable)?.descripcion_mantto_pred || '–';
-    const nombrePersonal = personalsOptions.find(p => p.id_equipo === selectedPersonal)?.fullName || '–';
+    const nombrePersonal =
+      personalsOptions.find(p => p.id_equipo === selectedPersonal)?.fullName || '–';
 
     const fechaTexto = fecha.toLocaleDateString('es-MX', { year: 'numeric', month: '2-digit', day: '2-digit' });
     const horaTexto = hora.toLocaleTimeString('es-MX', {
@@ -174,7 +189,7 @@ export default function ReporteVariablesScreen() {
   const createReporte = async () => {
     if (
       selectedVariable == null ||
-      !selectedPersonal ||
+      selectedPersonal == null ||
       turno == null ||
       equipoSelected == null ||
       grupoSelected == null ||
@@ -187,10 +202,28 @@ export default function ReporteVariablesScreen() {
 
     const equipoObj = equipos.find(e => e.id_equipo === equipoSelected)!;
     const numero_economico = equipoObj.matricula_equipo.replace(/\D/g, '');
-    const idPersonalToSend = selectedPersonal ?? personalId;
+    const localTime = dayjs(hora);
+    const combinedLocal = dayjs(fecha)
+      .hour(localTime.hour())
+      .minute(localTime.minute())
+      .second(localTime.second());
+    const fechaUTC = combinedLocal.utc().format('YYYY-MM-DDTHH:mm:ss[Z]');
+    const horaLocal = localTime.format('HH:mm:ss');
 
-    const fechaUTC = dayjs(fecha).tz(dayjs.tz.guess()).utc().format('YYYY-MM-DDTHH:mm:ss');
-    const horaUTC = dayjs(hora).tz(dayjs.tz.guess()).utc().format('HH:mm:ss');
+    const idPersonalToSend = selectedPersonal;
+    if (idPersonalToSend == null) {
+      showToast('error', 'Personal inválido', 'Selecciona un personal válido.');
+      return;
+    }
+
+    console.log('[DBG] selectedPersonal raw:', selectedPersonal, typeof selectedPersonal);
+    console.log('[DBG] personalId auth:', personalId, typeof personalId);
+    console.log('[DBG] coalesce:', (selectedPersonal ?? personalId), typeof (selectedPersonal ?? personalId));
+
+    if (!Number.isFinite(idPersonalToSend)) {
+      showToast('error', 'Personal inválido', 'Selecciona un personal válido.');
+      return;
+    }
 
     const payload: CreateReporteManttoPredictivoPayload = {
       id_mantto_pred: selectedVariable,
@@ -202,7 +235,7 @@ export default function ReporteVariablesScreen() {
       valor_reporte: valor.trim(),
       codigo_reporte: codigo,
       fecha_reporte: fechaUTC,
-      hora_reporte: horaUTC,
+      hora_reporte: horaLocal,
       id_empresa: empresaId
     };
 
@@ -290,7 +323,7 @@ export default function ReporteVariablesScreen() {
       <Text style={styles.label}>Personal</Text>
       <Select<PersonalOption>
         options={personalsOptions}
-        valueKey="id_equipo"
+        valueKey="id_equipo" //Pk numérico del personal
         labelKey="fullName"
         selectedValue={selectedPersonal}
         onValueChange={v => setSelectedPersonal(v as number | null)}
@@ -321,6 +354,8 @@ export default function ReporteVariablesScreen() {
         selectedValue={equipoSelected}
         onValueChange={v => setEquipoSelected(v as number)}
         placeholder="— Selecciona un equipo —"
+        loading={loadingEquipos}
+        error={errorEquipos}
         style={styles.pickerWrapper}
       />
 
