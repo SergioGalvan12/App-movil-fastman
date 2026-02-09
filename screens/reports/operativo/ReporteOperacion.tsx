@@ -20,7 +20,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { showToast } from '../../../services/notifications/ToastService';
 import { fetchTurnos } from '../../../services/reports/turnos/turnoService';
 import { fetchGrupoEquipos } from '../../../services/reports/equipos/grupoEquipoService';
-import { fetchEquipos, Equipo } from '../../../services/reports/equipos/equipoService';
+import { fetchEquiposByGrupo, Equipo } from '../../../services/reports/equipos/equipoService';
 import {
   createReporteOperacion,
   ReporteOperacionPayload
@@ -47,6 +47,10 @@ type NavigationProp = CompositeNavigationProp<
 
 type SelectOption = { id: number; label: string };
 
+const toUtcIsoWithZ_FromDateTime = (d: Date) => {
+  return dayjs(d).utc().format('YYYY-MM-DDTHH:mm:ss[Z]');
+};
+
 export default function ReporteOperacionScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { personalId, personalName } = useAuth();
@@ -69,7 +73,8 @@ export default function ReporteOperacionScreen() {
 
   // — Estados Formulario —
   const [fecha, setFecha] = useState(new Date());
-  const [showDate, setShowDate] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [turno, setTurno] = useState<number | null>(null);
   const [grupoEquipo, setGrupoEquipo] = useState<number | null>(null);
   const [equipo, setEquipo] = useState<number | null>(null);
@@ -79,10 +84,11 @@ export default function ReporteOperacionScreen() {
   const [observaciones, setObservaciones] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // Carga de turnos
+  // Carga turnos
   useEffect(() => {
-    ; (async () => {
+    (async () => {
       setLoadingTurnos(true);
+      setErrorTurnos('');
       const resp = await fetchTurnos();
       if (resp.success && resp.data) {
         setTurnoOptions(
@@ -99,8 +105,9 @@ export default function ReporteOperacionScreen() {
 
   // Carga de grupos de equipo
   useEffect(() => {
-    ; (async () => {
+    (async () => {
       setLoadingGrupos(true);
+      setErrorGrupos('');
       const resp = await fetchGrupoEquipos();
       if (resp.success && resp.data) {
         setGrupoOptions(
@@ -115,30 +122,34 @@ export default function ReporteOperacionScreen() {
     })();
   }, []);
 
-  // Carga de equipos paginados al cambiar grupo
+  // Carga equipos SOLO del grupo seleccionado
   useEffect(() => {
     if (!grupoEquipo) {
       setEquipoOptions([]);
       setEquiposData([]);
+      setEquipo(null);
       return;
     }
-    ; (async () => {
+
+    (async () => {
       setLoadingEquipos(true);
-      const resp = await fetchEquipos();
+      setErrorEquipos('');
+
+      const resp = await fetchEquiposByGrupo(grupoEquipo);
       if (resp.success && resp.data) {
         setEquiposData(resp.data);
         setEquipoOptions(
           resp.data
-            .filter(e => e.id_grupo_equipo === grupoEquipo)
-            .map(e => ({ id: e.id_equipo, label: e.matricula_equipo }))
+            .map(e => ({ id: e.id_equipo, label: e.matricula_equipo ?? `Equipo ${e.id_equipo}` }))
             .sort((a, b) => a.label.localeCompare(b.label))
         );
       } else {
         setErrorEquipos(resp.error || 'Error al cargar equipos');
       }
+
       setLoadingEquipos(false);
 
-      // limpiar previos
+      // limpiar previos al cambiar de grupo
       setEquipo(null);
       setUnidadesIniciales('0');
       setUnidadesFinales('0');
@@ -183,44 +194,61 @@ export default function ReporteOperacionScreen() {
       showToast('error', 'Faltan campos', 'Selecciona turno, grupo y equipo');
       return;
     }
+    if (!personalId) {
+      showToast('error', 'Falta responsable', 'No se detectó el responsable');
+      return;
+    }
+
     setSaving(true);
 
     try {
-      const sel = equiposData.find(e => e.id_equipo === equipo)!;
+      const sel = equiposData.find(e => e.id_equipo === equipo);
+      if (!sel) {
+        showToast('error', 'Equipo inválido', 'Vuelve a seleccionar el equipo');
+        setSaving(false);
+        return;
+      }
+
       const ui = parseFloat(unidadesIniciales) || 0;
       const uf = parseFloat(unidadesFinales) || 0;
-
       if (uf < ui) {
         showToast('error', 'Lecturas inválidas', 'La lectura final debe ser ≥ inicial');
         setSaving(false);
         return;
       }
 
-      // Hora local correcta usando dayjs
-      const nowUTC = dayjs().utc();
-      const fechaUTCString = nowUTC.format('YYYY-MM-DDTHH:mm:ss');
+      if (observaciones.length > 250) {
+        showToast('error', 'Observaciones', 'Máximo 250 caracteres');
+        setSaving(false);
+        return;
+      }
 
-
-      console.log('[DEBUG] Hora local enviada:', fechaUTCString);
-
+      const fechaUTCString = toUtcIsoWithZ_FromDateTime(fecha);
+      console.log('[DEBUG] fecha_guia local:', dayjs(fecha).format());
+      console.log('[DEBUG] fecha_guia UTC enviada:', fechaUTCString);
+      
       const payload: ReporteOperacionPayload = {
         id_guia: null,
         numero_economico_equipo: sel.id_equipo,
         id_personal: personalId,
         id_turno: turno,
+
         id_empresa: sel.id_empresa,
         id_ubicacion: sel.id_ubicacion,
         id_area: sel.id_area,
         id_proceso: sel.id_proceso,
         id_subproceso: sel.id_subproceso,
-        id_grupo_equipo: sel.id_grupo_equipo,
+        id_grupo_equipo: sel.id_grupo_equipo ?? grupoEquipo,
+
         unidad: null,
         descripcion_guia: observaciones,
-        fecha_guia: fechaUTCString, // <-- Ya corregida
+        fecha_guia: fechaUTCString,
+
         consumo_unitario: true,
         km_hrs_inicio: unidadesIniciales,
         km_hrs_final: unidadesFinales,
         status_checklist_reporte: '',
+
         producto_1: '',
         producto_2: '',
         producto_3: '',
@@ -231,24 +259,21 @@ export default function ReporteOperacionScreen() {
       };
 
       const res = await createReporteOperacion(payload);
+
       if (res.success && res.data) {
         const det: any = res.data;
-        const numEco = det.numero_economico_equipo_text
-          ?? String(det.numero_economico_equipo);
-        const desc = det.descripcion_equipo
-          ?? sel.matricula_equipo;
-        const fechaStr = det.fecha_guia
-          ? new Date(det.fecha_guia).toLocaleDateString('es-ES', {
-            day: '2-digit', month: '2-digit', year: 'numeric'
-          })
-          : fecha.toLocaleDateString('es-ES');
+        const idGuia = det.id_guia;
 
-        showToast(
-          'success',
-          'Se ha creado el reporte',
-          `${numEco} – ${desc} (${fechaStr})`
-        );
-        navigation.navigate('Main');
+        showToast('success', 'Se ha creado el reporte', `ID: ${idGuia}`);
+
+        navigation.navigate('ReporteOperativoSecuencial', {
+          id_guia: idGuia,
+          id_equipo: sel.id_equipo,
+          id_turno: turno,
+          fecha_guia: fechaUTCString,
+          descripcion_equipo: sel.descripcion_equipo ?? sel.matricula_equipo ?? null,
+          responsable: personalName,
+        });
       } else {
         throw new Error(res.error || 'Error al crear reporte');
       }
@@ -260,33 +285,57 @@ export default function ReporteOperacionScreen() {
     }
   };
 
-
   return (
     <ReportScreenLayout>
       <HeaderWithBack title="Reporte operativo" />
-      {/* Fecha */}
-      <Text style={styles.label}>* Fecha</Text>
+
+      {/* Fecha y hora */}
+      <Text style={styles.label}>* Fecha y hora</Text>
       <TextInput
         style={styles.input}
-        value={fecha.toLocaleString('es-MX', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: true
-        })}
+        value={dayjs(fecha).format('DD/MM/YYYY hh:mm A')}
         editable={false}
-        onFocus={() => setShowDate(true)}
+        onFocus={() => setShowDatePicker(true)}
       />
-      {showDate && (
+
+      {showDatePicker && (
         <DateTimePicker
           value={fecha}
           mode="date"
           display="default"
           onChange={(_, d) => {
-            if (d) setFecha(d);
-            setShowDate(false);
+            setShowDatePicker(false);
+            if (!d) return;
+
+            // Preservar hora actual y cambiar solo la fecha
+            const prev = dayjs(fecha);
+            const next = dayjs(d)
+              .hour(prev.hour())
+              .minute(prev.minute())
+              .second(0)
+              .millisecond(0);
+            setFecha(next.toDate());
+            setShowTimePicker(true);
+          }}
+        />
+      )}
+
+      {showTimePicker && (
+        <DateTimePicker
+          value={fecha}
+          mode="time"
+          display="default"
+          onChange={(_, t) => {
+            setShowTimePicker(false);
+            if (!t) return;
+            const prev = dayjs(fecha);
+            const next = prev
+              .hour(dayjs(t).hour())
+              .minute(dayjs(t).minute())
+              .second(0)
+              .millisecond(0);
+
+            setFecha(next.toDate());
           }}
         />
       )}
@@ -309,7 +358,7 @@ export default function ReporteOperacionScreen() {
       <Text style={styles.label}>Responsable</Text>
       <TextInput style={styles.input} value={personalName} editable={false} />
 
-      {/* Grupo de equipo */}
+      {/* Grupo */}
       <Text style={styles.label}>* Grupo de equipo</Text>
       <Select<SelectOption>
         options={grupoOptions}
@@ -338,31 +387,15 @@ export default function ReporteOperacionScreen() {
         style={styles.picker}
       />
 
-      {/* Unidades iniciales */}
+      {/* Unidades */}
       <Text style={styles.label}>* Unidades iniciales</Text>
-      <TextInput
-        style={styles.input}
-        value={unidadesIniciales}
-        onChangeText={setUnidadesIniciales}
-        keyboardType="numeric"
-      />
+      <TextInput style={styles.input} value={unidadesIniciales} onChangeText={setUnidadesIniciales} keyboardType="numeric" />
 
-      {/* Unidades finales */}
       <Text style={styles.label}>* Unidades finales</Text>
-      <TextInput
-        style={styles.input}
-        value={unidadesFinales}
-        onChangeText={setUnidadesFinales}
-        keyboardType="numeric"
-      />
+      <TextInput style={styles.input} value={unidadesFinales} onChangeText={setUnidadesFinales} keyboardType="numeric" />
 
-      {/* Unidades de control */}
       <Text style={styles.label}>Unidades de control</Text>
-      <TextInput
-        style={styles.input}
-        value={unidadesControl}
-        editable={false}
-      />
+      <TextInput style={styles.input} value={unidadesControl} editable={false} />
 
       {/* Observaciones */}
       <Text style={styles.label}>Observaciones</Text>
@@ -375,7 +408,7 @@ export default function ReporteOperacionScreen() {
       />
       <Text style={styles.counter}>{observaciones.length}/250</Text>
 
-      {/* Botón Crear reporte */}
+      {/* Crear */}
       <TouchableOpacity
         style={[styles.createButton, saving && styles.createButtonDisabled]}
         onPress={confirmAndCreate}
@@ -386,20 +419,19 @@ export default function ReporteOperacionScreen() {
         </Text>
       </TouchableOpacity>
 
-      {/* Nota sobre consumos predefinidos */}
+      {/* Nota */}
       <View style={styles.predef}>
         <Text>Reportar consumos de manera predefinida:</Text>
         <Ionicons name="checkmark-circle" size={20} style={styles.iconOK} />
       </View>
       <Text style={styles.note}>
-        Nota: Elegir la opción predefinida generará los consumos a partir de
-        productos predefinidos. Para consumos manuales, ve a su sección.
+        Nota: Elegir la opción predefinida generará los consumos a partir de productos predefinidos.
+        Para consumos manuales, ve a su sección.
       </Text>
       <Text style={styles.required}>* Campos requeridos</Text>
     </ReportScreenLayout>
   );
 }
-
 
 const styles = StyleSheet.create({
   label: {
