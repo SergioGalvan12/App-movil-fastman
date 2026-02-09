@@ -11,6 +11,8 @@ import FiltrosAvanzados from './screens/reports/FiltrosAvanzados';
 import CargarImagen from './screens/reports/averias/CargarImagen';
 import { AuthProvider } from './contexts/AuthContext';
 import ReporteOperacionScreen from './screens/reports/operativo/ReporteOperacion';
+import TipoReporteOperacionScreen from './screens/reports/operativo/TipoReporteOperacionScreen';
+import ReporteOperativoSecuencial from './screens/reports/operativo/ReporteOperativoSecuencial';
 import ReporteVariablesScreen from './screens/reports/variables/ReporteVariables';
 import Calendario_OT from './screens/reports/ordenes_trabajo/Calendario_OT';
 import OrdenesTrabajoDiaScreen from './screens/reports/ordenes_trabajo/OrdenesTrabajoDiaScreen';
@@ -46,6 +48,14 @@ export type AuthStackParamList = {
   CargarImagen: { backlogId: number; empresaId: number, titulo: string };
   ReporteVariables: undefined;
   ReporteOperacion: undefined;
+  ReporteOperativoSecuencial: {
+    id_guia: number;
+    id_equipo?: number;
+    id_turno?: number;
+    fecha_guia?: string;
+    descripcion_equipo?: string | null;
+    responsable?: string;
+  };
   // OT
   Calendario_OT: undefined;
   OrdenesTrabajoDia: { fecha: string };
@@ -74,9 +84,8 @@ export default function App() {
           <Stack.Screen name="Main" component={BottomTabNavigator} />
           <Stack.Screen name="Averias" component={AveriasScreen} />
           <Stack.Screen name="FiltrosAvanzados" component={FiltrosAvanzados} />
-          {/* <Stack.Screen name="TipoReporteOperacion" component={TipoReporteOperacionScreen} /> */}
           <Stack.Screen name="ReporteOperacion" component={ReporteOperacionScreen} />
-          {/* <Stack.Screen name="ReporteOperativoSecuencial" component={ReporteOperativoSecuencial} /> */}
+          <Stack.Screen name="ReporteOperativoSecuencial" component={ReporteOperativoSecuencial} />
           <Stack.Screen name="ReporteVariables" component={ReporteVariablesScreen} />
           <Stack.Screen name="CargarImagen" component={CargarImagen} />
           <Stack.Screen name="Calendario_OT" component={Calendario_OT} />
