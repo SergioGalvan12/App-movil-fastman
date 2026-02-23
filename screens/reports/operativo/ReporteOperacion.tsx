@@ -25,7 +25,7 @@ import {
   createReporteOperacion,
   ReporteOperacionPayload
 } from '../../../services/reports/operativos/reporteOperacionService';
-import { AuthStackParamList } from '../../../App';
+import type { AuthStackParamList } from '../../../src/navigation/types';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
@@ -226,7 +226,7 @@ export default function ReporteOperacionScreen() {
       const fechaUTCString = toUtcIsoWithZ_FromDateTime(fecha);
       console.log('[DEBUG] fecha_guia local:', dayjs(fecha).format());
       console.log('[DEBUG] fecha_guia UTC enviada:', fechaUTCString);
-      
+
       const payload: ReporteOperacionPayload = {
         id_guia: null,
         numero_economico_equipo: sel.id_equipo,
@@ -273,6 +273,8 @@ export default function ReporteOperacionScreen() {
           fecha_guia: fechaUTCString,
           descripcion_equipo: sel.descripcion_equipo ?? sel.matricula_equipo ?? null,
           responsable: personalName,
+          id_empresa: sel.id_empresa,
+          id_grupo_equipo: sel.id_grupo_equipo ?? grupoEquipo!,
         });
       } else {
         throw new Error(res.error || 'Error al crear reporte');
