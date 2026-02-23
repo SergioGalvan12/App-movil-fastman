@@ -18,6 +18,8 @@ import Calendario_OT from './screens/reports/ordenes_trabajo/Calendario_OT';
 import OrdenesTrabajoDiaScreen from './screens/reports/ordenes_trabajo/OrdenesTrabajoDiaScreen';
 import RealizarOTScreen from './screens/reports/ordenes_trabajo/RealizarOTScreen';
 import RealizarActividadOT from './screens/reports/ordenes_trabajo/RealizarActividadOT';
+import ProduccionReporteOperacionScreen from './screens/reports/operativo/ProduccionReporteOperacionScreen';
+import type { AuthStackParamList } from './src/navigation/types';
 import './src/config/calendarLocale';
 if (__DEV__) {
   require('./src/devtools/reactotron');
@@ -35,34 +37,6 @@ const LightTheme = {
     border: '#DDDDDD',
     notification: '#FF453A',
   },
-};
-
-// Definir los tipos para los parámetros de navegación
-export type AuthStackParamList = {
-  Domain: undefined;
-  User: { domain: string, username: string };
-  Password: { domain: string; username: string; empresaId?: number };
-  Main: undefined;
-  Averias: undefined;
-  FiltrosAvanzados: { grupoId: number, grupoName: string; };
-  CargarImagen: { backlogId: number; empresaId: number, titulo: string };
-  ReporteVariables: undefined;
-  ReporteOperacion: undefined;
-  ReporteOperativoSecuencial: {
-    id_guia: number;
-    id_equipo?: number;
-    id_turno?: number;
-    fecha_guia?: string;
-    descripcion_equipo?: string | null;
-    responsable?: string;
-  };
-  // OT
-  Calendario_OT: undefined;
-  OrdenesTrabajoDia: { fecha: string };
-  RealizarOT: { id: number; folio: string };
-  RealizarActividadOT: { idActividad: number, idOrdenTrabajo: number, folio: string };
-  // Reporte revisiones
-  Revisiones: undefined;
 };
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
@@ -86,6 +60,7 @@ export default function App() {
           <Stack.Screen name="FiltrosAvanzados" component={FiltrosAvanzados} />
           <Stack.Screen name="ReporteOperacion" component={ReporteOperacionScreen} />
           <Stack.Screen name="ReporteOperativoSecuencial" component={ReporteOperativoSecuencial} />
+          <Stack.Screen name="ProduccionReporteOperacion" component={ProduccionReporteOperacionScreen} />
           <Stack.Screen name="ReporteVariables" component={ReporteVariablesScreen} />
           <Stack.Screen name="CargarImagen" component={CargarImagen} />
           <Stack.Screen name="Calendario_OT" component={Calendario_OT} />
