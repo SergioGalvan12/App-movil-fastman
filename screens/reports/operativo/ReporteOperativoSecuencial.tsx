@@ -1,22 +1,13 @@
-// src/screens/reports/operativo/ReporteOperativoSecuencial.tsx
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { useRoute } from '@react-navigation/native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { AuthStackParamList } from '../../../src/navigation/types';
 
-type RouteParams = {
-  id_guia: number;
-  id_equipo?: number;
-  id_turno?: number;
-  fecha_guia?: string;
-  descripcion_equipo?: string | null;
-  responsable?: string;
-};
+type Props = NativeStackScreenProps<AuthStackParamList, 'ReporteOperativoSecuencial'>;
 
-export default function ReporteOperativoSecuencial() {
-  const route = useRoute();
-  const params = (route.params ?? {}) as RouteParams;
-
-  const hasReporte = !!params.id_guia;
+export default function ReporteOperativoSecuencial({ route, navigation }: Props) {
+  const params = route.params;
+  const hasReporte = !!params?.id_guia;
 
   return (
     <View style={styles.container}>
@@ -51,30 +42,62 @@ export default function ReporteOperativoSecuencial() {
           style={[styles.step, !hasReporte && styles.stepDisabled]}
           disabled={!hasReporte}
           onPress={() => {
+            if (!hasReporte) return;
+
+            if (s.key === 'prod') {
+              navigation.navigate('ProduccionReporteOperacion', {
+                id_guia: params.id_guia,
+                id_empresa: params.id_empresa,
+                id_grupo_equipo: params.id_grupo_equipo,
+                responsable: params.responsable,
+                descripcion_equipo: params.descripcion_equipo ?? null,
+              });
+              return;
+            }
+
             console.log('Abrir sección:', s.key, 'id_guia:', params.id_guia);
           }}
         >
           <Text style={styles.stepText}>{s.label}</Text>
         </TouchableOpacity>
       ))}
-
-      {!hasReporte && (
-        <Text style={styles.warn}>
-          Primero debes crear el reporte para habilitar los apartados.
-        </Text>
-      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, backgroundColor: '#EFF0FA' },
-  title: { fontSize: 18, fontWeight: 'bold', color: '#1B2A56', marginBottom: 12, marginTop: 50 },
-  subtitle: { fontSize: 16, fontWeight: 'bold', color: '#1B2A56', marginTop: 30, marginBottom: 4, },
-  card: { backgroundColor: '#FFF', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: '#1B2A56' },
+  title: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1B2A56',
+    marginBottom: 12,
+    marginTop: 50,
+  },
+  subtitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1B2A56',
+    marginTop: 30,
+    marginBottom: 4,
+  },
+  card: {
+    backgroundColor: '#FFF',
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#1B2A56',
+  },
   label: { marginTop: 10, fontSize: 12, color: '#1B2A56', fontWeight: '600' },
   value: { fontSize: 14, color: '#111' },
-  step: { backgroundColor: '#FFF', borderRadius: 10, padding: 14, marginTop: 10, borderWidth: 1, borderColor: '#1B2A56' },
+  step: {
+    backgroundColor: '#FFF',
+    borderRadius: 10,
+    padding: 14,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#1B2A56',
+  },
   stepDisabled: { opacity: 0.5 },
   stepText: { color: '#1B2A56', fontWeight: '600' },
   warn: { marginTop: 12, color: '#B00020' },
