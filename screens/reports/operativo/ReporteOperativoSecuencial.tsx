@@ -1,13 +1,42 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../../../src/navigation/types';
+import { fetchProduccionByGuia } from '../../../services/reports/operativos/produccionService';
+import type { OperativoStackParamList } from '../../../src/navigation/types';
 
-type Props = NativeStackScreenProps<AuthStackParamList, 'ReporteOperativoSecuencial'>;
+type Props = NativeStackScreenProps<OperativoStackParamList, 'ReporteOperativoSecuencial'>;
 
 export default function ReporteOperativoSecuencial({ route, navigation }: Props) {
-  const params = route.params;
+  const params = route.params ?? ({} as any);
   const hasReporte = !!params?.id_guia;
+
+  const [produccionOk, setProduccionOk] = useState<boolean>(!!params?.produccion_ok);
+  const [checking, setChecking] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!params?.id_guia) return;
+
+      let mounted = true;
+      (async () => {
+        setChecking(true);
+        try {
+          const resp = await fetchProduccionByGuia(params.id_guia);
+          if (!mounted) return;
+          const ok = !!(resp.success && resp.data && resp.data.length > 0);
+          setProduccionOk(ok);
+        } finally {
+          if (mounted) setChecking(false);
+        }
+      })();
+
+      return () => {
+        mounted = false;
+      };
+    }, [params?.id_guia])
+  );
 
   return (
     <View style={styles.container}>
@@ -27,13 +56,13 @@ export default function ReporteOperativoSecuencial({ route, navigation }: Props)
         <Text style={styles.value}>{params.fecha_guia ?? '—'}</Text>
       </View>
 
+      {checking && <ActivityIndicator style={{ marginTop: 8 }} />}
+
       <Text style={styles.subtitle}>Apartados</Text>
 
       {[
-        { key: 'info', label: 'Información del reporte (OK)' },
-        { key: 'prod', label: 'Producción' },
+        { key: 'prod', label: `Producción${produccionOk ? ' (OK)' : ''}` },
         { key: 'cons', label: 'Consumos' },
-        { key: 'inv', label: 'Producción en inventario' },
         { key: 'evt', label: 'Eventos' },
         { key: 'rev', label: 'Revisiones' },
       ].map((s) => (
@@ -49,13 +78,22 @@ export default function ReporteOperativoSecuencial({ route, navigation }: Props)
                 id_guia: params.id_guia,
                 id_empresa: params.id_empresa,
                 id_grupo_equipo: params.id_grupo_equipo,
+                id_ubicacion: params.id_ubicacion,
+                fecha_guia: params.fecha_guia,
                 responsable: params.responsable,
                 descripcion_equipo: params.descripcion_equipo ?? null,
               });
               return;
             }
 
-            console.log('Abrir sección:', s.key, 'id_guia:', params.id_guia);
+            if (s.key === 'cons') {
+              navigation.navigate('ConsumosReporteOperacion', {
+                id_guia: params.id_guia,
+                id_empresa: params.id_empresa,
+                id_ubicacion: params.id_ubicacion,
+              });
+              return;
+            }
           }}
         >
           <Text style={styles.stepText}>{s.label}</Text>
@@ -100,5 +138,4 @@ const styles = StyleSheet.create({
   },
   stepDisabled: { opacity: 0.5 },
   stepText: { color: '#1B2A56', fontWeight: '600' },
-  warn: { marginTop: 12, color: '#B00020' },
 });
