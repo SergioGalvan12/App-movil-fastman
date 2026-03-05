@@ -1,3 +1,55 @@
+import type { NavigatorScreenParams } from '@react-navigation/native';
+
+export type OperativoStackParamList = {
+  ReporteOperacion: undefined;
+
+  ReporteOperativoSecuencial: {
+    id_guia: number;
+    id_equipo?: number;
+    id_turno?: number;
+    fecha_guia?: string;
+    descripcion_equipo?: string | null;
+    responsable?: string;
+    id_empresa: number;
+    id_grupo_equipo: number;
+    id_ubicacion: number;
+    produccion_ok?: boolean;
+  };
+
+  ConsumosReporteOperacion: {
+    id_guia: number;
+    id_empresa: number;
+    id_ubicacion: number;
+  };
+
+  ProduccionReporteOperacion: {
+    id_guia: number;
+    id_empresa: number;
+    id_grupo_equipo: number;
+    id_ubicacion: number;
+    fecha_guia: string;
+    responsable?: string;
+    descripcion_equipo?: string | null;
+  };
+
+  // CONSUMOS
+  CrearConsumoReporteOperacion: {
+    id_guia: number;
+    id_empresa: number;
+    id_ubicacion: number;
+    produccion?: number | null;
+  }
+
+  // Pantalla: editar consumo.
+  EditarConsumoReporteOperacion: {
+    id_consumo: number;
+    id_guia: number;
+    id_empresa: number;
+    id_ubicacion: number;
+  };
+};
+
+// Root stack (AuthStackParamList) ahora incluye el módulo Operativo como stack anidado.
 export type AuthStackParamList = {
   Domain: undefined;
   User: { domain: string; username: string };
@@ -9,27 +61,7 @@ export type AuthStackParamList = {
   CargarImagen: { backlogId: number; empresaId: number; titulo: string };
 
   ReporteVariables: undefined;
-  ReporteOperacion: undefined;
-
-  ReporteOperativoSecuencial: {
-    id_guia: number;
-    id_equipo?: number;
-    id_turno?: number;
-    fecha_guia?: string;
-    descripcion_equipo?: string | null;
-    responsable?: string;
-
-    id_empresa: number;
-    id_grupo_equipo: number;
-  };
-
-  ProduccionReporteOperacion: {
-    id_guia: number;
-    id_empresa: number;
-    id_grupo_equipo: number;
-    responsable?: string;
-    descripcion_equipo?: string | null;
-  };
+  Operativo: NavigatorScreenParams<OperativoStackParamList>;
 
   // OT
   Calendario_OT: undefined;
