@@ -40,8 +40,22 @@ type TabParamList = {
   Reportes: undefined;
   Notificaciones: undefined;
 };
+type OperativoStackParamList = {
+  ReporteOperacion: undefined;
+  ReporteOperativoSecuencial: {
+    id_guia: any;
+    id_equipo: number;
+    id_turno: number;
+    fecha_guia: string;
+    descripcion_equipo: string | null;
+    responsable: string;
+    id_empresa: number;
+    id_grupo_equipo: number;
+    id_ubicacion: number;
+  };
+};
 type NavigationProp = CompositeNavigationProp<
-  NativeStackNavigationProp<AuthStackParamList>,
+  NativeStackNavigationProp<OperativoStackParamList>,
   BottomTabNavigationProp<TabParamList>
 >;
 
@@ -275,6 +289,7 @@ export default function ReporteOperacionScreen() {
           responsable: personalName,
           id_empresa: sel.id_empresa,
           id_grupo_equipo: sel.id_grupo_equipo ?? grupoEquipo!,
+          id_ubicacion: sel.id_ubicacion,
         });
       } else {
         throw new Error(res.error || 'Error al crear reporte');

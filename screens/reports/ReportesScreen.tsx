@@ -1,50 +1,36 @@
-// src/screens/ReportesScreen.tsx
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import MenuItem from '../../components/common/MenuItem';
 import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { AuthStackParamList } from '../../App';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
+import type { AuthStackParamList } from '../../src/navigation/types';
+
+type Nav = NativeStackNavigationProp<AuthStackParamList>;
 
 export default function ReportesScreen() {
-  const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
-
-  const handlePress = (routeName: string) => {
-    // Navega a la pantalla que quieras
-    navigation.navigate(routeName as never);
-  };
+  const navigation = useNavigation<Nav>();
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Reportes</Text>
+
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        <MenuItem title="Reporte de Avería (MC)" onPress={() => navigation.navigate('Averias')} />
 
+        {/* Reporte Operativo ahora vive dentro de Operativo (stack anidado) */}
         <MenuItem
-          title="Reporte de Avería (MC)"
-          onPress={() => handlePress('Averias')}
+          title="Reporte de Operación de equipos"
+          onPress={() =>
+            navigation.navigate('Operativo', {
+              screen: 'ReporteOperacion',
+            })
+          }
         />
 
-        {/* Reporte Operativo */}
-        <MenuItem
-          title="Reporte Operativo"
-          onPress={() => handlePress('ReporteOperacion')}
-        />
-
-        {/* Reporte de Variables */}
-        <MenuItem
-          title="Reporte de Variables"
-          onPress={() => handlePress('ReporteVariables')}
-        />
-        {/* Reporte de Revisiones */}
-        <MenuItem
-          title="Reporte de Revisiones"
-          onPress={() => handlePress('Revisiones')}
-        />
-        {/* Calendario de Órdenes de Trabajo */}
-        <MenuItem
-          title="Calendario de Órdenes de Trabajo"
-          onPress={() => handlePress('Calendario_OT')}
-        />
+        <MenuItem title="Reporte de Variables" onPress={() => navigation.navigate('ReporteVariables')} />
+        <MenuItem title="Reporte de Revisiones" onPress={() => navigation.navigate('Revisiones')} />
+        <MenuItem title="Calendario de Órdenes de Trabajo" onPress={() => navigation.navigate('Calendario_OT')} />
       </ScrollView>
     </View>
   );

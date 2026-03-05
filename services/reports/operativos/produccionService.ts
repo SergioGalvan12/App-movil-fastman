@@ -14,9 +14,9 @@ export interface ProduccionPayload {
   unidad_control: number | null;
   status_produccion: boolean;
   clasificaciones: ProduccionClasificacionPayload[];
-  porcentaje_merma: string; // "0.0"
+  porcentaje_merma: string;
   nombre_producto?: string | null;
-  nuevas_clasificaciones?: number[]; // ids de clasificacion seleccionadas
+  nuevas_clasificaciones?: number[];
 }
 
 export interface ProduccionRow {
@@ -29,6 +29,11 @@ export interface ProduccionRow {
   unidad_control: number | null;
   status_produccion: boolean;
 }
+
+export type ProduccionPatchPayload = Partial<Pick<
+  ProduccionPayload,
+  'id_codigo' | 'cantidad' | 'porcentaje_merma' | 'status_produccion' | 'clasificaciones' | 'nuevas_clasificaciones'
+>>;
 
 export const createProduccion = async (
   payload: ProduccionPayload
@@ -44,5 +49,23 @@ export const fetchProduccionByGuia = async (
       id_guia,
       status_produccion: true,
     },
+  });
+};
+
+// Editar producción (PATCH)
+export const patchProduccion = async (
+  id_produccion: number,
+  payload: ProduccionPatchPayload
+): Promise<ApiResponse<any>> => {
+  return apiClient.patch<any>(`produccion/${id_produccion}/`, payload);
+};
+
+
+// Eliminar producción (SOFT DELETE)
+export const deleteProduccionSoft = async (
+  id_produccion: number
+): Promise<ApiResponse<any>> => {
+  return apiClient.patch<any>(`produccion/${id_produccion}/`, {
+    status_produccion: false,
   });
 };
