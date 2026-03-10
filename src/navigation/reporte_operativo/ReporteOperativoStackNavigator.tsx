@@ -7,7 +7,8 @@ import ConsumosReporteOperacionScreen from '../../../screens/reports/operativo/C
 
 import CrearConsumoReporteOperacionScreen from '../../../screens/reports/operativo/CrearConsumoReporteOperacionScreen';
 import EditarConsumoReporteOperacionScreen from '../../../screens/reports/operativo/EditarConsumoReporteOperacionScreen';
-
+import RevisionesReporteOperacionScreen from '../../../screens/reports/operativo/RevisionesReporteOperacionScreen';
+import EventosReporteOperacionScreen from '../../../screens/reports/operativo/EventosReporteOperacionScreen';
 import type { OperativoStackParamList } from '../types';
 
 const Stack = createNativeStackNavigator<OperativoStackParamList>();
@@ -27,6 +28,8 @@ export default function ReporteOperativoStackNavigator() {
             <Stack.Screen name="ConsumosReporteOperacion" component={ConsumosReporteOperacionScreen} />
             <Stack.Screen name="EditarConsumoReporteOperacion" component={EditarConsumoReporteOperacionScreen} />
             <Stack.Screen name="CrearConsumoReporteOperacion" component={CrearConsumoReporteOperacionScreen} />
+            <Stack.Screen name="RevisionesReporteOperacion" component={RevisionesReporteOperacionScreen} />
+            <Stack.Screen name="EventosReporteOperacion" component={EventosReporteOperacionScreen} />
         </Stack.Navigator>
     );
 }

@@ -2,7 +2,6 @@ import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { AuthStackParamList } from '../../../src/navigation/types';
 import { fetchProduccionByGuia } from '../../../services/reports/operativos/produccionService';
 import type { OperativoStackParamList } from '../../../src/navigation/types';
 
@@ -91,6 +90,24 @@ export default function ReporteOperativoSecuencial({ route, navigation }: Props)
                 id_guia: params.id_guia,
                 id_empresa: params.id_empresa,
                 id_ubicacion: params.id_ubicacion,
+              });
+              return;
+            }
+
+            if (s.key === 'evt') {
+              navigation.navigate('EventosReporteOperacion', {
+                id_guia: params.id_guia,
+                id_empresa: params.id_empresa,
+                id_grupo_equipo: params.id_grupo_equipo,
+              });
+              return;
+            }
+
+            if (s.key === 'rev') {
+              navigation.navigate('RevisionesReporteOperacion', {
+                id_guia: params.id_guia,
+                id_empresa: params.id_empresa,
+                id_grupo_equipo: params.id_grupo_equipo,
               });
               return;
             }

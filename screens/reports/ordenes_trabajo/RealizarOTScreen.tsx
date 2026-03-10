@@ -16,7 +16,7 @@ import ReportScreenLayout from '../../../components/layouts/ReportScreenLayout';
 import { RouteProp, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { AuthStackParamList } from '../../../App';
+import type { AuthStackParamList } from '../../../src/navigation/types';
 
 import {
   getOrdenTrabajo,
