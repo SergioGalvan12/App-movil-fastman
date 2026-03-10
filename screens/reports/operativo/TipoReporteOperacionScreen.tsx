@@ -6,7 +6,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { CompositeNavigationProp } from '@react-navigation/native';
-import { AuthStackParamList } from '../../../App';
+import type { AuthStackParamList } from '../../../src/navigation/types';
 import { Appbar } from 'react-native-paper';
 
 type TabParamList = {

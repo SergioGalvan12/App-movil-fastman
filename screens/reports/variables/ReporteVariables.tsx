@@ -16,7 +16,7 @@ import ReportScreenLayout from '../../../components/layouts/ReportScreenLayout';
 import Select from '../../../components/common/Select';
 import { showToast } from '../../../services/notifications/ToastService';
 
-import { AuthStackParamList } from '../../../App';
+import type { AuthStackParamList } from '../../../src/navigation/types';
 import { useAuth } from '../../../contexts/AuthContext';
 
 import { fetchTurnos, TurnoInterface } from '../../../services/reports/turnos/turnoService';

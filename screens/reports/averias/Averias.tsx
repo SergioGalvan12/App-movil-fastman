@@ -13,7 +13,7 @@ import Select from '../../../components/common/Select';
 import { fetchTurnos, TurnoInterface } from '../../../services/reports/turnos/turnoService';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { AuthStackParamList } from '../../../App';
+import type { AuthStackParamList } from '../../../src/navigation/types';
 import { fetchGrupoEquipoBacklog, GrupoEquipoBacklog } from '../../../services/reports/averias/grupoEquipoBacklogService';
 import { showToast } from '../../../services/notifications/ToastService';
 import { fetchGrupoEquipos, GrupoEquipo } from '../../../services/reports/equipos/grupoEquipoService';

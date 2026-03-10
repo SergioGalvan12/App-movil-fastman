@@ -47,6 +47,18 @@ export type OperativoStackParamList = {
     id_empresa: number;
     id_ubicacion: number;
   };
+
+  RevisionesReporteOperacion: {
+    id_guia: number;
+    id_empresa: number;
+    id_grupo_equipo: number;
+  };
+
+  EventosReporteOperacion: {
+    id_guia: number;
+    id_empresa: number;
+    id_grupo_equipo: number;
+  };
 };
 
 // Root stack (AuthStackParamList) ahora incluye el módulo Operativo como stack anidado.
