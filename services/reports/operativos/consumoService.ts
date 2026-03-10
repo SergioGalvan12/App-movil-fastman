@@ -57,6 +57,7 @@ export const fetchConsumosByGuia = async (
 
 export type PatchConsumoPayload = Partial<{
   cantidad_consumo: string;
+  costo: string;
   externo: boolean;
   id_material: number;
   id_material_usado: number | null;

@@ -21,7 +21,7 @@ import {
   BacklogImageInterface,
 } from '../../../services/reports/averias/backlogImagenService';
 import { showToast } from '../../../services/notifications/ToastService';
-import { AuthStackParamList } from '../../../App';
+import type { AuthStackParamList } from '../../../src/navigation/types';
 
 // Definimos los params que esperamos de la navegación
 type CargarImagenRouteProp = RouteProp<

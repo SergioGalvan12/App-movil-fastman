@@ -6,7 +6,7 @@ import { RouteProp, useRoute } from '@react-navigation/native';
 import { getOrdenesTrabajoPorFecha } from '../../../services/reports/ordenesTrabajo/ordenTrabajoService';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { AuthStackParamList } from '../../../App';
+import type { AuthStackParamList } from '../../../src/navigation/types';
 import { useIsFocused } from '@react-navigation/native';
 
 type RootStackParamList = {

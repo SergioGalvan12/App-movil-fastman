@@ -26,6 +26,11 @@ import {
     type ProduccionRow,
 } from '../../../services/reports/operativos/produccionService';
 
+import {
+    fetchAlmacenMateriales,
+    type AlmacenMaterialRow,
+} from '../../../services/reports/operativos/almacenMaterialesService';
+
 import type { OperativoStackParamList } from '../../../src/navigation/types';
 
 type Props = NativeStackScreenProps<OperativoStackParamList, 'ConsumosReporteOperacion'>;
@@ -52,6 +57,12 @@ export default function ConsumosReporteOperacionScreen({ route, navigation }: Pr
     const [loading, setLoading] = useState(false);
     const [consumos, setConsumos] = useState<ConsumoRow[]>([]);
     const [producciones, setProducciones] = useState<ProduccionRow[]>([]);
+
+    /**
+     * Cache de costos preview por id_material.
+     * Solo se usa cuando el consumo trae costo 0 o vacío.
+     */
+    const [previewCostMap, setPreviewCostMap] = useState<Record<number, number>>({});
 
     const produccionMap = useMemo(() => {
         const map = new Map<number, ProduccionRow>();
@@ -80,6 +91,61 @@ export default function ConsumosReporteOperacionScreen({ route, navigation }: Pr
         return c.egresado ? 'Completo' : 'Pendiente';
     }, []);
 
+    /**
+     * si un consumo viene con costo 0, consultamos almacen-materiales por id_material
+     * y usamos el costo del primer registro como preview.
+     */
+    const loadPreviewCosts = useCallback(async (rows: ConsumoRow[]) => {
+        const materialIdsToResolve = Array.from(
+            new Set(
+                rows
+                    .filter((c) => safeNumber(c.costo) <= 0 && !!c.id_material)
+                    .map((c) => c.id_material)
+            )
+        );
+
+        if (materialIdsToResolve.length === 0) {
+            setPreviewCostMap({});
+            return;
+        }
+
+        const results = await Promise.allSettled(
+            materialIdsToResolve.map(async (idMaterial) => {
+                const resp = await fetchAlmacenMateriales({ id_material: idMaterial });
+
+                if (!resp.success || !resp.data || resp.data.length === 0) {
+                    return { idMaterial, costo: 0 };
+                }
+
+                const firstRow: AlmacenMaterialRow | undefined = resp.data[0];
+                return {
+                    idMaterial,
+                    costo: safeNumber(firstRow?.costo),
+                };
+            })
+        );
+
+        const nextMap: Record<number, number> = {};
+
+        results.forEach((result) => {
+            if (result.status === 'fulfilled') {
+                nextMap[result.value.idMaterial] = result.value.costo;
+            }
+        });
+
+        setPreviewCostMap(nextMap);
+    }, []);
+
+    const getCostoVisual = useCallback(
+        (c: ConsumoRow) => {
+            const costoConsumo = safeNumber(c.costo);
+            if (costoConsumo > 0) return costoConsumo;
+
+            return previewCostMap[c.id_material] ?? 0;
+        },
+        [previewCostMap]
+    );
+
     const refresh = useCallback(async () => {
         setLoading(true);
         try {
@@ -88,12 +154,20 @@ export default function ConsumosReporteOperacionScreen({ route, navigation }: Pr
                 fetchProduccionByGuia(id_guia),
             ]);
 
+            let consumosRows: ConsumoRow[] = [];
+
             if (cRes.status === 'fulfilled') {
                 const resp = cRes.value;
-                if (resp.success && resp.data) setConsumos(resp.data);
-                else showToast('error', 'Consumos', resp.error ?? 'No se pudieron cargar consumos');
+                if (resp.success && resp.data) {
+                    consumosRows = resp.data;
+                    setConsumos(resp.data);
+                } else {
+                    setConsumos([]);
+                    showToast('error', 'Consumos', resp.error ?? 'No se pudieron cargar consumos');
+                }
             } else {
                 console.error('[Consumos] fetchConsumosByGuia error:', cRes.reason);
+                setConsumos([]);
                 showToast('error', 'Consumos', 'Error cargando consumos');
             }
 
@@ -105,13 +179,15 @@ export default function ConsumosReporteOperacionScreen({ route, navigation }: Pr
                 console.error('[Consumos] fetchProduccionByGuia error:', pRes.reason);
                 setProducciones([]);
             }
+
+            await loadPreviewCosts(consumosRows);
         } catch (e: any) {
             console.error('[Consumos] refresh error:', e);
             showToast('error', 'Consumos', e?.message ?? 'Error cargando consumos');
         } finally {
             setLoading(false);
         }
-    }, [id_guia]);
+    }, [id_guia, loadPreviewCosts]);
 
     useFocusEffect(
         useCallback(() => {
@@ -184,7 +260,8 @@ export default function ConsumosReporteOperacionScreen({ route, navigation }: Pr
                         const planeada = formatQty(c.cantidad_planeada, c.abreviatura_unidad);
                         const real = formatQty(c.cantidad_consumo, c.abreviatura_unidad);
 
-                        const costo = formatMoney(c.costo);
+                        const costoVisual = getCostoVisual(c);
+                        const costo = formatMoney(costoVisual);
                         const registrado = getRegistradoLabel(c);
 
                         return (
@@ -238,20 +315,33 @@ export default function ConsumosReporteOperacionScreen({ route, navigation }: Pr
                                         }
                                         disabled={loading}
                                     >
-                                        <Text style={styles.btnOutlineText}>Editar</Text>
+                                        <Text style={styles.btnOutlineText}>
+                                            {c.egresado ? 'Ver detalle' : 'Editar'}
+                                        </Text>
                                     </TouchableOpacity>
 
-                                    <TouchableOpacity
-                                        style={[styles.btn, styles.btnDanger]}
-                                        onPress={() => confirmDelete(c)}
-                                        disabled={loading}
-                                    >
-                                        <Text style={styles.btnDangerText}>Eliminar</Text>
-                                    </TouchableOpacity>
+                                    {!c.egresado && (
+                                        <TouchableOpacity
+                                            style={[styles.btn, styles.btnDanger]}
+                                            onPress={() => confirmDelete(c)}
+                                            disabled={loading}
+                                        >
+                                            <Text style={styles.btnDangerText}>Eliminar</Text>
+                                        </TouchableOpacity>
+                                    )}
                                 </View>
                             </View>
                         );
                     })}
+
+                    <View style={styles.infoBox}>
+                        <Text style={styles.infoTitle}>Información</Text>
+                        <Text style={styles.infoText}>
+                            En esta pantalla se listan los consumos reportados del reporte operativo.
+                            El descuento real de inventario, existencias, almacén y costos definitivos
+                            se realiza al momento de registrar el consumo.
+                        </Text>
+                    </View>
                 </ScrollView>
             )}
         </ReportScreenLayout>
@@ -292,4 +382,26 @@ const styles = StyleSheet.create({
     btnDangerText: { color: '#FFF', fontWeight: '800' },
     btnPrimary: { backgroundColor: '#1B2A56' },
     btnPrimaryText: { color: '#FFF', fontWeight: '800' },
+
+    infoBox: {
+        marginTop: 20,
+        padding: 12,
+        borderRadius: 10,
+        backgroundColor: '#F7F7FF',
+        borderWidth: 1,
+        borderColor: '#D6D7E6',
+    },
+
+    infoTitle: {
+        color: '#1B2A56',
+        fontWeight: '800',
+        marginBottom: 6,
+    },
+
+    infoText: {
+        color: '#444',
+        lineHeight: 20,
+        marginTop: 4,
+        textAlign: 'justify',
+    },
 });
