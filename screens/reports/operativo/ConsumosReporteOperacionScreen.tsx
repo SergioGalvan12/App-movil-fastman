@@ -142,10 +142,13 @@ export default function ConsumosReporteOperacionScreen({ route, navigation }: Pr
 
     const getCostoVisual = useCallback(
         (c: ConsumoRow) => {
-            const costoConsumo = safeNumber(c.costo);
-            if (costoConsumo > 0) return costoConsumo;
+            const costoTotal = safeNumber(c.costo);
+            if (costoTotal > 0) return costoTotal;
 
-            return previewCostMap[c.id_material] ?? 0;
+            const costoUnitario = safeNumber((c as any).costo_inventario) || (previewCostMap[c.id_material] ?? 0);
+            const cantidadReal = safeNumber(c.cantidad_consumo);
+
+            return cantidadReal * costoUnitario;
         },
         [previewCostMap]
     );

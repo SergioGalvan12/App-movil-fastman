@@ -312,8 +312,11 @@ export default function CrearConsumoReporteOperacionScreen({ route, navigation }
                 cantidad_planeada: editCantidadPlaneada,
                 cantidad_consumo: editCantidadReal,
 
-                costo: editExterno ? '0.00' : String(invRow?.costo ?? '0.00'),
-                costo_inventario: costoInvNum,
+                // costo = total del consumo
+                costo: String(costoTotalNum.toFixed(2)),
+
+                // costo_inventario = costo unitario usado para el cálculo
+                costo_inventario: costoUnitarioNum,
 
                 externo: !!editExterno,
                 egresado: false,
