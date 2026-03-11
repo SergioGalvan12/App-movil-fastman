@@ -73,30 +73,39 @@ export default function EditarConsumoReporteOperacionScreen({ route, navigation 
     const unidadLabel = (consumo?.abreviatura_unidad ?? '').trim();
 
     const loadPreviewCostoUnitario = useCallback(async (currentConsumo: ConsumoRow) => {
-        const costoConsumo = safeNumber(currentConsumo.costo);
-
-        // Si el consumo ya trae costo válido, usamos ese
-        if (costoConsumo > 0) {
-            setPreviewCostoUnitario(costoConsumo);
+        const cantidadReal = safeNumber(currentConsumo.cantidad_consumo);
+        const costoTotal = safeNumber(currentConsumo.costo);
+        const costoUnitarioBackend = safeNumber((currentConsumo as any).costo_inventario);
+        if (costoUnitarioBackend > 0) {
+            setPreviewCostoUnitario(costoUnitarioBackend);
             return;
         }
 
-        try {
-            const resp = await fetchAlmacenMateriales({
-                id_material: currentConsumo.id_material,
-            });
-
-            if (!resp.success || !resp.data || resp.data.length === 0) {
-                setPreviewCostoUnitario(0);
-                return;
-            }
-
-            const firstRow: AlmacenMaterialRow | undefined = resp.data[0];
-            setPreviewCostoUnitario(safeNumber(firstRow?.costo));
-        } catch (e) {
-            console.error('[EditarConsumo] loadPreviewCostoUnitario error:', e);
-            setPreviewCostoUnitario(0);
+        if (costoTotal > 0 && cantidadReal > 0) {
+            setPreviewCostoUnitario(costoTotal / cantidadReal);
+            return;
         }
+
+        if (!currentConsumo.externo && currentConsumo.id_almacen) {
+            try {
+                const resp = await fetchAlmacenMateriales({
+                    id_material: currentConsumo.id_material,
+                    id_almacen: currentConsumo.id_almacen,
+                });
+
+                if (!resp.success || !resp.data || resp.data.length === 0) {
+                    setPreviewCostoUnitario(0);
+                    return;
+                }
+
+                const firstRow: AlmacenMaterialRow | undefined = resp.data[0];
+                setPreviewCostoUnitario(safeNumber(firstRow?.costo));
+                return;
+            } catch (e) {
+                console.error('[EditarConsumo] loadPreviewCostoUnitario error:', e);
+            }
+        }
+        setPreviewCostoUnitario(0);
     }, []);
 
     const loadProductoLabel = useCallback(
