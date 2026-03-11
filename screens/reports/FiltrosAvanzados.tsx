@@ -13,7 +13,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import HeaderTitle from '../../components/common/HeaderTitle';
 import SearchInput from '../../components/common/SearchInput';
 import Select from '../../components/common/Select';
-import { AuthStackParamList } from '../../App';
+import type { AuthStackParamList } from '../../src/navigation/types';
 import { fetchGrupoEquipos, GrupoEquipo } from '../../services/reports/equipos/grupoEquipoService';
 import { fetchMarcas, Marca } from '../../services/reports/averias/marcaService';
 import { fetchModelos, Modelo } from '../../services/reports/averias/modeloService';

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, StyleSheet, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { AuthStackParamList } from '../../App';
+import type { AuthStackParamList } from '../../src/navigation/types';
 import { checkDomain } from '../../services/auth/authService';
 import { showToast } from '../../services/notifications/ToastService';
 import apiClient from '../../services/apiClient';
