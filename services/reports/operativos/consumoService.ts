@@ -14,6 +14,7 @@ export interface ConsumoRow {
   costo: string;
   externo: boolean;
   egresado: boolean;
+  id_material_usado?: number | null;
   status_consumo: boolean;
   abreviatura_unidad: string | null;
   created?: string;
@@ -38,6 +39,38 @@ export type CreateConsumoPayload = {
   id_material_usado?: number | null;
 };
 
+export type PatchConsumoPayload = Partial<{
+  cantidad_consumo: string;
+  costo: string;
+  externo: boolean;
+  id_material: number;
+  id_material_usado: number | null;
+}>;
+
+export interface RegistrarConsumoItemPayload {
+  consumo_id: number;
+  id_almacen: number;
+}
+
+export interface RegistrarConsumoPayload {
+  items: RegistrarConsumoItemPayload[];
+}
+
+export interface RegistrarConsumoProcessedRow {
+  consumo_id: number;
+  egreso_id: number;
+  material_id: number;
+  cantidad: string;
+  costo: string;
+  id_reporte_operacion: number;
+  id_ubicacion: number;
+}
+
+export interface RegistrarConsumoResponse {
+  processed: RegistrarConsumoProcessedRow[];
+  errors: any[];
+}
+
 export const createConsumo = async (
   payload: CreateConsumoPayload
 ): Promise<ApiResponse<ConsumoRow>> => {
@@ -55,19 +88,17 @@ export const fetchConsumosByGuia = async (
   });
 };
 
-export type PatchConsumoPayload = Partial<{
-  cantidad_consumo: string;
-  costo: string;
-  externo: boolean;
-  id_material: number;
-  id_material_usado: number | null;
-}>;
-
 export const patchConsumo = async (
   id_consumo: number,
   payload: PatchConsumoPayload
 ): Promise<ApiResponse<any>> => {
   return apiClient.patch<any>(`consumo/${id_consumo}/`, payload);
+};
+
+export const registrarConsumo = async (
+  payload: RegistrarConsumoPayload
+): Promise<ApiResponse<RegistrarConsumoResponse>> => {
+  return apiClient.post<RegistrarConsumoResponse>('registrar-consumo/', payload);
 };
 
 /**

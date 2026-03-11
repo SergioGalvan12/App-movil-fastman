@@ -58,6 +58,10 @@ export default function ConsumosReporteOperacionScreen({ route, navigation }: Pr
     const [consumos, setConsumos] = useState<ConsumoRow[]>([]);
     const [producciones, setProducciones] = useState<ProduccionRow[]>([]);
 
+    const hasPendingConsumos = useMemo(() => {
+        return consumos.some(c => !c.egresado);
+    }, [consumos]);
+
     /**
      * Cache de costos preview por id_material.
      * Solo se usa cuando el consumo trae costo 0 o vacío.
@@ -235,22 +239,42 @@ export default function ConsumosReporteOperacionScreen({ route, navigation }: Pr
 
             {loading && <ActivityIndicator style={{ marginTop: 10 }} />}
 
-            <TouchableOpacity
-                style={[styles.btn, styles.btnPrimary, { alignSelf: 'flex-end', marginTop: 10 }]}
-                onPress={() =>
-                    navigation.navigate('CrearConsumoReporteOperacion', {
-                        id_guia,
-                        id_empresa: route.params.id_empresa,
-                        id_ubicacion: route.params.id_ubicacion,
-                    })
-                }
-                disabled={loading}
-            >
-                <Text style={styles.btnPrimaryText}>+ Nuevo consumo</Text>
-            </TouchableOpacity>
+            <View style={styles.actionsTop}>
+                <TouchableOpacity
+                    style={[
+                        styles.btn,
+                        styles.btnOutline,
+                        (!hasPendingConsumos || loading) && styles.buttonDisabled
+                    ]}
+                    onPress={() =>
+                        navigation.navigate('RegistrarConsumosReporteOperacion', {
+                            id_guia,
+                            id_empresa: route.params.id_empresa,
+                            id_ubicacion: route.params.id_ubicacion,
+                        })
+                    }
+                    disabled={!hasPendingConsumos || loading}
+                >
+                    <Text style={styles.btnOutlineText}>Registrar consumos</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={[styles.btn, styles.btnPrimary]}
+                    onPress={() =>
+                        navigation.navigate('CrearConsumoReporteOperacion', {
+                            id_guia,
+                            id_empresa: route.params.id_empresa,
+                            id_ubicacion: route.params.id_ubicacion,
+                        })
+                    }
+                    disabled={loading}
+                >
+                    <Text style={styles.btnPrimaryText}>+ Nuevo consumo</Text>
+                </TouchableOpacity>
+            </View>
 
             {consumos.length === 0 ? (
-                <Text style={styles.empty}>Sin consumos</Text>
+                <Text style={styles.empty}>Sin consumos reportados</Text>
             ) : (
                 <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
                     {consumos.map((c) => {
@@ -349,7 +373,16 @@ export default function ConsumosReporteOperacionScreen({ route, navigation }: Pr
 }
 
 const styles = StyleSheet.create({
-    empty: { marginTop: 10, color: '#555' },
+    actionsTop: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        gap: 10,
+        marginTop: 10,
+    },
+    buttonDisabled: {
+        opacity: 0.5
+    },
+    empty: { marginTop: 20, color: '#555', textAlign: 'center' },
 
     card: {
         backgroundColor: '#FFF',
@@ -375,7 +408,13 @@ const styles = StyleSheet.create({
         flexWrap: 'wrap',
     },
 
-    btn: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10 },
+    btn: {
+        flex: 1,
+        paddingVertical: 10,
+        paddingHorizontal: 14,
+        borderRadius: 10,
+        alignItems: 'center',
+    },
     btnOutline: { borderWidth: 1, borderColor: '#1B2A56', backgroundColor: '#FFF' },
     btnOutlineText: { color: '#1B2A56', fontWeight: '800' },
     btnDanger: { backgroundColor: '#B00020' },
