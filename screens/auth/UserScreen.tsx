@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, StyleSheet, Image, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
-import { AuthStackParamList } from '../../App';
+import type { AuthStackParamList } from '../../src/navigation/types';
 import { checkUser } from '../../services/auth/authService';
 import { showToast } from '../../services/notifications/ToastService';
 
@@ -18,6 +18,8 @@ type Props = {
 
 export default function UserScreen({ navigation, route }: Props) {
   const { domain } = route.params;
+  // para desarrollo   
+  // const [username, setUsername] = useState('jlcd_demo');
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

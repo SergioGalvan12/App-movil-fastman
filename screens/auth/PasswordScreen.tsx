@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
-import { AuthStackParamList } from '../../App';
+import type { AuthStackParamList } from '../../src/navigation/types';
 import CustomCheckbox from '../../components/common/CustomCheckbox';
 import { login } from '../../services/auth/authService';
 import { showToast } from '../../services/notifications/ToastService';
@@ -31,6 +31,8 @@ type Props = {
 export default function PasswordScreen({ navigation, route }: Props) {
   const { domain, username, empresaId } = route.params;
   const { signIn } = useAuth();
+  // para desarrollo   
+  // const [password, setPassword] = useState('jlcddemo2@24');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMeState] = useState(false);

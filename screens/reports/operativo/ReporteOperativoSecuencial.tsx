@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { useFocusEffect, usePreventRemove } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { fetchProduccionByGuia } from '../../../services/reports/operativos/produccionService';
 import type { OperativoStackParamList } from '../../../src/navigation/types';
@@ -14,16 +14,24 @@ export default function ReporteOperativoSecuencial({ route, navigation }: Props)
   const [produccionOk, setProduccionOk] = useState<boolean>(!!params?.produccion_ok);
   const [checking, setChecking] = useState(false);
 
+  /**
+   * Cuando es false, bloqueamos la salida de esta pantalla.
+   * Cuando el usuario confirma, la activamos temporalmente y navegamos.
+   */
+  const [canExit, setCanExit] = useState(false);
+
   useFocusEffect(
     useCallback(() => {
       if (!params?.id_guia) return;
 
       let mounted = true;
+
       (async () => {
         setChecking(true);
         try {
           const resp = await fetchProduccionByGuia(params.id_guia);
           if (!mounted) return;
+
           const ok = !!(resp.success && resp.data && resp.data.length > 0);
           setProduccionOk(ok);
         } finally {
@@ -36,6 +44,48 @@ export default function ReporteOperativoSecuencial({ route, navigation }: Props)
       };
     }, [params?.id_guia])
   );
+
+  /**
+   * Este hook bloquea cualquier intento de salir de la pantalla:
+   * - botón back Android
+   * - gesto de retroceso
+   * - back del stack
+   */
+  usePreventRemove(!canExit, ({ data }) => {
+    Alert.alert(
+      'Salir del reporte',
+      'Si sales de aquí, ya no podrás acceder nuevamente al reporte actual desde la app. Su registro deberá continuarse en línea. ¿Deseas salir?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Salir',
+          style: 'destructive',
+          onPress: () => {
+            setCanExit(true);
+
+            /**
+             * IMPORTANTE:
+             * En tu AuthStackParamList NO existe una ruta llamada "Reportes".
+             * Por lo que aquí te dejo la salida segura al stack principal.
+             *
+             * Si tu pantalla de Reportes vive dentro de Main (BottomTabNavigator),
+             * después hay que navegar a esa tab/pantalla según cómo esté definido tu BottomTab.
+             */
+            const parent = navigation.getParent();
+
+            if (parent) {
+              parent.navigate('Main');
+            } else {
+              navigation.navigate('ReporteOperacion');
+            }
+          },
+        },
+      ]
+    );
+  });
 
   return (
     <View style={styles.container}>
@@ -109,7 +159,6 @@ export default function ReporteOperativoSecuencial({ route, navigation }: Props)
                 id_empresa: params.id_empresa,
                 id_grupo_equipo: params.id_grupo_equipo,
               });
-              return;
             }
           }}
         >
@@ -130,7 +179,8 @@ const styles = StyleSheet.create({
     marginTop: 50,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 20,
+    textAlign: 'center',
     fontWeight: 'bold',
     color: '#1B2A56',
     marginTop: 30,
@@ -146,7 +196,7 @@ const styles = StyleSheet.create({
   label: { marginTop: 10, fontSize: 12, color: '#1B2A56', fontWeight: '600' },
   value: { fontSize: 14, color: '#111' },
   step: {
-    backgroundColor: '#FFF',
+    backgroundColor: 'hsl(218, 61%, 28%)',
     borderRadius: 10,
     padding: 14,
     marginTop: 10,
@@ -154,5 +204,9 @@ const styles = StyleSheet.create({
     borderColor: '#1B2A56',
   },
   stepDisabled: { opacity: 0.5 },
-  stepText: { color: '#1B2A56', fontWeight: '600' },
+  stepText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    textAlign: 'center',
+  },
 });
