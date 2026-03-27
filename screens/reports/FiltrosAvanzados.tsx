@@ -1,17 +1,9 @@
 // screens/reports/FiltrosAvanzados.tsx
 import React, { useEffect, useState } from 'react';
-import {
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  ActivityIndicator,
-  Text,
-  View
-} from 'react-native';
+import { Text, View, StyleSheet } from 'react-native';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import HeaderTitle from '../../components/common/HeaderTitle';
 import SearchInput from '../../components/common/SearchInput';
 import Select from '../../components/common/Select';
 
@@ -19,9 +11,18 @@ import type { AuthStackParamList } from '../../src/navigation/types';
 import { fetchGrupoEquipos, GrupoEquipo } from '../../services/reports/equipos/grupoEquipoService';
 import { fetchMarcas, Marca } from '../../services/reports/averias/marcaService';
 import { fetchModelos, Modelo } from '../../services/reports/averias/modeloService';
-import { ClasificacionUbicacion, fetchClasificacionesUbicacion } from '../../services/reports/averias/clasificacionService';
+import {
+  ClasificacionUbicacion,
+  fetchClasificacionesUbicacion,
+} from '../../services/reports/averias/clasificacionService';
 import { Ubicacion, fetchUbicaciones } from '../../services/reports/averias/ubicacionService';
 import { Area, fetchAreas } from '../../services/reports/averias/areaService';
+
+import { ScrollScreenContainer } from '../../src/ui/ScrollScreenContainer/ScrollScreenContainer';
+import { PageHeader } from '../../src/ui/PageHeader/PageHeader';
+import { FormSectionLabel } from '../../src/ui/FormSectionLabel/FormSectionLabel';
+import { FieldFeedback } from '../../src/ui/FieldFeedback/FieldFeedback';
+import { colors, spacing } from '../../src/theme';
 
 type FiltrosRouteProp = RouteProp<AuthStackParamList, 'FiltrosAvanzados'>;
 type NavProp = NativeStackNavigationProp<AuthStackParamList, 'FiltrosAvanzados'>;
@@ -69,7 +70,7 @@ export default function FiltrosAvanzados() {
   const [loadingAreas, setLoadingAreas] = useState(true);
   const [errorAreas, setErrorAreas] = useState('');
   const [areaSelected, setAreaSelected] = useState<number | null>(null);
-  
+
   // carga inicial de grupos
   useEffect(() => {
     (async () => {
@@ -178,169 +179,130 @@ export default function FiltrosAvanzados() {
   }, []);
 
 
-    // Carga de áreas
-    useEffect(() => {
-      (async () => {
-        try {
-          const resp = await fetchAreas();
-          if (resp.success && resp.data) setAreas(resp.data);
-          else setErrorAreas(resp.error || 'Error al cargar áreas');
-        } catch {
-          setErrorAreas('Error inesperado');
-        } finally {
-          setLoadingAreas(false);
-        }
-      })();
-    }, []);
+  // Carga de áreas
+  useEffect(() => {
+    (async () => {
+      try {
+        const resp = await fetchAreas();
+        if (resp.success && resp.data) setAreas(resp.data);
+        else setErrorAreas(resp.error || 'Error al cargar áreas');
+      } catch {
+        setErrorAreas('Error inesperado');
+      } finally {
+        setLoadingAreas(false);
+      }
+    })();
+  }, []);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <HeaderTitle title="Filtros Avanzados" />
+    <ScrollScreenContainer>
+      <PageHeader
+        title="Filtros Avanzados"
+        subtitle="Refina la búsqueda de equipos y reportes con filtros más específicos."
+      />
 
-        {/* Búsqueda libre */}
-        <SearchInput placeholder="número económico, matrícula ó descripción" />
+      <SearchInput placeholder="número económico, matrícula ó descripción" />
 
-        {/* Selector de Grupo de Equipo */}
-        <Text style={styles.label}>Grupo de equipo</Text>
-        {loadingGrupos ? (
-          <ActivityIndicator style={{ marginVertical: 10 }} />
-        ) : errorGrupos ? (
-          <Text style={styles.error}>{errorGrupos}</Text>
-        ) : (
-          <Select<GrupoEquipo>
-            options={grupos}
-            valueKey="id_grupo_equipo"
-            labelKey="nombre_grupo_equipo"
-            selectedValue={grupoSelected}
-            onValueChange={(val) => {
-              console.log('[FiltrosAvanzados] Grupo cambiado →', val);
-              setGrupoSelected(val as number | null);
-            }}
-            placeholder="— Selecciona grupo —"
-          />
-        )}
-
-        {/* Selector de Marca */}
-        <Text style={styles.label}>Marca</Text>
-        {loadingMarcas ? (
-          <ActivityIndicator style={{ marginVertical: 10 }} />
-        ) : errorMarcas ? (
-          <Text style={styles.error}>{errorMarcas}</Text>
-        ) : (
-          <Select<Marca>
-            options={marcas}
-            valueKey="id_marca"
-            labelKey="nombre_marca"
-            selectedValue={marcaSelected}
-            onValueChange={(val) => {
-              console.log('[FiltrosAvanzados] Marca cambiada →', val);
-              setMarcaSelected(val as number | null);
-            }}
-            placeholder="— Selecciona marca —"
-          />
-        )}
-
-        {/* Selector de Modelo  depende de la marca*/}
-        <Text style={styles.label}>Modelo</Text>
-        {loadingModelos ? (
-          <ActivityIndicator style={{ marginVertical: 10 }} />
-        ) : errorModelos ? (
-          <Text style={styles.error}>{errorModelos}</Text>
-        ) : (
-          <Select<Modelo>
-            options={modelos}
-            valueKey="id_modelo"
-            labelKey="nombre_modelo"
-            selectedValue={modeloSelected}
-            onValueChange={(val) => {
-              console.log('[FiltrosAvanzados] Modelo cambiado →', val);
-              setModeloSelected(val as number | null);
-            }}
-            placeholder={
-              marcaSelected != null && modelos.length === 0
-                ? 'No hay modelos para esta marca'
-                : '— Selecciona modelo —'
-            }
-          />
-        )}
-
-        <Text style={styles.label}>Clasificación</Text>
-        <Select<ClasificacionUbicacion>
-          options={clasificaciones}
-          valueKey="id_clasificacion"
-          labelKey="nombre_clasificacion"
-          selectedValue={clasificacionSelected}
+      <FormSectionLabel>Grupo de equipo</FormSectionLabel>
+      <FieldFeedback loading={loadingGrupos} error={errorGrupos} />
+      {!loadingGrupos && !errorGrupos && (
+        <Select<GrupoEquipo>
+          options={grupos}
+          valueKey="id_grupo_equipo"
+          labelKey="nombre_grupo_equipo"
+          selectedValue={grupoSelected}
           onValueChange={(val) => {
-            console.log('[Averias] Clasificación seleccionada:', val);
-            setClasificacionSelected(val as number | null);
+            console.log('[FiltrosAvanzados] Grupo cambiado →', val);
+            setGrupoSelected(val as number | null);
           }}
-          placeholder="Todas las ubicaciones"
-          loading={loadingClasificaciones}
-          error={errorClasificaciones}
+          placeholder="— Selecciona grupo —"
         />
+      )}
 
-        <Text style={styles.label}>Ubicación</Text>
-        {loadingUbicaciones ? (
-          <ActivityIndicator style={{ marginVertical: 10 }} />
-        ) : errorUbicaciones ? (
-          <Text style={styles.error}>{errorUbicaciones}</Text>
-        ) : (
-          <Select<Ubicacion>
-            options={ubicaciones}
-            valueKey="id_ubicacion"
-            labelKey="nombre_ubicacion"
-            selectedValue={ubicacionSelected}
-            onValueChange={val => setUbicacionSelected(val as number | null)}
-            placeholder="— Selecciona ubicación —"
-          />
-        )}
+      <FormSectionLabel>Marca</FormSectionLabel>
+      <FieldFeedback loading={loadingMarcas} error={errorMarcas} />
+      {!loadingMarcas && !errorMarcas && (
+        <Select<Marca>
+          options={marcas}
+          valueKey="id_marca"
+          labelKey="nombre_marca"
+          selectedValue={marcaSelected}
+          onValueChange={(val) => {
+            console.log('[FiltrosAvanzados] Marca cambiada →', val);
+            setMarcaSelected(val as number | null);
+          }}
+          placeholder="— Selecciona marca —"
+        />
+      )}
 
-                {/* Área */}
-                <Text style={styles.label}>Área</Text>
-        {loadingAreas ? (
-          <ActivityIndicator style={{ marginVertical: 10 }} />
-        ) : errorAreas ? (
-          <Text style={styles.error}>{errorAreas}</Text>
-        ) : (
-          <Select<Area>
-            options={areas}
-            valueKey="id_area"
-            labelKey="nombre_area"
-            selectedValue={areaSelected}
-            onValueChange={val => setAreaSelected(val as number | null)}
-            placeholder="— Selecciona área —"
-          />
-        )}
+      <FormSectionLabel>Modelo</FormSectionLabel>
+      <FieldFeedback loading={loadingModelos} error={errorModelos} />
+      {!loadingModelos && !errorModelos && (
+        <Select<Modelo>
+          options={modelos}
+          valueKey="id_modelo"
+          labelKey="nombre_modelo"
+          selectedValue={modeloSelected}
+          onValueChange={(val) => {
+            console.log('[FiltrosAvanzados] Modelo cambiado →', val);
+            setModeloSelected(val as number | null);
+          }}
+          placeholder={
+            marcaSelected != null && modelos.length === 0
+              ? 'No hay modelos para esta marca'
+              : '— Selecciona modelo —'
+          }
+        />
+      )}
 
-        {/* Selector de Ubicación */}
-        {/* Aquí podrías renderizar más controles según el grupoSelected */}
-        {/* ... */}
-      </ScrollView>
-    </SafeAreaView>
+      <FormSectionLabel>Clasificación</FormSectionLabel>
+      <Select<ClasificacionUbicacion>
+        options={clasificaciones}
+        valueKey="id_clasificacion"
+        labelKey="nombre_clasificacion"
+        selectedValue={clasificacionSelected}
+        onValueChange={(val) => {
+          console.log('[Averias] Clasificación seleccionada:', val);
+          setClasificacionSelected(val as number | null);
+        }}
+        placeholder="Todas las ubicaciones"
+        loading={loadingClasificaciones}
+        error={errorClasificaciones}
+      />
+
+      <FormSectionLabel>Ubicación</FormSectionLabel>
+      <FieldFeedback loading={loadingUbicaciones} error={errorUbicaciones} />
+      {!loadingUbicaciones && !errorUbicaciones && (
+        <Select<Ubicacion>
+          options={ubicaciones}
+          valueKey="id_ubicacion"
+          labelKey="nombre_ubicacion"
+          selectedValue={ubicacionSelected}
+          onValueChange={(val) => setUbicacionSelected(val as number | null)}
+          placeholder="— Selecciona ubicación —"
+        />
+      )}
+
+      <FormSectionLabel>Área</FormSectionLabel>
+      <FieldFeedback loading={loadingAreas} error={errorAreas} />
+      {!loadingAreas && !errorAreas && (
+        <Select<Area>
+          options={areas}
+          valueKey="id_area"
+          labelKey="nombre_area"
+          selectedValue={areaSelected}
+          onValueChange={(val) => setAreaSelected(val as number | null)}
+          placeholder="— Selecciona área —"
+        />
+      )}
+
+      <View style={styles.bottomSpacer} />
+    </ScrollScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#EFF0FA',
-    padding: 20,
-    paddingTop: 35,
-  },
-  container: {
-    paddingBottom: 30,
-    backgroundColor: '#EFF0FA',
-  },
-  label: {
-    marginTop: 20,
-    marginBottom: 8,
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1B2A56',
-  },
-  error: {
-    color: '#E53935',
-    marginVertical: 8,
+  bottomSpacer: {
+    height: spacing.md,
   },
 });

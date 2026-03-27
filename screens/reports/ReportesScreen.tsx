@@ -1,10 +1,13 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import MenuItem from '../../components/common/MenuItem';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import type { AuthStackParamList } from '../../src/navigation/types';
+import { ScreenContainer } from '../../src/ui/ScreenContainer/ScreenContainer';
+import { PageHeader } from '../../src/ui/PageHeader/PageHeader';
+import { spacing } from '../../src/theme';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList>;
 
@@ -12,13 +15,18 @@ export default function ReportesScreen() {
   const navigation = useNavigation<Nav>();
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Reportes</Text>
+    <ScreenContainer>
+      <PageHeader title="Reportes" />
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <MenuItem title="Reporte de Avería (MC)" onPress={() => navigation.navigate('Averias')} />
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <MenuItem
+          title="Reporte de Avería (MC)"
+          onPress={() => navigation.navigate('Averias')}
+        />
 
-        {/* Reporte Operativo ahora vive dentro de Operativo (stack anidado) */}
         <MenuItem
           title="Reporte de Operación de equipos"
           onPress={() =>
@@ -28,28 +36,27 @@ export default function ReportesScreen() {
           }
         />
 
-        <MenuItem title="Reporte de Variables" onPress={() => navigation.navigate('ReporteVariables')} />
-        <MenuItem title="Reporte de Revisiones" onPress={() => navigation.navigate('Revisiones')} />
-        <MenuItem title="Calendario de Órdenes de Trabajo" onPress={() => navigation.navigate('Calendario_OT')} />
+        <MenuItem
+          title="Reporte de Variables"
+          onPress={() => navigation.navigate('ReporteVariables')}
+        />
+
+        <MenuItem
+          title="Reporte de Revisiones"
+          onPress={() => navigation.navigate('Revisiones')}
+        />
+
+        <MenuItem
+          title="Calendario de Órdenes de Trabajo"
+          onPress={() => navigation.navigate('Calendario_OT')}
+        />
       </ScrollView>
-    </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#EFF0FA',
-    paddingTop: 50,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#1B2A56',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
   scrollContent: {
-    paddingBottom: 20,
+    paddingBottom: spacing.lg,
   },
 });

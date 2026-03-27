@@ -1,5 +1,6 @@
 import React from 'react';
-import { SafeAreaView, View } from 'react-native';
+import { View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { commonStyles } from '../../styles/commonStyles';
 
 type ScreenContainerProps = {
@@ -8,7 +9,7 @@ type ScreenContainerProps = {
 
 export const ScreenContainer = ({ children }: ScreenContainerProps) => {
   return (
-    <SafeAreaView style={commonStyles.screen}>
+    <SafeAreaView style={commonStyles.screen} edges={['top', 'left', 'right']}>
       <View style={commonStyles.contentContainer}>{children}</View>
     </SafeAreaView>
   );
