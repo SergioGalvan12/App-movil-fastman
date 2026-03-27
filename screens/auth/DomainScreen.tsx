@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import type { AuthStackParamList } from '../../src/navigation/types';
 import { checkDomain } from '../../services/auth/authService';
 import { showToast } from '../../services/notifications/ToastService';
-import apiClient from '../../services/apiClient';
-import { clearAuthToken } from '../../services/apiClient';
+import apiClient, { clearAuthToken } from '../../services/apiClient';
 import { getCurrentSession, getRememberMe } from '../../services/auth/authStorage';
 import { REQUIRE_DOMAIN_INPUT, DEFAULT_DOMAIN, LOCKED_DOMAIN } from '@env';
 
+import { ScreenContainer } from '../../src/ui/ScreenContainer/ScreenContainer';
+import { AppInput } from '../../src/ui/AppInput/AppInput';
+import { AppButton } from '../../src/ui/AppButton/AppButton';
+import { AuthLayout } from '../../src/ui/AuthLayout/AuthLayout';
 
 type DomainScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Domain'>;
-type Props = { navigation: DomainScreenNavigationProp; };
+type Props = { navigation: DomainScreenNavigationProp };
 
 export default function DomainScreen({ navigation }: Props) {
   const [domain, setDomain] = useState('');
@@ -21,6 +23,7 @@ export default function DomainScreen({ navigation }: Props) {
   useEffect(() => {
     (async () => {
       const requireDomain = String(REQUIRE_DOMAIN_INPUT).toLowerCase() === 'true';
+
       if (!requireDomain) {
         const auto = (LOCKED_DOMAIN || DEFAULT_DOMAIN || '').trim().toLowerCase();
 
@@ -36,6 +39,7 @@ export default function DomainScreen({ navigation }: Props) {
       const remember = await getRememberMe();
       if (remember) {
         const session = await getCurrentSession();
+
         if (session) {
           navigation.replace('Password', {
             domain: session.domain,
@@ -47,13 +51,17 @@ export default function DomainScreen({ navigation }: Props) {
     })();
   }, [navigation]);
 
-
   const handleNext = async () => {
     const raw = domain.trim().toLowerCase();
+
     if (!raw) {
-      showToast('error', 'Dominio requerido', 'Por favor ingresa el dominio de tu empresa');
+      const message = 'Por favor ingresa el dominio de tu empresa';
+      setError(message);
+      showToast('error', 'Dominio requerido', message);
       return;
     }
+
+    setError('');
 
     if (raw === 'local') {
       apiClient.setDomain('local');
@@ -63,17 +71,24 @@ export default function DomainScreen({ navigation }: Props) {
     }
 
     setLoading(true);
+
     try {
       apiClient.setDomain(raw);
       clearAuthToken();
+
       const result = await checkDomain(raw);
+
       if (result.success) {
         navigation.navigate('User', { domain: raw, username: '' });
       } else {
-        showToast('error', 'Dominio no registrado', `El dominio "${raw}" no existe en Fastman.io`);
+        const message = `El dominio "${raw}" no existe en Fastman.io`;
+        setError(message);
+        showToast('error', 'Dominio no registrado', message);
       }
     } catch (err) {
-      showToast('error', 'Error al verificar el dominio, revisa dominio.');
+      const message = 'Error al verificar el dominio, revisa dominio.';
+      setError(message);
+      showToast('error', message);
       console.error(err);
     } finally {
       setLoading(false);
@@ -81,131 +96,29 @@ export default function DomainScreen({ navigation }: Props) {
   };
 
   return (
-    <View style={styles.container}>
-      <Image source={require('../../assets/fastman.png')} style={styles.logo} />
+    <ScreenContainer>
+      <AuthLayout title="Iniciar sesión">
+        <AppInput
+          label="Dominio de la empresa"
+          value={domain}
+          placeholder="Ingresa el dominio (ej: gpp)"
+          onChangeText={(text) => {
+            setDomain(text);
+            if (error) setError('');
+          }}
+          autoCapitalize="none"
+          keyboardType="url"
+          editable={!loading}
+          error={error}
+        />
 
-      <Text style={styles.title}>Iniciar sesión</Text>
-
-      <Text style={styles.label}>Dominio de la empresa</Text>
-      <TextInput
-        value={domain}
-        placeholder="Ingresa el dominio (ej: gpp)"
-        style={styles.input}
-        placeholderTextColor="#999"
-        onChangeText={text => {
-          setDomain(text);
-          setError('');
-        }}
-        autoCapitalize="none"
-        keyboardType="url"
-        editable={!loading}
-      />
-
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-      <TouchableOpacity
-        style={[styles.button, loading && styles.buttonDisabled]}
-        onPress={handleNext}
-        disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator color="#FFF" size="small" />
-        ) : (
-          <Text style={styles.buttonText}>Siguiente</Text>
-        )}
-      </TouchableOpacity>
-
-      <Text style={styles.footer}>© Copyright Fastman 2025</Text>
-      <View style={styles.linksContainer}>
-        <Text style={styles.link}>Aviso de privacidad</Text>
-        <Text style={styles.link}>Política de privacidad</Text>
-      </View>
-    </View>
+        <AppButton
+          title="Siguiente"
+          onPress={handleNext}
+          loading={loading}
+          disabled={loading}
+        />
+      </AuthLayout>
+    </ScreenContainer>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#EFF0FA',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-  },
-  logo: {
-    width: 300,
-    height: 200,
-    resizeMode: 'contain',
-    marginTop: 50,
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#1B2A56',
-  },
-  label: {
-    alignSelf: 'flex-start',
-    color: '#1B2A56',
-    marginBottom: 5,
-    marginLeft: 5,
-  },
-  input: {
-    width: '100%',
-    backgroundColor: '#FFF',
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    fontSize: 16,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#DDD',
-  },
-  errorText: {
-    color: '#E53935',
-    fontSize: 14,
-    alignSelf: 'flex-start',
-    marginBottom: 10,
-  },
-  button: {
-    width: '100%',
-    backgroundColor: '#5D74A6',
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  buttonDisabled: {
-    backgroundColor: '#A0A0A0',
-  },
-  buttonText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  domainHint: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 20,
-    paddingHorizontal: 10,
-  },
-  footer: {
-    fontSize: 12,
-    color: '#000',
-    marginBottom: 10,
-  },
-  linksContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    paddingHorizontal: 20,
-  },
-  link: {
-    fontSize: 12,
-    marginBottom: 10,
-    color: '#5D74A6',
-    textDecorationLine: 'underline',
-  },
-});
